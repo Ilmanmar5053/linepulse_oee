@@ -4527,6 +4527,24 @@ tbody.innerHTML = '';
         });
         const lineGroups = Array.from(lineGroupsMap.values());
 
+        // Group downtimes by production_line_id
+        const dtLineGroupsMap = new Map();
+        downtimes.forEach(dt => {
+            const lineId = dt.production_line_id || 0;
+            const lineName = dt.production_line?.name || (allMasterLines.find(l => l.id == lineId)?.name || `Line #${lineId}`);
+            const lineCode = dt.production_line?.code || (allMasterLines.find(l => l.id == lineId)?.code || '');
+            if (!dtLineGroupsMap.has(lineId)) {
+                dtLineGroupsMap.set(lineId, {
+                    lineId,
+                    lineName,
+                    lineCode,
+                    items: []
+                });
+            }
+            dtLineGroupsMap.get(lineId).items.push(dt);
+        });
+        const dtLineGroups = Array.from(dtLineGroupsMap.values());
+
         const content = document.getElementById('content-body');
         content.innerHTML = `
             <!-- HEADER & DATE FILTER CONTROL -->
@@ -4842,27 +4860,39 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- TABEL PROBLEM & DOWNTIME HARIAN -->
+                <!-- TABEL PROBLEM & DOWNTIME HARIAN (GROUPED BY LINE & COLLAPSIBLE) -->
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 pb-3 border-b ${isLight ? 'border-slate-100' : 'border-slate-800'}">
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                                <i data-lucide="history" class="w-4 h-4 text-amber-400"></i>
-                                Log Problem & Downtime — Tanggal ${this.selectedDailyDate}
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+                                Log Problem & Downtime (Grouping per Line) — Tanggal ${this.selectedDailyDate}
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Daftar kendala problem mesin, tool, jig, & material khusus untuk tanggal yang dipilih (${downtimes.length} event)</p>
+                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Daftar kendala problem per lini produksi (${dtLineGroups.length} Line tercatat, ${downtimes.length} total event problem). Klik baris Line untuk collapse / expand.</p>
                         </div>
-                        <button id="btn-open-create-dt-modal" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all text-xs">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                            <span>+ Tambah Problem Log</span>
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- EXPAND / COLLAPSE ALL BUTTONS FOR PROBLEM TABLE -->
+                            <div class="flex items-center gap-1 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl p-1">
+                                <button id="btn-expand-all-dt-lines" title="Buka seluruh problem semua line" class="px-2.5 py-1 text-[11px] font-bold ${isLight ? 'text-slate-700 hover:bg-white' : 'text-slate-300 hover:bg-slate-800'} rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                                    <i data-lucide="chevrons-down" class="w-3.5 h-3.5 text-amber-400"></i> Expand All
+                                </button>
+                                <button id="btn-collapse-all-dt-lines" title="Tutup rincian problem (hanya tampilkan ringkasan Line)" class="px-2.5 py-1 text-[11px] font-bold ${isLight ? 'text-slate-700 hover:bg-white' : 'text-slate-300 hover:bg-slate-800'} rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                                    <i data-lucide="chevrons-up" class="w-3.5 h-3.5 text-slate-400"></i> Collapse All
+                                </button>
+                            </div>
+
+                            <button id="btn-open-create-dt-modal" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all text-xs">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                <span>+ Tambah Problem Log</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
                             <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
                                 <tr>
-                                    <th class="p-3 text-center w-10">No</th>
+                                    <th class="p-3 text-center w-12">No</th>
                                     <th class="p-3">Tanggal & Jam</th>
                                     <th class="p-3">Line & OP Mesin</th>
                                     <th class="p-3">Shift & Team</th>
@@ -4874,78 +4904,155 @@ tbody.innerHTML = '';
                                     <th class="p-3 text-center">Losstime</th>
                                     <th class="p-3">PIC</th>
                                     <th class="p-3 text-center">Status</th>
-                                    <th class="p-3 text-center">Aksi</th>
+                                    <th class="p-3 text-center">Aksi / Rincian</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
-                                ${downtimes.length === 0 ? `
-                                    <tr><td colspan="13" class="p-6 text-center text-slate-500 font-sans">Tidak ada log problem & downtime tercatat pada tanggal ${this.selectedDailyDate}</td></tr>
-                                ` : downtimes.map((dt, idx) => `
-                                    <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
-                                        <td class="p-3 text-center font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">${idx + 1}</td>
-                                        <td class="p-3 text-slate-300 text-[11px] font-sans">
-                                            <div class="font-mono font-bold text-slate-200">${dt.start_time ? dt.start_time.slice(0, 10) : this.selectedDailyDate}</div>
-                                            <div class="text-cyan-400 font-mono text-[10px]">${dt.start_time ? dt.start_time.slice(11,16) : '-'} s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-400 font-bold">ONGOING</span>'}</div>
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            <div class="font-bold text-cyan-400">${dt.production_line ? dt.production_line.name : 'FX Line'}</div>
-                                            <div class="text-[10px] text-slate-400 font-mono">${dt.machine ? dt.machine.name : (dt.machine_id ? 'Machine #' + dt.machine_id : 'MC-MEASURING')}</div>
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-200 border-slate-700'} border">
-                                                ${dt.shift ? dt.shift.name : 'Shift 1'}
-                                            </span>
-                                            ${dt.team ? `<div class="text-[10px] text-amber-400 font-bold mt-1">👥 ${dt.team}</div>` : ''}
-                                        </td>
-                                        <td class="p-3 text-slate-300 font-sans text-xs">
-                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${dt.product ? dt.product.name : '-'}</div>
-                                            ${dt.product?.sku ? `<div class="text-[10px] text-slate-400 font-mono">SKU: ${dt.product.sku}</div>` : ''}
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
-                                                dt.problem_type === 'Problem Mesin Mekanik' ? 'bg-rose-950 text-rose-300 border border-rose-800' :
-                                                dt.problem_type === 'Problem Mesin Elektrik' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
-                                                dt.problem_type === 'Problem Tool' ? 'bg-orange-950 text-orange-300 border border-orange-800' :
-                                                dt.problem_type === 'Planning Downtime' ? 'bg-blue-950 text-blue-300 border border-blue-800' :
-                                                dt.problem_type === 'Inventory' ? 'bg-purple-950 text-purple-300 border border-purple-800' :
-                                                'bg-slate-800 text-slate-300 border border-slate-700'
-                                            }">
-                                                ${dt.problem_type || 'Problem Mesin Mekanik'}
-                                            </span>
-                                        </td>
-                                        <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
-                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dt.description || 'Problem Operasional'}</div>
-                                        </td>
-                                        <td class="p-3 font-sans text-xs">
-                                            <div class="${isLight ? 'text-slate-700' : 'text-slate-300'}">${dt.cause || '-'}</div>
-                                        </td>
-                                        <td class="p-3 font-sans text-xs">
-                                            <div class="text-emerald-400 font-medium">${dt.action_taken || '-'}</div>
-                                        </td>
-                                        <td class="p-3 font-bold text-center text-rose-400 font-mono">${dt.calculated_duration_minutes || dt.duration_minutes || 0} m</td>
-                                        <td class="p-3 font-sans text-xs">
-                                            <div class="font-semibold text-cyan-300">${dt.pic || '-'}</div>
-                                        </td>
-                                        <td class="p-3 text-center font-sans">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${dt.status === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
-                                                ${dt.status || 'CLOSED'}
-                                            </span>
-                                        </td>
-                                        <td class="p-3 text-center font-sans">
-                                            <div class="flex items-center justify-center gap-1.5">
-                                                <button data-action="view-dt-record" data-id="${dt.id}" title="Preview Detail Log Problem" class="w-7 h-7 rounded-lg bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-blue-900/30 hover:scale-110 active:scale-95">
-                                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                                                </button>
-                                                <button data-action="edit-dt-record" data-id="${dt.id}" title="Edit Log Problem" class="w-7 h-7 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-cyan-900/30 hover:scale-110 active:scale-95">
-                                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                                                </button>
-                                                <button data-action="delete-dt-record" data-id="${dt.id}" title="Hapus Log Problem" class="w-7 h-7 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-rose-900/30 hover:scale-110 active:scale-95">
-                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                                </button>
+                                ${dtLineGroups.length === 0 ? `
+                                    <tr>
+                                        <td colspan="13" class="p-8 text-center text-slate-500 font-sans">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <i data-lucide="check-circle" class="w-7 h-7 text-emerald-400 opacity-80"></i>
+                                                <span class="font-medium text-slate-300 text-xs">Zero Breakdown! Tidak ada log problem & downtime tercatat pada tanggal <strong>${this.selectedDailyDate}</strong>.</span>
                                             </div>
                                         </td>
                                     </tr>
-                                `).join('')}
+                                ` : dtLineGroups.map((grp, gIdx) => {
+                                    const grpTotalMins = grp.items.reduce((s, dt) => s + (dt.calculated_duration_minutes || dt.duration_minutes || 0), 0);
+                                    const openCount = grp.items.filter(dt => (dt.status || '').toUpperCase() === 'OPEN').length;
+                                    const closedCount = grp.items.length - openCount;
+                                    const uniqueShifts = [...new Set(grp.items.map(dt => dt.shift?.name || 'Shift 1'))].join(', ');
+                                    const uniqueCategories = [...new Set(grp.items.map(dt => dt.problem_type || 'Problem Mesin Mekanik'))].join(', ');
+
+                                    return `
+                                        <!-- LINE GROUP HEADER ROW (CLICKABLE COLLAPSIBLE) -->
+                                        <tr class="line-dt-group-header cursor-pointer select-none ${isLight ? 'bg-amber-50/90 hover:bg-amber-100/90 border-amber-200 text-slate-900' : 'bg-slate-950 hover:bg-slate-800/90 border-slate-800 text-slate-100'} border-t-2 border-b transition-colors" data-toggle-dt-line="${grp.lineId}">
+                                            <td class="p-3 text-center">
+                                                <button type="button" class="w-6 h-6 rounded-lg ${isLight ? 'bg-white text-slate-700 border-amber-300' : 'bg-slate-900 text-slate-300 border-slate-700'} border flex items-center justify-center transition-transform cursor-pointer shadow-xs">
+                                                    <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-dt-${grp.lineId} transition-transform duration-200"></i>
+                                                </button>
+                                            </td>
+                                            <td class="p-3 font-sans" colspan="2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="px-2.5 py-1 rounded-md ${isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
+                                                        🏭 ${grp.lineName}
+                                                    </span>
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-rose-950 text-rose-300 border border-rose-800'} font-sans">
+                                                        ${grp.items.length} Problem Event
+                                                    </span>
+                                                </div>
+                                                ${grp.lineCode ? `<div class="text-[10px] text-slate-400 font-mono mt-0.5">${grp.lineCode}</div>` : ''}
+                                            </td>
+                                            <td class="p-3 font-sans">
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLight ? 'bg-slate-200 text-slate-800' : 'bg-slate-800 text-slate-300'} font-sans">
+                                                    ${uniqueShifts}
+                                                </span>
+                                            </td>
+                                            <td class="p-3 font-sans text-xs" colspan="2">
+                                                <div class="text-[11px] font-semibold ${isLight ? 'text-slate-800' : 'text-slate-300'} truncate max-w-[200px]" title="${uniqueCategories}">
+                                                    ${uniqueCategories}
+                                                </div>
+                                                <div class="text-[10px] text-slate-400">Subtotal ${grp.items.length} kejadian</div>
+                                            </td>
+                                            <td class="p-3 font-sans text-xs" colspan="3">
+                                                <div class="flex items-center gap-1.5 font-sans">
+                                                    ${openCount > 0 ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800 animate-pulse">${openCount} OPEN</span>` : ''}
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">${closedCount} CLOSED</span>
+                                                </div>
+                                            </td>
+                                            <td class="p-3 font-mono font-bold text-center text-amber-400 text-sm">
+                                                ${grpTotalMins} m
+                                                <div class="text-[9px] text-slate-400 font-normal">${(grpTotalMins/60).toFixed(1)} jam</div>
+                                            </td>
+                                            <td class="p-3 font-sans text-xs">
+                                                <div class="text-slate-400 text-[10px]">Total Losstime Line</div>
+                                            </td>
+                                            <td class="p-3 text-center font-sans">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${openCount > 0 ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
+                                                    ${openCount > 0 ? 'PERLU TINDAKAN' : 'RESOLVED'}
+                                                </span>
+                                            </td>
+                                            <td class="p-3 text-center font-sans">
+                                                <span class="text-[10px] font-semibold text-slate-400 flex items-center justify-center gap-1">
+                                                    <span>Toggle Detail</span>
+                                                    <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                                </span>
+                                            </td>
+                                        </tr>
+
+                                        <!-- EXPANDABLE CHILD ROWS FOR THIS LINE'S PROBLEMS -->
+                                        ${grp.items.map((dt, dtIdx) => `
+                                            <tr class="dt-line-row-${grp.lineId} ${isLight ? 'bg-white hover:bg-slate-50' : 'bg-slate-900/70 hover:bg-slate-800/60'} transition-colors border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/50'}">
+                                                <td class="p-3 text-center text-xs font-mono ${isLight ? 'text-slate-400' : 'text-slate-500'}">
+                                                    <span class="inline-block pl-2 text-[11px] text-slate-400 font-mono">${gIdx + 1}.${dtIdx + 1}</span>
+                                                </td>
+                                                <td class="p-3 text-slate-300 text-[11px] font-sans">
+                                                    <div class="font-mono font-bold text-slate-200">${dt.start_time ? dt.start_time.slice(0, 10) : this.selectedDailyDate}</div>
+                                                    <div class="text-cyan-400 font-mono text-[10px]">${dt.start_time ? dt.start_time.slice(11,16) : '-'} s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-400 font-bold">ONGOING</span>'}</div>
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    <div class="flex items-center gap-1.5 pl-2 border-l-2 ${isLight ? 'border-amber-400' : 'border-amber-500/70'}">
+                                                        <span class="font-bold text-cyan-400 text-xs">${dt.production_line ? dt.production_line.name : 'FX Line'}</span>
+                                                    </div>
+                                                    <div class="text-[10px] text-slate-400 font-mono pl-2">${dt.machine ? dt.machine.name : (dt.machine_id ? 'Machine #' + dt.machine_id : 'MC-MEASURING')}</div>
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-200 border-slate-700'} border">
+                                                        ${dt.shift ? dt.shift.name : 'Shift 1'}
+                                                    </span>
+                                                    ${dt.team ? `<div class="text-[10px] text-amber-400 font-bold mt-1">👥 ${dt.team}</div>` : ''}
+                                                </td>
+                                                <td class="p-3 text-slate-300 font-sans text-xs">
+                                                    <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${dt.product ? dt.product.name : '-'}</div>
+                                                    ${dt.product?.sku ? `<div class="text-[10px] text-slate-400 font-mono">SKU: ${dt.product.sku}</div>` : ''}
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                                                        dt.problem_type === 'Problem Mesin Mekanik' ? 'bg-rose-950 text-rose-300 border border-rose-800' :
+                                                        dt.problem_type === 'Problem Mesin Elektrik' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                                                        dt.problem_type === 'Problem Tool' ? 'bg-orange-950 text-orange-300 border border-orange-800' :
+                                                        dt.problem_type === 'Planning Downtime' ? 'bg-blue-950 text-blue-300 border border-blue-800' :
+                                                        dt.problem_type === 'Inventory' ? 'bg-purple-950 text-purple-300 border border-purple-800' :
+                                                        'bg-slate-800 text-slate-300 border border-slate-700'
+                                                    }">
+                                                        ${dt.problem_type || 'Problem Mesin Mekanik'}
+                                                    </span>
+                                                </td>
+                                                <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
+                                                    <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dt.description || 'Problem Operasional'}</div>
+                                                </td>
+                                                <td class="p-3 font-sans text-xs">
+                                                    <div class="${isLight ? 'text-slate-700' : 'text-slate-300'}">${dt.cause || '-'}</div>
+                                                </td>
+                                                <td class="p-3 font-sans text-xs">
+                                                    <div class="text-emerald-400 font-medium">${dt.action_taken || '-'}</div>
+                                                </td>
+                                                <td class="p-3 font-bold text-center text-rose-400 font-mono">${dt.calculated_duration_minutes || dt.duration_minutes || 0} m</td>
+                                                <td class="p-3 font-sans text-xs">
+                                                    <div class="font-semibold text-cyan-300">${dt.pic || '-'}</div>
+                                                </td>
+                                                <td class="p-3 text-center font-sans">
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${dt.status === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
+                                                        ${dt.status || 'CLOSED'}
+                                                    </span>
+                                                </td>
+                                                <td class="p-3 text-center font-sans">
+                                                    <div class="flex items-center justify-center gap-1.5">
+                                                        <button data-action="view-dt-record" data-id="${dt.id}" title="Preview Detail Log Problem" class="w-7 h-7 rounded-lg bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-blue-900/30 hover:scale-110 active:scale-95">
+                                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                        <button data-action="edit-dt-record" data-id="${dt.id}" title="Edit Log Problem" class="w-7 h-7 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-cyan-900/30 hover:scale-110 active:scale-95">
+                                                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                        <button data-action="delete-dt-record" data-id="${dt.id}" title="Hapus Log Problem" class="w-7 h-7 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-rose-900/30 hover:scale-110 active:scale-95">
+                                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    `;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -5086,6 +5193,50 @@ tbody.innerHTML = '';
         document.getElementById('btn-collapse-all-lines')?.addEventListener('click', () => {
             document.querySelectorAll('[class*="line-row-"]').forEach(r => r.classList.add('hidden'));
             document.querySelectorAll('[class*="chevron-icon-"]').forEach(i => {
+                i.classList.remove('rotate-0');
+                i.classList.add('-rotate-90');
+            });
+        });
+
+        // 5. Problem & Downtime Table Line Grouping Collapsible Toggles
+        document.querySelectorAll('[data-toggle-dt-line]').forEach(headerRow => {
+            headerRow.addEventListener('click', (e) => {
+                const lineId = headerRow.getAttribute('data-toggle-dt-line');
+                const childRows = document.querySelectorAll(`.dt-line-row-${lineId}`);
+                const chevronIcon = document.querySelector(`.chevron-icon-dt-${lineId}`);
+                const isCurrentlyHidden = childRows[0]?.classList.contains('hidden');
+
+                childRows.forEach(r => {
+                    if (isCurrentlyHidden) {
+                        r.classList.remove('hidden');
+                    } else {
+                        r.classList.add('hidden');
+                    }
+                });
+
+                if (chevronIcon) {
+                    if (isCurrentlyHidden) {
+                        chevronIcon.classList.remove('-rotate-90');
+                        chevronIcon.classList.add('rotate-0');
+                    } else {
+                        chevronIcon.classList.remove('rotate-0');
+                        chevronIcon.classList.add('-rotate-90');
+                    }
+                }
+            });
+        });
+
+        document.getElementById('btn-expand-all-dt-lines')?.addEventListener('click', () => {
+            document.querySelectorAll('[class*="dt-line-row-"]').forEach(r => r.classList.remove('hidden'));
+            document.querySelectorAll('[class*="chevron-icon-dt-"]').forEach(i => {
+                i.classList.remove('-rotate-90');
+                i.classList.add('rotate-0');
+            });
+        });
+
+        document.getElementById('btn-collapse-all-dt-lines')?.addEventListener('click', () => {
+            document.querySelectorAll('[class*="dt-line-row-"]').forEach(r => r.classList.add('hidden'));
+            document.querySelectorAll('[class*="chevron-icon-dt-"]').forEach(i => {
                 i.classList.remove('rotate-0');
                 i.classList.add('-rotate-90');
             });
