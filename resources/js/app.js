@@ -4500,6 +4500,33 @@ tbody.innerHTML = '';
             ? (records.reduce((s, r) => s + (r.oee_record?.oee || 0), 0) / records.length).toFixed(1)
             : '0.0';
 
+        const allMasterLines = (this.masterData.lines && this.masterData.lines.length > 0) ? this.masterData.lines : [];
+        const totalMasterLineCount = allMasterLines.length || 11;
+        
+        // Count distinct production lines that have records today
+        const submittedLineIds = new Set(records.map(r => r.production_line_id).filter(Boolean));
+        const submittedLineCount = submittedLineIds.size;
+        const missingLines = allMasterLines.filter(l => !submittedLineIds.has(l.id));
+        const isAllLinesComplete = (totalMasterLineCount > 0 && submittedLineCount >= totalMasterLineCount);
+
+        // Group records by production_line_id
+        const lineGroupsMap = new Map();
+        records.forEach(r => {
+            const lineId = r.production_line_id || 0;
+            const lineName = r.production_line?.name || (allMasterLines.find(l => l.id == lineId)?.name || `Line #${lineId}`);
+            const lineCode = r.production_line?.code || (allMasterLines.find(l => l.id == lineId)?.code || '');
+            if (!lineGroupsMap.has(lineId)) {
+                lineGroupsMap.set(lineId, {
+                    lineId,
+                    lineName,
+                    lineCode,
+                    records: []
+                });
+            }
+            lineGroupsMap.get(lineId).records.push(r);
+        });
+        const lineGroups = Array.from(lineGroupsMap.values());
+
         const content = document.getElementById('content-body');
         content.innerHTML = `
             <!-- HEADER & DATE FILTER CONTROL -->
@@ -4548,6 +4575,49 @@ tbody.innerHTML = '';
                 ` : ''}
             </div>
 
+            <!-- DYNAMIC LINE INPUT COMPLETENESS ALERT BANNER -->
+            <div class="${isAllLinesComplete 
+                ? (isLight ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-emerald-950/40 border-emerald-700/70 text-emerald-200') 
+                : (isLight ? 'bg-amber-50 border-amber-300 text-amber-950' : 'bg-amber-950/40 border-amber-700/70 text-amber-200')} border-2 rounded-2xl p-4 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-3 transition-all">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl ${isAllLinesComplete 
+                        ? (isLight ? 'bg-emerald-200 text-emerald-800' : 'bg-emerald-900/60 text-emerald-400 border border-emerald-700/60') 
+                        : (isLight ? 'bg-amber-200 text-amber-800' : 'bg-amber-900/60 text-amber-400 border border-amber-700/60')} flex items-center justify-center shrink-0">
+                        <i data-lucide="${isAllLinesComplete ? 'check-circle-2' : 'alert-triangle'}" class="w-5 h-5 ${isAllLinesComplete ? '' : 'animate-pulse'}"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold flex flex-wrap items-center gap-2">
+                            <span>Data Harian Line Masuk:</span>
+                            <span class="px-2.5 py-0.5 rounded-full font-mono text-xs font-black ${isAllLinesComplete 
+                                ? (isLight ? 'bg-emerald-200 text-emerald-900' : 'bg-emerald-800 text-emerald-100') 
+                                : (isLight ? 'bg-amber-200 text-amber-900' : 'bg-amber-800 text-amber-100')}">
+                                ${submittedLineCount} dari ${totalMasterLineCount} Line
+                            </span>
+                            <span class="text-xs font-bold ${isAllLinesComplete ? 'text-emerald-400' : 'text-amber-400'}">
+                                ${isAllLinesComplete ? '✓ (Lengkap 100%)' : `⚠️ (Kurang ${missingLines.length} Line)`}
+                            </span>
+                        </div>
+                        <p class="text-xs ${isLight ? (isAllLinesComplete ? 'text-emerald-800' : 'text-amber-800') : (isAllLinesComplete ? 'text-emerald-300/90' : 'text-amber-300/90')} mt-0.5">
+                            ${isAllLinesComplete 
+                                ? `Seluruh <strong>${totalMasterLineCount} lini produksi</strong> telah berhasil menginput data hasil produksi harian.` 
+                                : `Lini yang <strong>belum mengisi data (${missingLines.length} Line):</strong> <span class="font-bold ${isLight ? 'text-rose-700' : 'text-rose-400'}">${missingLines.map(l => l.name).join(', ') || 'Semua Line Belum Input'}</span>`}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 self-end md:self-auto shrink-0">
+                    ${!isAllLinesComplete ? `
+                        <button id="btn-quick-fill-missing" class="px-3.5 py-1.5 ${isLight ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-400 text-slate-950'} font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                            <span>+ Input Laporan Line</span>
+                        </button>
+                    ` : `
+                        <span class="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Terverifikasi Lengkap
+                        </span>
+                    `}
+                </div>
+            </div>
+
             <!-- DAILY KPI SUMMARY CARDS -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-xl">
@@ -4574,7 +4644,7 @@ tbody.innerHTML = '';
                         <i data-lucide="gauge" class="w-4 h-4 text-cyan-400"></i>
                     </div>
                     <div class="text-2xl font-bold font-mono text-cyan-400">${avgOee}%</div>
-                    <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">${records.length} entry record terfilter</div>
+                    <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">${records.length} entry record terfilter (${lineGroups.length} Line)</div>
                 </div>
 
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-xl">
@@ -4587,17 +4657,27 @@ tbody.innerHTML = '';
             </div>
 
             <div class="space-y-6">
-                <!-- TABEL DATA PRODUKSI HARIAN -->
+                <!-- TABEL DATA PRODUKSI HARIAN (GROUPED BY LINE & COLLAPSIBLE) -->
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 pb-3 border-b ${isLight ? 'border-slate-100' : 'border-slate-800'}">
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                                <i data-lucide="table" class="w-4 h-4 text-cyan-400"></i>
-                                List Data Produksi — Tanggal ${this.selectedDailyDate}
+                                <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
+                                List Data Produksi (Grouping per Line) — Tanggal ${this.selectedDailyDate}
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Daftar inputan hasil produksi khusus untuk tanggal yang dipilih (${records.length} record)</p>
+                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Daftar inputan per lini produksi (${lineGroups.length} Line aktif, ${records.length} total record shift / batch). Klik baris Line untuk collapse / expand.</p>
                         </div>
-                        <div class="flex items-center gap-2.5">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- EXPAND / COLLAPSE ALL BUTTONS -->
+                            <div class="flex items-center gap-1 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl p-1">
+                                <button id="btn-expand-all-lines" title="Buka seluruh rincian shift semua line" class="px-2.5 py-1 text-[11px] font-bold ${isLight ? 'text-slate-700 hover:bg-white' : 'text-slate-300 hover:bg-slate-800'} rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                                    <i data-lucide="chevrons-down" class="w-3.5 h-3.5 text-cyan-400"></i> Expand All
+                                </button>
+                                <button id="btn-collapse-all-lines" title="Tutup rincian shift (hanya tampilkan ringkasan Line)" class="px-2.5 py-1 text-[11px] font-bold ${isLight ? 'text-slate-700 hover:bg-white' : 'text-slate-300 hover:bg-slate-800'} rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                                    <i data-lucide="chevrons-up" class="w-3.5 h-3.5 text-slate-400"></i> Collapse All
+                                </button>
+                            </div>
+
                             <span class="px-3 py-1 rounded-full text-xs font-mono font-bold ${isLight ? 'bg-slate-100 text-cyan-700 border-slate-300' : 'bg-slate-950 text-cyan-400 border-slate-800'} border">
                                 ${this.selectedDailyDate}
                             </span>
@@ -4624,11 +4704,11 @@ tbody.innerHTML = '';
                                     <th class="p-3">Reject Rate</th>
                                     <th class="p-3">OEE Score</th>
                                     <th class="p-3">Status</th>
-                                    <th class="p-3 text-center">Aksi</th>
+                                    <th class="p-3 text-center">Aksi / Rincian</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
-                                ${records.length === 0 ? `
+                                ${lineGroups.length === 0 ? `
                                     <tr>
                                         <td colspan="12" class="p-10 text-center text-slate-500 font-sans">
                                             <div class="flex flex-col items-center gap-2">
@@ -4641,52 +4721,122 @@ tbody.innerHTML = '';
                                             </div>
                                         </td>
                                     </tr>
-                                ` : records.map((r, idx) => `
-                                    <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
-                                        <td class="p-3 text-center font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">${idx + 1}</td>
-                                        <td class="p-3 font-semibold text-cyan-400 font-sans">
-                                            ${r.production_line ? r.production_line.name : 'Line #' + r.production_line_id}
-                                            <div class="text-[10px] text-slate-500 font-mono">${r.machine ? r.machine.code : ''}</div>
-                                        </td>
-                                        <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
-                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${r.product ? `${r.product.name} - ${r.product.sku}` : 'Product #' + r.product_id}</div>
-                                            <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Target Output: ${r.target_quantity ? r.target_quantity.toLocaleString() : 0} pcs</div>
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-200 border-slate-700'} border">
-                                                ${r.shift ? r.shift.name : 'Shift #' + r.shift_id}
-                                            </span>
-                                        </td>
-                                        <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} font-bold">${r.target_quantity.toLocaleString()}</td>
-                                        <td class="p-3 text-cyan-400 font-bold">${r.total_quantity.toLocaleString()}</td>
-                                        <td class="p-3 text-emerald-400 font-bold">${r.good_quantity.toLocaleString()}</td>
-                                        <td class="p-3 text-rose-400 font-bold">${r.reject_quantity.toLocaleString()}</td>
-                                        <td class="p-3 font-sans font-bold ${r.total_quantity > 0 && (r.reject_quantity/r.total_quantity) > 0.05 ? 'text-rose-400' : (isLight ? 'text-slate-700' : 'text-slate-300')}">
-                                            ${r.total_quantity > 0 ? ((r.reject_quantity / r.total_quantity) * 100).toFixed(1) : 0}%
-                                        </td>
-                                        <td class="p-3 font-bold text-cyan-300 ${isLight ? 'bg-cyan-50/60' : 'bg-cyan-950/30'}">
-                                            ${r.oee_record ? r.oee_record.oee : 0}%
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${this.getStatusBadge(r.oee_record?.oee >= 85 ? 'EXCELLENT' : (r.oee_record?.oee >= 70 ? 'GOOD' : 'CRITICAL'))}">
-                                                ${r.oee_record?.oee >= 85 ? 'EXCELLENT' : (r.oee_record?.oee >= 70 ? 'GOOD' : 'CRITICAL')}
-                                            </span>
-                                        </td>
-                                        <td class="p-3 text-center font-sans">
-                                            <div class="flex items-center justify-center gap-1.5">
-                                                <button data-action="view-prod-record" data-id="${r.id}" title="Preview Detail Laporan Produksi" class="w-7 h-7 rounded-lg bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-blue-900/30 hover:scale-110 active:scale-95">
-                                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                ` : lineGroups.map((grp, gIdx) => {
+                                    const grpTarget = grp.records.reduce((s, r) => s + parseInt(r.target_quantity || 0), 0);
+                                    const grpMeasuring = grp.records.reduce((s, r) => s + parseInt(r.total_quantity || 0), 0);
+                                    const grpGood = grp.records.reduce((s, r) => s + parseInt(r.good_quantity || 0), 0);
+                                    const grpReject = grp.records.reduce((s, r) => s + parseInt(r.reject_quantity || 0), 0);
+                                    const grpRejectRate = grpMeasuring > 0 ? ((grpReject / grpMeasuring) * 100).toFixed(1) : '0.0';
+                                    const grpAvgOee = (grp.records.reduce((s, r) => s + (r.oee_record?.oee || 0), 0) / grp.records.length).toFixed(1);
+                                    const uniqueShifts = [...new Set(grp.records.map(r => r.shift?.name || 'Shift 1'))].join(', ');
+                                    const uniqueProducts = [...new Set(grp.records.map(r => r.product ? `${r.product.name}` : '-'))].join('; ');
+
+                                    return `
+                                        <!-- LINE GROUP SUMMARY HEADER ROW (CLICKABLE COLLAPSIBLE) -->
+                                        <tr class="line-group-header cursor-pointer select-none ${isLight ? 'bg-slate-100 hover:bg-slate-200/90 border-slate-300 text-slate-900' : 'bg-slate-950 hover:bg-slate-800/90 border-slate-800 text-slate-100'} border-t-2 border-b transition-colors" data-toggle-line="${grp.lineId}">
+                                            <td class="p-3 text-center">
+                                                <button type="button" class="w-6 h-6 rounded-lg ${isLight ? 'bg-white text-slate-700 border-slate-300' : 'bg-slate-900 text-slate-300 border-slate-700'} border flex items-center justify-center transition-transform cursor-pointer shadow-xs">
+                                                    <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-${grp.lineId} transition-transform duration-200"></i>
                                                 </button>
-                                                <button data-action="edit-prod-record" data-id="${r.id}" title="Edit Record Produksi" class="w-7 h-7 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-cyan-900/30 hover:scale-110 active:scale-95">
-                                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                                                </button>
-                                                <button data-action="delete-prod-record" data-id="${r.id}" title="Hapus Record Produksi" class="w-7 h-7 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-rose-900/30 hover:scale-110 active:scale-95">
-                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `).join('')}
+                                            </td>
+                                            <td class="p-3 font-sans">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="px-2.5 py-1 rounded-md ${isLight ? 'bg-cyan-100 text-cyan-800 border-cyan-300' : 'bg-cyan-950 text-cyan-300 border-cyan-800'} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
+                                                        🏭 ${grp.lineName}
+                                                    </span>
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-slate-300'} font-sans">
+                                                        ${grp.records.length} Shift / Batch
+                                                    </span>
+                                                </div>
+                                                ${grp.lineCode ? `<div class="text-[10px] text-slate-400 font-mono mt-0.5">${grp.lineCode}</div>` : ''}
+                                            </td>
+                                            <td class="p-3 font-sans text-xs">
+                                                <div class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[200px]" title="${uniqueProducts}">
+                                                    ${uniqueProducts}
+                                                </div>
+                                                <div class="text-[10px] text-slate-400">Total ${grp.records.length} batch / shift</div>
+                                            </td>
+                                            <td class="p-3 font-sans">
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLight ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border">
+                                                    ${uniqueShifts}
+                                                </span>
+                                            </td>
+                                            <td class="p-3 font-mono font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${grpTarget.toLocaleString()}</td>
+                                            <td class="p-3 font-mono font-bold text-cyan-400">${grpMeasuring.toLocaleString()}</td>
+                                            <td class="p-3 font-mono font-bold text-emerald-400">${grpGood.toLocaleString()}</td>
+                                            <td class="p-3 font-mono font-bold text-rose-400">${grpReject.toLocaleString()}</td>
+                                            <td class="p-3 font-sans font-bold ${grpMeasuring > 0 && (grpReject/grpMeasuring) > 0.05 ? 'text-rose-400' : (isLight ? 'text-slate-700' : 'text-slate-300')}">
+                                                ${grpRejectRate}%
+                                            </td>
+                                            <td class="p-3 font-bold font-mono text-cyan-300 ${isLight ? 'bg-cyan-100/50' : 'bg-cyan-950/40'}">
+                                                ${grpAvgOee}%
+                                            </td>
+                                            <td class="p-3 font-sans">
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${this.getStatusBadge(parseFloat(grpAvgOee) >= 85 ? 'EXCELLENT' : (parseFloat(grpAvgOee) >= 70 ? 'GOOD' : 'CRITICAL'))}">
+                                                    ${parseFloat(grpAvgOee) >= 85 ? 'EXCELLENT' : (parseFloat(grpAvgOee) >= 70 ? 'GOOD' : 'CRITICAL')}
+                                                </span>
+                                            </td>
+                                            <td class="p-3 text-center font-sans">
+                                                <span class="text-[10px] font-semibold text-slate-400 flex items-center justify-center gap-1">
+                                                    <span>Toggle Shift</span>
+                                                    <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                                </span>
+                                            </td>
+                                        </tr>
+
+                                        <!-- EXPANDABLE CHILD ROWS FOR THIS LINE -->
+                                        ${grp.records.map((r, rIdx) => `
+                                            <tr class="line-row-${grp.lineId} ${isLight ? 'bg-white hover:bg-slate-50' : 'bg-slate-900/70 hover:bg-slate-800/60'} transition-colors border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/50'}">
+                                                <td class="p-3 text-center text-xs font-mono ${isLight ? 'text-slate-400' : 'text-slate-500'}">
+                                                    <span class="inline-block pl-2 text-[11px] text-slate-400 font-mono">${gIdx + 1}.${rIdx + 1}</span>
+                                                </td>
+                                                <td class="p-3 font-semibold font-sans">
+                                                    <div class="flex items-center gap-1.5 pl-3 border-l-2 ${isLight ? 'border-cyan-400' : 'border-cyan-500/70'}">
+                                                        <span class="${isLight ? 'text-slate-700' : 'text-slate-300'} text-xs font-medium">${r.production_line?.name || 'Line'}</span>
+                                                    </div>
+                                                    <div class="text-[10px] text-slate-400 font-mono pl-3">${r.machine ? r.machine.code : ''}</div>
+                                                </td>
+                                                <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
+                                                    <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${r.product ? `${r.product.name} - ${r.product.sku}` : 'Product #' + r.product_id}</div>
+                                                    <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Target: ${r.target_quantity ? r.target_quantity.toLocaleString() : 0} pcs</div>
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-200 border-slate-700'} border">
+                                                        ${r.shift ? r.shift.name : 'Shift #' + r.shift_id}
+                                                    </span>
+                                                </td>
+                                                <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} font-bold font-mono">${r.target_quantity.toLocaleString()}</td>
+                                                <td class="p-3 text-cyan-400 font-bold font-mono">${r.total_quantity.toLocaleString()}</td>
+                                                <td class="p-3 text-emerald-400 font-bold font-mono">${r.good_quantity.toLocaleString()}</td>
+                                                <td class="p-3 text-rose-400 font-bold font-mono">${r.reject_quantity.toLocaleString()}</td>
+                                                <td class="p-3 font-sans font-bold font-mono ${r.total_quantity > 0 && (r.reject_quantity/r.total_quantity) > 0.05 ? 'text-rose-400' : (isLight ? 'text-slate-700' : 'text-slate-300')}">
+                                                    ${r.total_quantity > 0 ? ((r.reject_quantity / r.total_quantity) * 100).toFixed(1) : 0}%
+                                                </td>
+                                                <td class="p-3 font-bold font-mono text-cyan-300 ${isLight ? 'bg-cyan-50/60' : 'bg-cyan-950/30'}">
+                                                    ${r.oee_record ? r.oee_record.oee : 0}%
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${this.getStatusBadge(r.oee_record?.oee >= 85 ? 'EXCELLENT' : (r.oee_record?.oee >= 70 ? 'GOOD' : 'CRITICAL'))}">
+                                                        ${r.oee_record?.oee >= 85 ? 'EXCELLENT' : (r.oee_record?.oee >= 70 ? 'GOOD' : 'CRITICAL')}
+                                                    </span>
+                                                </td>
+                                                <td class="p-3 text-center font-sans">
+                                                    <div class="flex items-center justify-center gap-1.5">
+                                                        <button data-action="view-prod-record" data-id="${r.id}" title="Preview Detail Laporan Produksi" class="w-7 h-7 rounded-lg bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-blue-900/30 hover:scale-110 active:scale-95">
+                                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                        <button data-action="edit-prod-record" data-id="${r.id}" title="Edit Record Produksi" class="w-7 h-7 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-cyan-900/30 hover:scale-110 active:scale-95">
+                                                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                        <button data-action="delete-prod-record" data-id="${r.id}" title="Hapus Record Produksi" class="w-7 h-7 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-rose-900/30 hover:scale-110 active:scale-95">
+                                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    `;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -4889,6 +5039,55 @@ tbody.innerHTML = '';
             btn.addEventListener('click', (e) => {
                 const id = e.currentTarget.getAttribute('data-id');
                 this.showDeleteDowntimeModal(id);
+            });
+        });
+
+        // 4. Line Grouping Collapsible Toggles & Quick Actions
+        document.getElementById('btn-quick-fill-missing')?.addEventListener('click', () => {
+            this.showCreateDailyProductionModal();
+        });
+
+        document.querySelectorAll('[data-toggle-line]').forEach(headerRow => {
+            headerRow.addEventListener('click', (e) => {
+                // If user clicked a nested button/input, allow it
+                const lineId = headerRow.getAttribute('data-toggle-line');
+                const childRows = document.querySelectorAll(`.line-row-${lineId}`);
+                const chevronIcon = document.querySelector(`.chevron-icon-${lineId}`);
+                const isCurrentlyHidden = childRows[0]?.classList.contains('hidden');
+
+                childRows.forEach(r => {
+                    if (isCurrentlyHidden) {
+                        r.classList.remove('hidden');
+                    } else {
+                        r.classList.add('hidden');
+                    }
+                });
+
+                if (chevronIcon) {
+                    if (isCurrentlyHidden) {
+                        chevronIcon.classList.remove('-rotate-90');
+                        chevronIcon.classList.add('rotate-0');
+                    } else {
+                        chevronIcon.classList.remove('rotate-0');
+                        chevronIcon.classList.add('-rotate-90');
+                    }
+                }
+            });
+        });
+
+        document.getElementById('btn-expand-all-lines')?.addEventListener('click', () => {
+            document.querySelectorAll('[class*="line-row-"]').forEach(r => r.classList.remove('hidden'));
+            document.querySelectorAll('[class*="chevron-icon-"]').forEach(i => {
+                i.classList.remove('-rotate-90');
+                i.classList.add('rotate-0');
+            });
+        });
+
+        document.getElementById('btn-collapse-all-lines')?.addEventListener('click', () => {
+            document.querySelectorAll('[class*="line-row-"]').forEach(r => r.classList.add('hidden'));
+            document.querySelectorAll('[class*="chevron-icon-"]').forEach(i => {
+                i.classList.remove('rotate-0');
+                i.classList.add('-rotate-90');
             });
         });
 
