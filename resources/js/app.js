@@ -8565,7 +8565,6 @@ tbody.innerHTML = '';
                         <i data-lucide="clock-alert" class="w-5 h-5 text-amber-500"></i>
                         <span>Downtime Analysis</span>
                     </h2>
-                    <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Analisis Losstime, Kejadian Stop & Distribusi per Kategori Problem</p>
                 </div>
             </div>
 
@@ -8620,7 +8619,6 @@ tbody.innerHTML = '';
                             <i data-lucide="layers" class="w-4 h-4 text-cyan-500"></i>
                             <span>Total Downtime Berdasarkan Kategori Problem</span>
                         </h3>
-                        <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Ringkasan durasi, frekuensi kendala, dan kontribusi loss per kategori permasalahan</p>
                     </div>
                     <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${isLight ? 'bg-cyan-100 text-cyan-800' : 'bg-cyan-950 text-cyan-300 border border-cyan-800'}">
                         ${pareto.length} Kategori Aktif
@@ -8683,7 +8681,6 @@ tbody.innerHTML = '';
                             <i data-lucide="bar-chart-2" class="w-4 h-4 text-amber-500"></i>
                             <span>Problem Category Downtime Pareto Chart</span>
                         </h3>
-                        <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Analisis peringkat loss downtime berdasarkan Kategori Problem & kurva kumulatif</p>
                     </div>
                 </div>
                 <div id="chart-pareto-downtime" class="h-72"></div>
@@ -8697,7 +8694,6 @@ tbody.innerHTML = '';
                             <i data-lucide="history" class="w-4 h-4 text-cyan-500"></i>
                             <span>Downtime & Loss Trouble History Logs</span>
                         </h3>
-                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}">Catatan log problem trouble mesin, tool, jig, material & tindakan perbaikan</p>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
