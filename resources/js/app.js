@@ -15360,6 +15360,29 @@ tbody.innerHTML = '';
             };
         }
 
+        const isOeeMode = (mode === 'lines_oee' || mode === 'lines_dual' || mode === 'oee' || mode === 'date_trend');
+        const discreteMarkers = [];
+
+        if (isOeeMode) {
+            rawPoints.forEach((pt, idx) => {
+                const oeeVal = Number(pt.oee || 0);
+                let color = '#ef4444'; // Red (< 70%)
+                if (oeeVal >= 85) {
+                    color = '#10b981'; // Green (>= 85% World Class)
+                } else if (oeeVal >= 70) {
+                    color = '#f59e0b'; // Yellow (70% - 84.9%)
+                }
+                discreteMarkers.push({
+                    seriesIndex: 0,
+                    dataPointIndex: idx,
+                    fillColor: color,
+                    strokeColor: isLight ? '#ffffff' : '#070d1e',
+                    size: 7,
+                    shape: 'circle'
+                });
+            });
+        }
+
         const options = {
             chart: {
                 type: 'area',
@@ -15391,12 +15414,59 @@ tbody.innerHTML = '';
                     blur: 6,
                     color: '#06b6d4',
                     opacity: 0.25
+                },
+                events: {
+                    mounted: (chartContext) => {
+                        this.attachOeeSonarRipples(chartContext, rawPoints, isOeeMode);
+                    },
+                    updated: (chartContext) => {
+                        this.attachOeeSonarRipples(chartContext, rawPoints, isOeeMode);
+                    }
                 }
             },
             theme: { mode: isLight ? 'light' : 'dark' },
             colors: colors,
             series: series,
             annotations: annotations,
+            dataLabels: {
+                enabled: isOeeMode,
+                enabledOnSeries: [0], // ONLY show data point value on Series 0 (Overall OEE), keeping the chart clean and uncluttered
+                formatter: function (val, opts) {
+                    if (opts.seriesIndex !== 0) return '';
+                    const num = Number(val || 0);
+                    if (num === 0) return '0%';
+                    return num.toFixed(1) + '%';
+                },
+                offsetY: -9,
+                style: {
+                    fontSize: '11px',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 800,
+                    colors: rawPoints.map(pt => {
+                        const v = Number(pt.oee || 0);
+                        if (v >= 85) return '#10b981'; // Green
+                        if (v >= 70) return '#f59e0b'; // Yellow
+                        return '#ef4444'; // Red
+                    })
+                },
+                background: {
+                    enabled: true,
+                    foreColor: isLight ? '#0f172a' : '#ffffff',
+                    padding: 4,
+                    borderRadius: 5,
+                    borderWidth: 1,
+                    borderColor: isLight ? '#cbd5e1' : '#1e293b',
+                    opacity: isLight ? 0.95 : 0.9,
+                    dropShadow: {
+                        enabled: true,
+                        top: 1,
+                        left: 1,
+                        blur: 3,
+                        color: '#000000',
+                        opacity: 0.4
+                    }
+                }
+            },
             stroke: {
                 curve: 'smooth',
                 width: (mode === 'lines_dual' || mode === 'dual') ? [3.5, 3, 2] : ((mode === 'lines_prod' || mode === 'prod') ? [2.5, 3.5, 2.5, 2] : [3.5, 2.5, 2.5, 2.5]),
@@ -15414,10 +15484,11 @@ tbody.innerHTML = '';
                 }
             },
             markers: {
-                size: 6,
-                strokeColors: isLight ? '#ffffff' : '#0f172a',
+                size: (mode === 'lines_prod' || mode === 'prod') ? 5 : [6.5, 0, 0, 0],
+                discrete: discreteMarkers,
+                strokeColors: isLight ? '#ffffff' : '#070d1e',
                 strokeWidth: 2,
-                strokeOpacity: 0.9,
+                strokeOpacity: 0.95,
                 fillOpacity: 1,
                 shape: 'circle',
                 hover: {
@@ -15527,6 +15598,60 @@ tbody.innerHTML = '';
         if (this.charts['globalOeeTrend']) this.charts['globalOeeTrend'].destroy();
         this.charts['globalOeeTrend'] = new window.ApexCharts(el, options);
         this.charts['globalOeeTrend'].render();
+    }
+
+    attachOeeSonarRipples(chartContext, rawPoints, isOeeMode) {
+        if (!isOeeMode || !chartContext?.el) return;
+        setTimeout(() => {
+            try {
+                const svgEl = chartContext.el.querySelector('svg.apexcharts-svg');
+                if (!svgEl) return;
+
+                // Clear previous sonar rings
+                svgEl.querySelectorAll('.oee-sonar-ring, .oee-sonar-ring-2').forEach(el => el.remove());
+
+                // Find Series 0 markers
+                const markers = svgEl.querySelectorAll('.apexcharts-series[seriesName*="OEE"] .apexcharts-marker, .apexcharts-series-markers-0 .apexcharts-marker, .apexcharts-series[data\\:realIndex="0"] .apexcharts-marker');
+
+                markers.forEach((marker, idx) => {
+                    const pt = rawPoints[idx];
+                    if (!pt) return;
+                    const oeeVal = Number(pt.oee || 0);
+                    let color = '#ef4444'; // Red (< 70%)
+                    if (oeeVal >= 85) color = '#10b981'; // Green (>= 85%)
+                    else if (oeeVal >= 70) color = '#f59e0b'; // Yellow (70% - 84.9%)
+
+                    const cx = marker.getAttribute('cx') || marker.getAttribute('j');
+                    const cy = marker.getAttribute('cy') || marker.getAttribute('val');
+                    if (!cx || !cy) return;
+
+                    const parent = marker.parentElement;
+                    if (!parent) return;
+
+                    // Sonar Ripple Wave 1
+                    const ring1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    ring1.setAttribute('cx', cx);
+                    ring1.setAttribute('cy', cy);
+                    ring1.setAttribute('r', '7');
+                    ring1.setAttribute('fill', 'none');
+                    ring1.setAttribute('stroke', color);
+                    ring1.setAttribute('class', 'oee-sonar-ring');
+                    parent.insertBefore(ring1, marker);
+
+                    // Sonar Ripple Wave 2
+                    const ring2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    ring2.setAttribute('cx', cx);
+                    ring2.setAttribute('cy', cy);
+                    ring2.setAttribute('r', '7');
+                    ring2.setAttribute('fill', 'none');
+                    ring2.setAttribute('stroke', color);
+                    ring2.setAttribute('class', 'oee-sonar-ring-2');
+                    parent.insertBefore(ring2, marker);
+                });
+            } catch (err) {
+                console.warn('Sonar ripple attachment skipped:', err);
+            }
+        }, 200);
     }
 
     renderOeeTrendChart(data) {

@@ -976,5 +976,34 @@ html.light #notification-dropdown {
     background-size: 28px 28px;
 }
 
+/* ==========================================================================
+   OEE SONAR RADAR RIPPLE ANIMATIONS (HIJAU, KUNING, MERAH)
+   ========================================================================== */
+@keyframes svg-sonar-ripple {
+    0% {
+        r: 6px;
+        opacity: 0.95;
+        stroke-width: 3.5px;
+    }
+    60% {
+        opacity: 0.55;
+        stroke-width: 2px;
+    }
+    100% {
+        r: 20px;
+        opacity: 0;
+        stroke-width: 0.5px;
+    }
+}
 
+.oee-sonar-ring {
+    animation: svg-sonar-ripple 2.2s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+    pointer-events: none;
+    transform-origin: center;
+}
 
+.oee-sonar-ring-2 {
+    animation: svg-sonar-ripple 2.2s cubic-bezier(0.2, 0.6, 0.35, 1) 1.1s infinite;
+    pointer-events: none;
+    transform-origin: center;
+}
