@@ -1,0 +1,980 @@
+@import 'tailwindcss';
+
+@theme {
+    --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Roboto Mono', 'SF Mono', Consolas, monospace;
+}
+
+/* ==========================================================================
+   1. INDUSTRIAL DESIGN SYSTEM: CSS CUSTOM PROPERTIES & TOKENS
+   ========================================================================== */
+:root {
+    /* Dark Mode Defaults (Optimized for Industrial Control Rooms & Deep Navy Aesthetic) */
+    --color-canvas-bg: #070D1E;
+    --color-card-bg: #0B142C;
+    --color-card-surface: #0E1A38;
+    --color-card-border: #16254C;
+    --color-border-subtle: #152347;
+    --color-border-focus: #38BDF8;
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #64748B;
+
+    /* Semantic Status Colors (WCAG AA Compliant) */
+    --status-optimal: #10B981;
+    --status-warning: #F59E0B;
+    --status-critical: #EF4444;
+    --status-maintenance: #6366F1;
+    --status-idle: #94A3B8;
+
+    /* Gradients */
+    --grad-card: linear-gradient(180deg, rgba(14, 26, 56, 0.85) 0%, rgba(11, 20, 44, 0.95) 100%);
+    --grad-bar-optimal: linear-gradient(90deg, #059669 0%, #10B981 100%);
+    --grad-bar-warning: linear-gradient(90deg, #D97706 0%, #F59E0B 100%);
+    --grad-bar-critical: linear-gradient(90deg, #B91C1C 0%, #EF4444 100%);
+    --grad-bar-maintenance: linear-gradient(90deg, #4338CA 0%, #6366F1 100%);
+}
+
+html.light {
+    /* Light Mode Tokens (Clean High-Contrast Daylight Environment) */
+    --color-canvas-bg: #F4F6F9;
+    --color-card-bg: #FFFFFF;
+    --color-card-surface: #FFFFFF;
+    --color-card-border: #E2E8F0;
+    --color-border-subtle: #E2E8F0;
+    --color-border-focus: #0284C7;
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94A3B8;
+
+    /* Semantic Status Colors */
+    --status-optimal: #059669;
+    --status-warning: #D97706;
+    --status-critical: #DC2626;
+    --status-maintenance: #4F46E5;
+    --status-idle: #64748B;
+
+    /* Gradients */
+    --grad-card: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+    --grad-bar-optimal: linear-gradient(90deg, #10B981 0%, #059669 100%);
+    --grad-bar-warning: linear-gradient(90deg, #FBBF24 0%, #D97706 100%);
+    --grad-bar-critical: linear-gradient(90deg, #F87171 0%, #DC2626 100%);
+    --grad-bar-maintenance: linear-gradient(90deg, #818CF8 0%, #4F46E5 100%);
+}
+
+body {
+    background-color: var(--color-canvas-bg);
+    color: var(--color-text-primary);
+}
+
+/* Tabular numbers for telemetry stability */
+.font-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   2. CUSTOM SCROLLBAR & BASE CONTAINER STYLES
+   ========================================================================== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+}
+
+/* ==========================================================================
+   3. INDUSTRIAL VISUAL EFFECTS & ALARM ANIMATIONS
+   ========================================================================== */
+.status-pulse-running {
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+    animation: pulse-emerald 2s infinite;
+}
+
+.status-pulse-breakdown {
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+    animation: pulse-danger 1.5s infinite;
+}
+
+.status-pulse-warning {
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+    animation: pulse-amber 2s infinite;
+}
+
+@keyframes pulse-emerald {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.02); }
+}
+
+@keyframes pulse-amber {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+@keyframes pulse-danger {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        border-color: #ef4444;
+    }
+    50% {
+        box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.35);
+        border-color: #f87171;
+    }
+}
+
+/* TV Floor Display Fullscreen */
+.tv-mode-active {
+    font-size: 1.1rem;
+}
+
+/* Glassmorphism & Sleek Form Cards */
+.form-step-card {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.form-step-card:focus-within {
+    border-color: rgba(6, 182, 212, 0.5) !important;
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.15);
+}
+
+/* Form Input & Select Enhancements */
+input, select, textarea {
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none !important;
+    border-color: #06b6d4 !important;
+    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.25) !important;
+}
+
+/* Universal Dark Mode & Light Mode Styling for ALL Select Dropdowns */
+select,
+select option,
+select optgroup {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    font-family: inherit;
+}
+
+select option {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    padding: 8px 12px;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   3B. DYNAMIC ANIMATED SIDEBAR NAVIGATION (Navy & Electric Cyan Theme)
+   ========================================================================== */
+aside#sidebar {
+    background: linear-gradient(180deg, #091224 0%, #0d1a36 40%, #0a142c 80%, #060e20 100%) !important;
+    border-right: 1px solid rgba(21, 35, 71, 0.9) !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+#sidebar-brand-header {
+    height: 3.5rem !important;
+    min-height: 3.5rem !important;
+    max-height: 3.5rem !important;
+    box-sizing: border-box !important;
+    background: rgba(9, 18, 36, 0.8) !important;
+    border-bottom: 1px solid rgba(21, 35, 71, 0.9) !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+header {
+    height: 3.5rem !important;
+    min-height: 3.5rem !important;
+    max-height: 3.5rem !important;
+    box-sizing: border-box !important;
+    border-bottom: 1px solid rgba(21, 35, 71, 0.9) !important;
+}
+
+#sidebar-bottom-container {
+    background: rgba(9, 18, 36, 0.95) !important;
+    border-top: 1px solid rgba(21, 35, 71, 0.9) !important;
+}
+
+.sidebar-tv-btn {
+    background: rgba(8, 51, 68, 0.4) !important;
+    border: 1px solid rgba(6, 182, 212, 0.3) !important;
+    color: #67e8f9 !important;
+}
+
+.sidebar-tv-btn:hover {
+    background: rgba(8, 51, 68, 0.75) !important;
+    border-color: rgba(6, 182, 212, 0.6) !important;
+    color: #a5f3fc !important;
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.25) !important;
+}
+
+.sidebar-profile-card {
+    background: rgba(7, 13, 30, 0.85) !important;
+    border: 1px solid rgba(21, 35, 71, 0.9) !important;
+}
+
+.sidebar-nav-item {
+    position: relative;
+    border-left: 3px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-nav-item:hover {
+    transform: translateX(3px);
+    background: linear-gradient(90deg, rgba(14, 165, 233, 0.12) 0%, rgba(14, 165, 233, 0.02) 100%);
+    border-left-color: rgba(56, 189, 248, 0.4);
+    color: #f8fafc;
+}
+
+.sidebar-nav-item:hover .nav-icon {
+    color: #38bdf8 !important;
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.5));
+}
+
+.sidebar-nav-item.active {
+    background: linear-gradient(90deg, rgba(8, 145, 178, 0.25) 0%, rgba(8, 145, 178, 0.05) 100%) !important;
+    border-left-color: #22d3ee !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 14px -2px rgba(6, 182, 212, 0.25);
+}
+
+.sidebar-nav-item.active .nav-icon {
+    color: #22d3ee !important;
+    filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.7));
+}
+
+.sidebar-section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(22, 37, 76, 0.2) 0%, rgba(30, 49, 96, 0.9) 50%, rgba(22, 37, 76, 0.2) 100%);
+    margin: 0.45rem 0.25rem;
+}
+
+/* ==========================================================================
+   4. LIGHT THEME OVERRIDES (Clean Minimalist Enterprise Contrast)
+   ========================================================================== */
+html.light, 
+html.light body,
+html.light #app,
+html.light #main-container,
+html.light #content-body {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+/* Sidebar in Light Mode: Dynamic Fresh Pastel Sage-Green / Soft Teal Palette */
+html.light aside#sidebar {
+    background: linear-gradient(180deg, #f7fbf9 0%, #edf7f4 40%, #e5f2ee 80%, #dff0ec 100%) !important;
+    border-right: 1px solid #cce5df !important;
+    box-shadow: 3px 0 16px rgba(13, 148, 136, 0.07) !important;
+}
+
+html.light #sidebar-brand-header {
+    height: 3.5rem !important;
+    min-height: 3.5rem !important;
+    max-height: 3.5rem !important;
+    box-sizing: border-box !important;
+    background: rgba(247, 251, 249, 0.9) !important;
+    border-bottom: 1px solid #cce5df !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+html.light aside#sidebar #sidebar-brand-name {
+    color: #0f4c42 !important;
+}
+
+html.light aside#sidebar #sidebar-brand-tagline {
+    color: #0d9488 !important;
+}
+
+html.light header {
+    height: 3.5rem !important;
+    min-height: 3.5rem !important;
+    max-height: 3.5rem !important;
+    box-sizing: border-box !important;
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    border-bottom: 1px solid #cce5df !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light #header-clock-time {
+    color: #0284c7 !important;
+}
+
+html.light #header-clock-date {
+    color: #64748b !important;
+}
+
+/* Sidebar Links in Light Mode */
+html.light .sidebar-section-title {
+    color: #3f685f !important;
+}
+
+html.light .sidebar-nav-item {
+    color: #335951 !important;
+}
+
+html.light .sidebar-nav-item:hover {
+    background: rgba(13, 148, 136, 0.08) !important;
+    border-left-color: #0d9488 !important;
+    color: #0f4c42 !important;
+}
+
+html.light .sidebar-nav-item:hover .nav-icon {
+    color: #0d9488 !important;
+    filter: drop-shadow(0 0 6px rgba(13, 148, 136, 0.35)) !important;
+}
+
+html.light .sidebar-nav-item.active {
+    background: linear-gradient(90deg, rgba(13, 148, 136, 0.16) 0%, rgba(13, 148, 136, 0.04) 100%) !important;
+    border-left-color: #0d9488 !important;
+    color: #0f4c42 !important;
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.12) !important;
+}
+
+html.light .sidebar-nav-item.active span {
+    color: #0f4c42 !important;
+    font-weight: 700 !important;
+}
+
+html.light .sidebar-nav-item.active .nav-icon {
+    color: #0d9488 !important;
+    filter: drop-shadow(0 0 6px rgba(13, 148, 136, 0.5)) !important;
+}
+
+html.light .sidebar-section-divider {
+    background: linear-gradient(90deg, rgba(204, 229, 223, 0.2) 0%, rgba(180, 218, 210, 0.9) 50%, rgba(204, 229, 223, 0.2) 100%) !important;
+}
+
+html.light #sidebar-bottom-container {
+    background: rgba(237, 247, 244, 0.95) !important;
+    border-top: 1px solid #cce5df !important;
+}
+
+html.light .sidebar-tv-btn {
+    background: linear-gradient(135deg, #e6f7f4 0%, #d2f1ec 100%) !important;
+    border: 1px solid #99ded3 !important;
+    color: #0f766e !important;
+    box-shadow: 0 1px 4px rgba(13, 148, 136, 0.12) !important;
+}
+
+html.light .sidebar-tv-btn:hover {
+    background: linear-gradient(135deg, #d2f1ec 0%, #bfeed6 100%) !important;
+    border-color: #5eead4 !important;
+    color: #115e59 !important;
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.2) !important;
+}
+
+html.light .sidebar-tv-btn i {
+    color: #0d9488 !important;
+}
+
+html.light .sidebar-profile-card {
+    background: #ffffff !important;
+    border: 1px solid #cce5df !important;
+    box-shadow: 0 2px 6px rgba(13, 148, 136, 0.06) !important;
+}
+
+html.light .sidebar-profile-card div {
+    color: #0f4c42 !important;
+}
+
+html.light .sidebar-profile-card .font-mono {
+    color: #0d9488 !important;
+}
+
+html.light #btn-logout {
+    color: #64748b !important;
+}
+
+html.light #btn-logout:hover {
+    color: #e11d48 !important;
+    background-color: #ffe4e6 !important;
+}
+
+/* Cards & Panels in Light Mode */
+html.light .bg-slate-900:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-slate-950:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-\[\#0B142C\],
+html.light .bg-\[\#0E1A38\],
+html.light .bg-\[\#070D1E\],
+html.light .bg-\[\#091124\] {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light .bg-slate-950\/60:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-slate-950\/70:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-slate-950\/80:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-slate-950\/85:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-slate-950\/90:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-slate-900\/60:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-slate-900\/80:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop),
+html.light .bg-slate-900\/90:not(.app-modal-backdrop):not(.fixed):not(.modal-frosted-backdrop) {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+/* ==========================================================================
+   DYNAMIC FROSTED-GLASS TRANSLUCENT MODAL BACKDROPS (ALL MODULES)
+   ========================================================================== */
+.app-modal-backdrop,
+.modal-frosted-backdrop,
+#modal-container > div,
+#custom-dialog-container > div,
+#drawer-drilldown-backdrop {
+    background-color: rgba(7, 13, 30, 0.45) !important;
+    backdrop-filter: blur(12px) saturate(160%) contrast(92%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(160%) contrast(92%) !important;
+    transition: backdrop-filter 0.25s ease, background-color 0.25s ease !important;
+}
+
+html.light .app-modal-backdrop,
+html.light .modal-frosted-backdrop,
+html.light #modal-container > div,
+html.light #custom-dialog-container > div,
+html.light #drawer-drilldown-backdrop {
+    background-color: rgba(15, 23, 42, 0.28) !important;
+    backdrop-filter: blur(12px) saturate(140%) contrast(95%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(140%) contrast(95%) !important;
+}
+
+/* Modal Popup Dialog Cards: Smooth Spring In Animation & Frosted Elevation */
+#modal-container > div > div,
+#custom-dialog-container > div > div,
+.app-modal-dialog {
+    animation: modal-spring-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+html.light #modal-container > div > div,
+html.light #custom-dialog-container > div > div,
+html.light .app-modal-dialog {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+}
+
+@keyframes modal-spring-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Borders & Dividers in Light Mode */
+html.light .border-slate-800, 
+html.light .border-slate-700,
+html.light .border-\[\#152347\],
+html.light .border-\[\#16254c\],
+html.light .border-\[\#1b2c56\],
+html.light .border-\[\#1c2f5e\] {
+    border-color: #e2e8f0 !important;
+}
+
+html.light .border-slate-800\/80,
+html.light .border-slate-800\/60,
+html.light .border-slate-800\/40 {
+    border-color: #f1f5f9 !important;
+}
+
+html.light .divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]),
+html.light .divide-\[\#152347\]\/60 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #e2e8f0 !important;
+}
+
+/* High Contrast Typography in Light Mode */
+html.light .text-white,
+html.light .text-slate-100, 
+html.light .text-slate-200 {
+    color: #0f172a !important;
+}
+
+html.light .text-slate-300, 
+html.light .text-slate-400 {
+    color: #334155 !important;
+}
+
+html.light .text-slate-500,
+html.light .text-slate-600 {
+    color: #64748b !important;
+}
+
+html.light .text-cyan-400,
+html.light .text-cyan-300,
+html.light .text-cyan-200 {
+    color: #0284c7 !important;
+}
+
+html.light .text-emerald-400,
+html.light .text-emerald-300 {
+    color: #059669 !important;
+}
+
+html.light .text-rose-400,
+html.light .text-rose-300 {
+    color: #dc2626 !important;
+}
+
+html.light .text-amber-400,
+html.light .text-amber-300 {
+    color: #d97706 !important;
+}
+
+html.light .text-indigo-400,
+html.light .text-indigo-300 {
+    color: #4f46e5 !important;
+}
+
+html.light .text-sky-400,
+html.light .text-sky-300 {
+    color: #0284c7 !important;
+}
+
+/* Badges & Pills in Light Mode */
+html.light .bg-emerald-950,
+html.light .bg-emerald-950\/70,
+html.light .bg-emerald-950\/60,
+html.light .bg-emerald-950\/40,
+html.light .bg-emerald-900 {
+    background-color: #dcfce7 !important;
+    border-color: #86efac !important;
+    color: #15803d !important;
+}
+
+html.light .bg-rose-950,
+html.light .bg-rose-950\/70,
+html.light .bg-rose-950\/60,
+html.light .bg-rose-950\/40,
+html.light .bg-rose-900 {
+    background-color: #fee2e2 !important;
+    border-color: #fca5a5 !important;
+    color: #b91c1c !important;
+}
+
+html.light .bg-amber-950,
+html.light .bg-amber-950\/70,
+html.light .bg-amber-950\/60,
+html.light .bg-amber-950\/40,
+html.light .bg-amber-900 {
+    background-color: #fef3c7 !important;
+    border-color: #fde047 !important;
+    color: #a16207 !important;
+}
+
+html.light .bg-cyan-950,
+html.light .bg-cyan-950\/70,
+html.light .bg-cyan-950\/60,
+html.light .bg-cyan-950\/40,
+html.light .bg-cyan-900 {
+    background-color: #e0f2fe !important;
+    border-color: #7dd3fc !important;
+    color: #0369a1 !important;
+}
+
+html.light .bg-slate-800,
+html.light .bg-slate-800\/80,
+html.light .bg-slate-800\/60 {
+    background-color: #e2e8f0 !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+/* Forms, Inputs & Selects in Light Mode */
+html.light input[type="text"],
+html.light input[type="number"],
+html.light input[type="date"],
+html.light input[type="time"],
+html.light input[type="email"],
+html.light input[type="password"],
+html.light textarea,
+html.light select {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+html.light input:focus,
+html.light textarea:focus,
+html.light select:focus {
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.18) !important;
+}
+
+html.light select option,
+html.light select optgroup {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+}
+
+html.light select option:hover,
+html.light select option:focus,
+html.light select option:checked {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+}
+
+/* Tables in Light Mode */
+html.light table {
+    background-color: #ffffff !important;
+}
+
+html.light table thead {
+    background-color: #f8fafc !important;
+    color: #334155 !important;
+    border-color: #e2e8f0 !important;
+}
+
+html.light table th {
+    background-color: #f8fafc !important;
+    color: #334155 !important;
+    border-color: #e2e8f0 !important;
+}
+
+html.light table td {
+    color: #1e293b !important;
+    border-color: #f1f5f9 !important;
+}
+
+html.light table tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+/* ApexCharts Overrides for Light Mode */
+html.light .apexcharts-canvas text {
+    fill: #334155 !important;
+}
+
+html.light .apexcharts-tooltip {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+
+html.light .apexcharts-tooltip-title {
+    background-color: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+html.light .apexcharts-legend-text {
+    color: #334155 !important;
+}
+
+html.light .apexcharts-radialbar-track path {
+    stroke: #e2e8f0 !important;
+}
+
+html.light .apexcharts-gridline {
+    stroke: #e2e8f0 !important;
+}
+
+/* Modal Dialogs in Light Mode */
+html.light #modal-container .bg-slate-900,
+html.light #modal-container .bg-slate-950,
+html.light #modal-container .bg-\[\#0B142C\],
+html.light #modal-container .bg-\[\#0E1A38\] {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Notification Dropdown in Light Mode */
+html.light #notification-dropdown {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ==========================================================================
+   PRINT MEDIA STYLES (A4 PORTRAIT CLEAN EXCEL-LIKE OEE REPORT)
+   ========================================================================== */
+#print-document-sheet {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 6mm 8mm 6mm 8mm;
+    }
+
+    html, body {
+        background: #FFFFFF !important;
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        font-family: Arial, Helvetica, -apple-system, sans-serif !important;
+        font-size: 10px !important;
+        line-height: 1.3 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Hide entire main interactive application */
+    #sidebar,
+    header,
+    #main-container,
+    .no-print,
+    #btn-exit-tv,
+    #drawer-drilldown-backdrop,
+    #drawer-drilldown-panel,
+    button {
+        display: none !important;
+    }
+
+    /* Show only the dedicated clean print document */
+    #print-document-sheet {
+        display: block !important;
+        visibility: visible !important;
+        position: relative !important;
+        width: 100% !important;
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Print table styling: Crisp 1px Excel borders */
+    .sheet-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 8px !important;
+        font-size: 9.5px !important;
+    }
+
+    .sheet-table th {
+        background-color: #F1F5F9 !important;
+        color: #000000 !important;
+        font-weight: 700 !important;
+        border: 1px solid #334155 !important;
+        padding: 4px 5px !important;
+        text-align: left;
+    }
+
+    .sheet-table td {
+        border: 1px solid #64748B !important;
+        color: #000000 !important;
+        padding: 3px 5px !important;
+    }
+
+    .sheet-table tfoot td {
+        background-color: #F8FAFC !important;
+        font-weight: 700 !important;
+        border-top: 2px solid #000000 !important;
+    }
+}
+
+/* ==========================================
+   CYBER SECURITY SMOOTH ANIMATIONS (LOGIN)
+   ========================================== */
+@keyframes security-float {
+    0%, 100% {
+        transform: translateY(0px) scale(1);
+    }
+    50% {
+        transform: translateY(-10px) scale(1.02);
+    }
+}
+
+@keyframes security-glow {
+    0%, 100% {
+        opacity: 0.35;
+        transform: scale(0.95);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.06);
+    }
+}
+
+@keyframes scan-beam {
+    0% {
+        top: 5%;
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.9;
+    }
+    80% {
+        opacity: 0.9;
+    }
+    100% {
+        top: 92%;
+        opacity: 0;
+    }
+}
+
+@keyframes cyber-orbit {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes cyber-orbit-reverse {
+    from {
+        transform: rotate(360deg);
+    }
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+.animate-security-float {
+    animation: security-float 4.5s ease-in-out infinite;
+}
+
+.animate-security-glow {
+    animation: security-glow 3.5s ease-in-out infinite;
+}
+
+.animate-scan-beam {
+    animation: scan-beam 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-cyber-orbit {
+    animation: cyber-orbit 24s linear infinite;
+}
+
+.animate-cyber-orbit-reverse {
+    animation: cyber-orbit-reverse 18s linear infinite;
+}
+
+@keyframes ken-burns {
+    0% {
+        transform: scale(1) translate(0, 0);
+    }
+    50% {
+        transform: scale(1.12) translate(-1%, -1%);
+    }
+    100% {
+        transform: scale(1) translate(0, 0);
+    }
+}
+
+.animate-ken-burns {
+    animation: ken-burns 18s ease-in-out infinite alternate;
+}
+
+/* ANIMATED MESH & AURORA GRADIENT FOR LOGIN BACKDROP */
+@keyframes aurora-flow {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes orb-float-1 {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+        transform: translate(45px, -55px) scale(1.15);
+    }
+    66% {
+        transform: translate(-35px, 25px) scale(0.9);
+    }
+    100% {
+        transform: translate(0px, 0px) scale(1);
+    }
+}
+
+@keyframes orb-float-2 {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+        transform: translate(-45px, 45px) scale(1.12);
+    }
+    66% {
+        transform: translate(30px, -35px) scale(0.92);
+    }
+    100% {
+        transform: translate(0px, 0px) scale(1);
+    }
+}
+
+@keyframes orb-float-3 {
+    0% {
+        transform: translate(0px, 0px) scale(0.95);
+    }
+    50% {
+        transform: translate(35px, 35px) scale(1.2);
+    }
+    100% {
+        transform: translate(0px, 0px) scale(0.95);
+    }
+}
+
+.animate-aurora-dark {
+    background: linear-gradient(-45deg, #040814, #081329, #0e1e3d, #060e1d, #091730);
+    background-size: 300% 300%;
+    animation: aurora-flow 18s ease infinite;
+}
+
+.animate-aurora-light {
+    background: linear-gradient(-45deg, #f1f5f9, #dbeafe, #e0e7ff, #e2e8f0, #eff6ff);
+    background-size: 300% 300%;
+    animation: aurora-flow 18s ease infinite;
+}
+
+.animate-orb-1 {
+    animation: orb-float-1 16s ease-in-out infinite;
+}
+
+.animate-orb-2 {
+    animation: orb-float-2 20s ease-in-out infinite;
+}
+
+.animate-orb-3 {
+    animation: orb-float-3 24s ease-in-out infinite;
+}
+
+/* Subtle Geometric Grid Patterns */
+.login-grid-pattern {
+    background-image: radial-gradient(rgba(56, 189, 248, 0.18) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+.login-grid-pattern-light {
+    background-image: radial-gradient(rgba(14, 116, 144, 0.18) 1.2px, transparent 1.2px);
+    background-size: 28px 28px;
+}
+
+
+
