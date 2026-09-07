@@ -12817,8 +12817,9 @@ tbody.innerHTML = '';
 
                 this.showNotification(`Master ${type.toUpperCase()} Created`, `New ${type} record (${data.code || data.sku || data.name || ''}) created successfully!`, 'create');
                 modalContainer.innerHTML = '';
-                await this.loadMasterData();
-                this.renderMaster();
+                await this.loadMasterData(true);
+                this.clearDashboardCache();
+                await this.loadCurrentTab(false);
             } catch (err) {
                 alert('Error creating master record: ' + (err.response?.data?.message || err.message));
             }
@@ -13071,12 +13072,9 @@ tbody.innerHTML = '';
 
                 this.showNotification(`Master ${type.toUpperCase()} Updated`, `Record #${id} (${data.name || data.code || ''}) updated successfully!`, 'update');
                 modalContainer.innerHTML = '';
-                await this.loadMasterData();
-                if (this.currentView === 'monitoring') {
-                    this.renderMonitoring();
-                } else {
-                    this.renderMaster();
-                }
+                await this.loadMasterData(true);
+                this.clearDashboardCache();
+                await this.loadCurrentTab(false);
             } catch (err) {
                 alert('Error updating master record: ' + (err.response?.data?.message || err.message));
             }
@@ -13132,12 +13130,9 @@ tbody.innerHTML = '';
 
                 this.showNotification(`Master ${type.toUpperCase()} Deleted`, `Record ${name || '#' + id} deleted from database.`, 'delete');
                 modalContainer.innerHTML = '';
-                await this.loadMasterData();
-                if (this.currentView === 'monitoring') {
-                    this.renderMonitoring();
-                } else {
-                    this.renderMaster();
-                }
+                await this.loadMasterData(true);
+                this.clearDashboardCache();
+                await this.loadCurrentTab(false);
             } catch (err) {
                 alert('Error deleting record: ' + (err.response?.data?.message || err.message));
             }
