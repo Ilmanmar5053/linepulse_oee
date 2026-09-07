@@ -6261,6 +6261,24 @@ tbody.innerHTML = '';
             );
         }
 
+        // Group items by Line (production_line_id / line_name) for multi-shift/batch collapsible view
+        const ngLineGroupsMap = new Map();
+        items.forEach(item => {
+            const lineId = item.production_line_id || item.line_id || item.line_code || 0;
+            const lineName = item.line_name || `Line #${lineId}`;
+            const lineCode = item.line_code || '';
+            if (!ngLineGroupsMap.has(lineId)) {
+                ngLineGroupsMap.set(lineId, {
+                    lineId,
+                    lineName,
+                    lineCode,
+                    items: []
+                });
+            }
+            ngLineGroupsMap.get(lineId).items.push(item);
+        });
+        const ngLineGroups = Array.from(ngLineGroupsMap.values());
+
         const linesOptions = (this.masterData.lines || []).map(l => 
             `<option value="${l.id}" ${this.ngFilters.line_id == l.id ? 'selected' : ''}>${l.code} - ${l.name}</option>`
         ).join('');
@@ -6420,7 +6438,7 @@ tbody.innerHTML = '';
                 </div>
             </div>
 
-            <!-- WORK QUEUE TABLE (DAFTAR LAPORAN HARIAN BER-NG) -->
+            <!-- WORK QUEUE TABLE (DAFTAR LAPORAN HARIAN BER-NG - GROUPED BY LINE & COLLAPSIBLE) -->
             <div class="${isLight ? 'bg-white border-slate-200 shadow-xl' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5 space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
                     <div>
@@ -6428,13 +6446,24 @@ tbody.innerHTML = '';
                             <i data-lucide="list-checks" class="w-4 h-4 text-cyan-500"></i>
                             Daftar Antrean Laporan Harian yang Memiliki Reject / Defect
                         </h3>
-                        <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}">Hanya menampilkan transaksi harian dengan Total NG &gt; 0 yang memerlukan rincian komponen</p>
                     </div>
 
-                    <!-- SEARCH BAR -->
-                    <div class="relative w-72">
-                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                        <input type="text" id="input-search-ng" value="${this.ngFilters.search || ''}" placeholder="Cari Lini, Mesin, SKU, Produk..." class="w-full ${isLight ? 'bg-slate-50 border-slate-200 text-slate-800 focus:border-cyan-600' : 'bg-slate-950 border-slate-800 text-slate-200 focus:border-cyan-500'} border rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none font-sans" />
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- EXPAND / COLLAPSE ALL BUTTONS FOR NG TABLE -->
+                        <div class="flex items-center gap-1 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl p-1 shrink-0">
+                            <button id="btn-expand-all-ng-lines" title="Buka seluruh laporan NG semua line" class="px-2.5 py-1 text-[11px] font-bold ${isLight ? 'text-slate-700 hover:bg-white' : 'text-slate-300 hover:bg-slate-800'} rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="chevrons-down" class="w-3.5 h-3.5 text-rose-500"></i> Expand All
+                            </button>
+                            <button id="btn-collapse-all-ng-lines" title="Tutup rincian shift (hanya tampilkan ringkasan Line)" class="px-2.5 py-1 text-[11px] font-bold ${isLight ? 'text-slate-700 hover:bg-white' : 'text-slate-300 hover:bg-slate-800'} rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="chevrons-up" class="w-3.5 h-3.5 text-slate-400"></i> Collapse All
+                            </button>
+                        </div>
+
+                        <!-- SEARCH BAR -->
+                        <div class="relative w-64 sm:w-72">
+                            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="input-search-ng" value="${this.ngFilters.search || ''}" placeholder="Cari Lini, Mesin, SKU, Produk..." class="w-full ${isLight ? 'bg-slate-50 border-slate-200 text-slate-800 focus:border-cyan-600' : 'bg-slate-950 border-slate-800 text-slate-200 focus:border-cyan-500'} border rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none font-sans" />
+                        </div>
                     </div>
                 </div>
 
@@ -6455,7 +6484,7 @@ tbody.innerHTML = '';
                             </tr>
                         </thead>
                         <tbody class="divide-y ${isLight ? 'divide-slate-200 text-slate-800' : 'divide-slate-800/60 text-slate-200'} font-mono">
-                            ${items.length === 0 ? `
+                            ${ngLineGroups.length === 0 ? `
                                 <tr>
                                     <td colspan="10" class="p-8 text-center text-slate-500 font-sans">
                                         <div class="w-12 h-12 rounded-full ${isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-950 text-slate-600'} flex items-center justify-center mx-auto mb-2">
@@ -6465,111 +6494,189 @@ tbody.innerHTML = '';
                                         <div class="text-[11px] text-slate-500 mt-0.5">Semua laporan harian pada filter ini memiliki 0 reject atau detail NG telah selesai diinput.</div>
                                     </td>
                                 </tr>
-                            ` : items.map((item, idx) => {
-                                const ng = item.ng_detail;
+                            ` : ngLineGroups.map((grp, gIdx) => {
+                                const grpTotalOutput = grp.items.reduce((s, it) => s + (it.total_output || 0), 0);
+                                const grpGoodQty = grp.items.reduce((s, it) => s + (it.good_quantity || 0), 0);
+                                const grpTargetNg = grp.items.reduce((s, it) => s + (it.total_ng_target || 0), 0);
+                                const grpOeeNg = grp.items.reduce((s, it) => s + (it.ng_detail?.total_ng_oee || 0), 0);
+                                const grpAssyNg = grp.items.reduce((s, it) => s + (it.ng_detail?.ng_assy || 0), 0);
+                                const grpRodNg = grp.items.reduce((s, it) => s + (it.ng_detail?.ng_rod || 0), 0);
+                                const grpCapNg = grp.items.reduce((s, it) => s + (it.ng_detail?.ng_cap || 0), 0);
+                                const grpNonOeeNg = grp.items.reduce((s, it) => s + (it.ng_detail?.total_ng_non_oee || 0), 0);
+                                const grpPendingCount = grp.items.filter(it => !it.has_ng_detail || !it.is_balanced).length;
+                                const grpCompletedCount = grp.items.length - grpPendingCount;
+                                const uniqueShifts = [...new Set(grp.items.map(it => it.shift_name || 'Shift 1'))].join(', ');
+                                const uniqueProducts = [...new Set(grp.items.map(it => it.product_sku || it.product_name))].join(', ');
+                                const uniqueProductsCount = new Set(grp.items.map(it => it.product_sku || it.product_name)).size;
+
                                 return `
-                                    <tr class="${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors ${item.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/10') : ''}">
-                                        <td class="p-3 text-center font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'} text-[11px]">${idx + 1}</td>
-                                        <td class="p-3 font-sans">
-                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${item.formatted_date}</div>
-                                            <div class="text-[10px] ${isLight ? 'text-cyan-700' : 'text-cyan-400'} font-mono">${item.shift_name}</div>
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-cyan-300'}">${item.line_name} (${item.line_code})</div>
-                                            <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">${item.machine_name}</div>
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'} truncate max-w-xs">${item.product_name} - <span class="${isLight ? 'text-amber-700 font-bold' : 'text-amber-400'} font-mono">${item.product_sku}</span></div>
-                                        </td>
-                                        <td class="p-3 text-right">
-                                            <div class="${isLight ? 'text-slate-900' : 'text-slate-200'} font-bold">${item.total_output.toLocaleString()}</div>
-                                            <div class="text-[10px] ${isLight ? 'text-emerald-700 font-semibold' : 'text-emerald-400'}">${item.good_quantity.toLocaleString()} OK</div>
-                                        </td>
-                                        <td class="p-3 text-right">
-                                            <!-- BLOK TARGET NG (SOFT & PROPER) -->
-                                            <span class="px-2.5 py-1 rounded-lg text-xs font-black ${isLight ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs' : 'bg-rose-950/80 text-rose-400 border border-rose-800'}">
-                                                ${item.total_ng_target.toLocaleString()} Pcs
-                                            </span>
-                                            <div class="text-[9px] ${isLight ? 'text-slate-500' : 'text-slate-500'} mt-0.5">(${item.reject_quantity} rej + ${item.scrap_quantity} scp)</div>
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            ${ng ? `
-                                                <div class="space-y-1.5">
-                                                    <!-- BLOK RINCIAN KOMPONEN WAJIB OEE (SOFT PASTEL) -->
-                                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'}">
-                                                            Assy: ${ng.ng_assy} Pcs
-                                                        </span>
-                                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'}">
-                                                            Rod: ${ng.ng_rod} Pcs
-                                                        </span>
-                                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'}">
-                                                            Cap: ${ng.ng_cap} Pcs
-                                                        </span>
-                                                    </div>
-
-                                                    <!-- RINCIAN BARIS MULTI-ITEM -->
-                                                    ${((ng.items && ng.items.length > 0) || (ng.items_breakdown && ng.items_breakdown.length > 0)) ? `
-                                                        <div class="space-y-1 max-h-24 overflow-y-auto pr-1">
-                                                            ${((ng.items && ng.items.length > 0) ? ng.items : (ng.items_breakdown || [])).map(it => `
-                                                                <div class="text-[10px] ${isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-950/60 border-slate-800/80 text-slate-300'} border px-1.5 py-0.5 rounded flex items-center gap-1.5 truncate">
-                                                                    <span class="font-mono font-bold ${isLight ? 'text-sky-700' : 'text-cyan-400'} shrink-0">${it.component_type || 'ASSY'}: ${it.quantity}x</span>
-                                                                    <span class="${isLight ? 'text-slate-700' : 'text-slate-400'} truncate">${it.section || '-'}</span>
-                                                                    <span class="text-slate-400 shrink-0">•</span>
-                                                                    <span class="${isLight ? 'text-amber-800 font-semibold' : 'text-amber-400'} truncate">${it.reason || '-'}</span>
-                                                                </div>
-                                                            `).join('')}
-                                                        </div>
-                                                    ` : ''}
-
-                                                    <div class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-mono">
-                                                        Total Terdata: <strong class="${item.is_balanced ? (isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400') : (isLight ? 'text-rose-700 font-bold' : 'text-rose-400')}">${ng.total_ng_oee} Pcs</strong>
-                                                        ${item.is_balanced ? '✓' : `<span class="${isLight ? 'text-rose-700 font-bold' : 'text-rose-400'}">(${item.variance > 0 ? '+' : ''}${item.variance})</span>`}
-                                                    </div>
-                                                </div>
-                                            ` : `
-                                                <span class="${isLight ? 'text-slate-500' : 'text-slate-500'} italic text-[11px] font-sans">Belum dirinci</span>
-                                            `}
-                                        </td>
-                                        <td class="p-3 font-sans">
-                                            ${ng && ng.total_ng_non_oee > 0 ? `
-                                                <div class="text-[10px] font-mono ${isLight ? 'text-purple-800 font-semibold' : 'text-purple-300'} space-x-1">
-                                                    <span>B:${ng.ng_bolt}</span>
-                                                    <span>Bs:${ng.ng_bush}</span>
-                                                    <span>N:${ng.ng_nut}</span>
-                                                    <span>P:${ng.ng_pin}</span>
-                                                </div>
-                                                <div class="text-[9px] ${isLight ? 'text-slate-500' : 'text-slate-500'} font-mono">(${ng.total_ng_non_oee} Pcs non-OEE)</div>
-                                            ` : `
-                                                <span class="${isLight ? 'text-slate-400' : 'text-slate-600'} font-mono text-[10px]">-</span>
-                                            `}
-                                        </td>
-                                        <td class="p-3 text-center font-sans">
-                                            <!-- STATUS INPUT BADGE (SOFT & CLEAR) -->
-                                            ${item.has_ng_detail ? `
-                                                ${item.is_balanced ? `
-                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${isLight ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-emerald-950/80 text-emerald-400 border border-emerald-800'}">
-                                                        <i data-lucide="check" class="w-3 h-3"></i> Lengkap
-                                                    </span>
-                                                ` : `
-                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${isLight ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-rose-950/80 text-rose-400 border border-rose-800'}">
-                                                        <i data-lucide="alert-circle" class="w-3 h-3"></i> Selisih ${item.variance}
-                                                    </span>
-                                                `}
-                                            ` : `
-                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${isLight ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-amber-950/80 text-amber-400 border border-amber-800'}">
-                                                    <i data-lucide="clock" class="w-3 h-3"></i> Perlu Input
-                                                </span>
-                                            `}
-                                        </td>
+                                    <!-- LINE GROUP HEADER ROW (CLICKABLE COLLAPSIBLE) -->
+                                    <tr class="line-ng-group-header cursor-pointer select-none ${isLight ? 'bg-rose-50/70 hover:bg-rose-100/80 border-rose-200 text-slate-900' : 'bg-slate-950 hover:bg-slate-800/90 border-slate-800 text-slate-100'} border-t-2 border-b transition-colors" data-toggle-ng-line="${grp.lineId}">
                                         <td class="p-3 text-center">
-                                            <!-- TOMBOL AKSI INPUT DETAIL / EDIT DETAIL (SOFT PALETTE) -->
-                                            <button type="button" class="btn-open-ng-modal px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 mx-auto cursor-pointer ${item.has_ng_detail ? (isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700') : (isLight ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-black' : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30')}" data-record-id="${item.production_record_id}">
-                                                <i data-lucide="${item.has_ng_detail ? 'edit-3' : 'plus-circle'}" class="w-3.5 h-3.5"></i>
-                                                <span>${item.has_ng_detail ? 'Edit Detail' : 'Input Detail'}</span>
+                                            <button type="button" class="w-6 h-6 rounded-lg ${isLight ? 'bg-white text-slate-700 border-rose-200' : 'bg-slate-900 text-slate-300 border-slate-700'} border flex items-center justify-center transition-transform cursor-pointer shadow-xs">
+                                                <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-ng-${grp.lineId} transition-transform duration-200"></i>
                                             </button>
                                         </td>
+                                        <td class="p-3 font-sans">
+                                            <div class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-300'}">${uniqueShifts}</div>
+                                            <div class="text-[10px] text-slate-500 font-mono">${grp.items.length} Batch / Shift</div>
+                                        </td>
+                                        <td class="p-3 font-sans">
+                                            <div class="flex items-center gap-2">
+                                                <span class="px-2.5 py-1 rounded-md ${isLight ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-rose-950 text-rose-300 border-rose-800'} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
+                                                    🏭 ${grp.lineName}
+                                                </span>
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-slate-200 text-slate-800' : 'bg-slate-800 text-slate-300'} font-sans">
+                                                    ${grp.items.length} Laporan
+                                                </span>
+                                            </div>
+                                            ${grp.lineCode ? `<div class="text-[10px] text-slate-400 font-mono mt-0.5">${grp.lineCode}</div>` : ''}
+                                        </td>
+                                        <td class="p-3 font-sans text-xs">
+                                            <div class="font-semibold ${isLight ? 'text-slate-800' : 'text-slate-300'} truncate max-w-xs" title="${uniqueProducts}">${uniqueProducts}</div>
+                                            <div class="text-[10px] text-slate-500 font-mono">${uniqueProductsCount} Jenis Part</div>
+                                        </td>
+                                        <td class="p-3 text-right">
+                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${grpTotalOutput.toLocaleString()}</div>
+                                            <div class="text-[10px] ${isLight ? 'text-emerald-700 font-semibold' : 'text-emerald-400'}">${grpGoodQty.toLocaleString()} OK</div>
+                                        </td>
+                                        <td class="p-3 text-right">
+                                            <span class="px-2 py-0.5 rounded-lg text-xs font-black ${isLight ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-rose-950 text-rose-300 border border-rose-800'}">
+                                                ${grpTargetNg.toLocaleString()} Pcs
+                                            </span>
+                                        </td>
+                                        <td class="p-3 font-sans">
+                                            <div class="text-xs font-mono font-bold ${isLight ? 'text-cyan-800' : 'text-cyan-300'}">
+                                                Total OEE: ${grpOeeNg.toLocaleString()} Pcs
+                                            </div>
+                                            <div class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-mono">
+                                                (Assy: ${grpAssyNg} | Rod: ${grpRodNg} | Cap: ${grpCapNg})
+                                            </div>
+                                        </td>
+                                        <td class="p-3 font-sans">
+                                            <div class="text-[10px] font-mono ${isLight ? 'text-purple-800 font-semibold' : 'text-purple-300'}">
+                                                ${grpNonOeeNg > 0 ? `${grpNonOeeNg} Pcs` : '-'}
+                                            </div>
+                                        </td>
+                                        <td class="p-3 text-center font-sans">
+                                            <div class="flex items-center justify-center gap-1 flex-wrap">
+                                                ${grpPendingCount > 0 ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-950 text-amber-300 border border-amber-800'}">${grpPendingCount} Pending</span>` : ''}
+                                                ${grpCompletedCount > 0 ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${grpCompletedCount} Lengkap</span>` : ''}
+                                            </div>
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <span class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">Klik baris</span>
+                                        </td>
                                     </tr>
+
+                                    <!-- CHILD ROWS FOR THIS LINE -->
+                                    ${grp.items.map((item, idx) => {
+                                        const ng = item.ng_detail;
+                                        return `
+                                            <tr class="ng-line-row-${grp.lineId} ${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors ${item.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/10') : ''}">
+                                                <td class="p-3 text-center font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'} text-[11px]">${idx + 1}</td>
+                                                <td class="p-3 font-sans">
+                                                    <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${item.formatted_date}</div>
+                                                    <div class="text-[10px] ${isLight ? 'text-cyan-700' : 'text-cyan-400'} font-mono">${item.shift_name}</div>
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    <div class="font-bold ${isLight ? 'text-slate-900' : 'text-cyan-300'}">${item.line_name} (${item.line_code})</div>
+                                                    <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">${item.machine_name}</div>
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'} truncate max-w-xs">${item.product_name} - <span class="${isLight ? 'text-amber-700 font-bold' : 'text-amber-400'} font-mono">${item.product_sku}</span></div>
+                                                </td>
+                                                <td class="p-3 text-right">
+                                                    <div class="${isLight ? 'text-slate-900' : 'text-slate-200'} font-bold">${item.total_output.toLocaleString()}</div>
+                                                    <div class="text-[10px] ${isLight ? 'text-emerald-700 font-semibold' : 'text-emerald-400'}">${item.good_quantity.toLocaleString()} OK</div>
+                                                </td>
+                                                <td class="p-3 text-right">
+                                                    <!-- BLOK TARGET NG (SOFT & PROPER) -->
+                                                    <span class="px-2.5 py-1 rounded-lg text-xs font-black ${isLight ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs' : 'bg-rose-950/80 text-rose-400 border border-rose-800'}">
+                                                        ${item.total_ng_target.toLocaleString()} Pcs
+                                                    </span>
+                                                    <div class="text-[9px] ${isLight ? 'text-slate-500' : 'text-slate-500'} mt-0.5">(${item.reject_quantity} rej + ${item.scrap_quantity} scp)</div>
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    ${ng ? `
+                                                        <div class="space-y-1.5">
+                                                            <!-- BLOK RINCIAN KOMPONEN WAJIB OEE (SOFT PASTEL) -->
+                                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'}">
+                                                                    Assy: ${ng.ng_assy} Pcs
+                                                                </span>
+                                                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'}">
+                                                                    Rod: ${ng.ng_rod} Pcs
+                                                                </span>
+                                                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-sky-50 text-sky-800 border border-sky-200' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'}">
+                                                                    Cap: ${ng.ng_cap} Pcs
+                                                                </span>
+                                                            </div>
+
+                                                            <!-- RINCIAN BARIS MULTI-ITEM -->
+                                                            ${((ng.items && ng.items.length > 0) || (ng.items_breakdown && ng.items_breakdown.length > 0)) ? `
+                                                                <div class="space-y-1 max-h-24 overflow-y-auto pr-1">
+                                                                    ${((ng.items && ng.items.length > 0) ? ng.items : (ng.items_breakdown || [])).map(it => `
+                                                                        <div class="text-[10px] ${isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-950/60 border-slate-800/80 text-slate-300'} border px-1.5 py-0.5 rounded flex items-center gap-1.5 truncate">
+                                                                            <span class="font-mono font-bold ${isLight ? 'text-sky-700' : 'text-cyan-400'} shrink-0">${it.component_type || 'ASSY'}: ${it.quantity}x</span>
+                                                                            <span class="${isLight ? 'text-slate-700' : 'text-slate-400'} truncate">${it.section || '-'}</span>
+                                                                            <span class="text-slate-400 shrink-0">•</span>
+                                                                            <span class="${isLight ? 'text-amber-800 font-semibold' : 'text-amber-400'} truncate">${it.reason || '-'}</span>
+                                                                        </div>
+                                                                    `).join('')}
+                                                                </div>
+                                                            ` : ''}
+
+                                                            <div class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-mono">
+                                                                Total Terdata: <strong class="${item.is_balanced ? (isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400') : (isLight ? 'text-rose-700 font-bold' : 'text-rose-400')}">${ng.total_ng_oee} Pcs</strong>
+                                                                ${item.is_balanced ? '✓' : `<span class="${isLight ? 'text-rose-700 font-bold' : 'text-rose-400'}">(${item.variance > 0 ? '+' : ''}${item.variance})</span>`}
+                                                            </div>
+                                                        </div>
+                                                    ` : `
+                                                        <span class="${isLight ? 'text-slate-500' : 'text-slate-500'} italic text-[11px] font-sans">Belum dirinci</span>
+                                                    `}
+                                                </td>
+                                                <td class="p-3 font-sans">
+                                                    ${ng && ng.total_ng_non_oee > 0 ? `
+                                                        <div class="text-[10px] font-mono ${isLight ? 'text-purple-800 font-semibold' : 'text-purple-300'} space-x-1">
+                                                            <span>B:${ng.ng_bolt}</span>
+                                                            <span>Bs:${ng.ng_bush}</span>
+                                                            <span>N:${ng.ng_nut}</span>
+                                                            <span>P:${ng.ng_pin}</span>
+                                                        </div>
+                                                        <div class="text-[9px] ${isLight ? 'text-slate-500' : 'text-slate-500'} font-mono">(${ng.total_ng_non_oee} Pcs non-OEE)</div>
+                                                    ` : `
+                                                        <span class="${isLight ? 'text-slate-400' : 'text-slate-600'} font-mono text-[10px]">-</span>
+                                                    `}
+                                                </td>
+                                                <td class="p-3 text-center font-sans">
+                                                    <!-- STATUS INPUT BADGE (SOFT & CLEAR) -->
+                                                    ${item.has_ng_detail ? `
+                                                        ${item.is_balanced ? `
+                                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${isLight ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-emerald-950/80 text-emerald-400 border border-emerald-800'}">
+                                                                <i data-lucide="check" class="w-3 h-3"></i> Lengkap
+                                                            </span>
+                                                        ` : `
+                                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${isLight ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-rose-950/80 text-rose-400 border border-rose-800'}">
+                                                                <i data-lucide="alert-circle" class="w-3 h-3"></i> Selisih ${item.variance}
+                                                            </span>
+                                                        `}
+                                                    ` : `
+                                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${isLight ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-amber-950/80 text-amber-400 border border-amber-800'}">
+                                                            <i data-lucide="clock" class="w-3 h-3"></i> Perlu Input
+                                                        </span>
+                                                    `}
+                                                </td>
+                                                <td class="p-3 text-center">
+                                                    <!-- TOMBOL AKSI INPUT DETAIL / EDIT DETAIL (SOFT PALETTE) -->
+                                                    <button type="button" class="btn-open-ng-modal px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 mx-auto cursor-pointer ${item.has_ng_detail ? (isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700') : (isLight ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-black' : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30')}" data-record-id="${item.production_record_id}">
+                                                        <i data-lucide="${item.has_ng_detail ? 'edit-3' : 'plus-circle'}" class="w-3.5 h-3.5"></i>
+                                                        <span>${item.has_ng_detail ? 'Edit Detail' : 'Input Detail'}</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
                                 `;
                             }).join('')}
                         </tbody>
@@ -6632,6 +6739,50 @@ tbody.innerHTML = '';
                 if (recordId) {
                     this.showNgDetailModal(recordId);
                 }
+            });
+        });
+
+        // 3. Line Grouping Collapsible Toggles & Expand/Collapse All for NG Table
+        document.querySelectorAll('[data-toggle-ng-line]').forEach(headerRow => {
+            headerRow.addEventListener('click', (e) => {
+                const lineId = headerRow.getAttribute('data-toggle-ng-line');
+                const childRows = document.querySelectorAll(`.ng-line-row-${lineId}`);
+                const chevronIcon = document.querySelector(`.chevron-icon-ng-${lineId}`);
+                const isCurrentlyHidden = childRows[0]?.classList.contains('hidden');
+
+                childRows.forEach(r => {
+                    if (isCurrentlyHidden) {
+                        r.classList.remove('hidden');
+                    } else {
+                        r.classList.add('hidden');
+                    }
+                });
+
+                if (chevronIcon) {
+                    if (isCurrentlyHidden) {
+                        chevronIcon.classList.remove('-rotate-90');
+                        chevronIcon.classList.add('rotate-0');
+                    } else {
+                        chevronIcon.classList.remove('rotate-0');
+                        chevronIcon.classList.add('-rotate-90');
+                    }
+                }
+            });
+        });
+
+        document.getElementById('btn-expand-all-ng-lines')?.addEventListener('click', () => {
+            document.querySelectorAll('[class*="ng-line-row-"]').forEach(r => r.classList.remove('hidden'));
+            document.querySelectorAll('[class*="chevron-icon-ng-"]').forEach(i => {
+                i.classList.remove('-rotate-90');
+                i.classList.add('rotate-0');
+            });
+        });
+
+        document.getElementById('btn-collapse-all-ng-lines')?.addEventListener('click', () => {
+            document.querySelectorAll('[class*="ng-line-row-"]').forEach(r => r.classList.add('hidden'));
+            document.querySelectorAll('[class*="chevron-icon-ng-"]').forEach(i => {
+                i.classList.remove('rotate-0');
+                i.classList.add('-rotate-90');
             });
         });
 
