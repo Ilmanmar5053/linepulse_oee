@@ -8453,52 +8453,235 @@ tbody.innerHTML = '';
     // 6. DOWNTIME ANALYSIS PAGE
     // ==========================================
     async renderDowntime() {
+        this.currentView = 'downtime';
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+
         const [dtListRes, dtParetoRes] = await Promise.all([
             api.getDowntimes(this.filters),
             api.getParetoDowntime(this.filters),
         ]);
 
-        const downtimes = dtListRes.data.data;
-        const pareto = dtParetoRes.data.data;
+        const downtimes = dtListRes.data.data || [];
+        const paretoData = dtParetoRes.data;
+        const pareto = paretoData.data || [];
+        const summary = paretoData.summary || {};
 
-        const totalDowntime = pareto.reduce((sum, i) => sum + i.duration_minutes, 0);
-        const totalStops = pareto.reduce((sum, i) => sum + i.stop_count, 0);
-        const mttr = totalStops > 0 ? (totalDowntime / totalStops).toFixed(1) : 0;
+        const totalDowntime = summary.total_downtime !== undefined ? Number(summary.total_downtime) : pareto.reduce((sum, i) => sum + Number(i.duration_minutes || 0), 0);
+        const totalStops = summary.total_stops !== undefined ? Number(summary.total_stops) : pareto.reduce((sum, i) => sum + Number(i.stop_count || 0), 0);
+        const totalHours = (totalDowntime / 60).toFixed(1);
+
+        const getCategoryMeta = (catName) => {
+            const name = String(catName || '').toLowerCase();
+            if (name.includes('mekanik') || name.includes('mechanical')) {
+                return {
+                    icon: 'wrench',
+                    badgeColor: isLight ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-rose-950/80 text-rose-300 border-rose-800/80',
+                    textColor: 'text-rose-500',
+                    barGradient: 'bg-rose-500',
+                    accentColor: '#f43f5e'
+                };
+            }
+            if (name.includes('elektrik') || name.includes('electric') || name.includes('sensor') || name.includes('power')) {
+                return {
+                    icon: 'zap',
+                    badgeColor: isLight ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-amber-950/80 text-amber-300 border-amber-800/80',
+                    textColor: 'text-amber-500',
+                    barGradient: 'bg-amber-500',
+                    accentColor: '#f59e0b'
+                };
+            }
+            if (name.includes('tool') || name.includes('dies') || name.includes('jig') || name.includes('mold')) {
+                return {
+                    icon: 'settings-2',
+                    badgeColor: isLight ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-orange-950/80 text-orange-300 border-orange-800/80',
+                    textColor: 'text-orange-500',
+                    barGradient: 'bg-orange-500',
+                    accentColor: '#f97316'
+                };
+            }
+            if (name.includes('material') || name.includes('inventory') || name.includes('part') || name.includes('supply')) {
+                return {
+                    icon: 'package-search',
+                    badgeColor: isLight ? 'bg-cyan-100 text-cyan-800 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80',
+                    textColor: 'text-cyan-500',
+                    barGradient: 'bg-cyan-500',
+                    accentColor: '#06b6d4'
+                };
+            }
+            if (name.includes('planning') || name.includes('rencana') || name.includes('setup') || name.includes('dandori')) {
+                return {
+                    icon: 'calendar-clock',
+                    badgeColor: isLight ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-blue-950/80 text-blue-300 border-blue-800/80',
+                    textColor: 'text-blue-500',
+                    barGradient: 'bg-blue-500',
+                    accentColor: '#3b82f6'
+                };
+            }
+            if (name.includes('mesin') || name.includes('machine')) {
+                return {
+                    icon: 'cpu',
+                    badgeColor: isLight ? 'bg-red-100 text-red-800 border-red-200' : 'bg-red-950/80 text-red-300 border-red-800/80',
+                    textColor: 'text-red-500',
+                    barGradient: 'bg-red-500',
+                    accentColor: '#ef4444'
+                };
+            }
+            return {
+                icon: 'alert-circle',
+                badgeColor: isLight ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80',
+                textColor: 'text-indigo-500',
+                barGradient: 'bg-indigo-500',
+                accentColor: '#6366f1'
+            };
+        };
 
         const content = document.getElementById('content-body');
         content.innerHTML = `
-            <div class="mb-4">
-                <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
-                    <i data-lucide="clock-alert" class="w-5 h-5 text-amber-400"></i>
-                    <span>Downtime Analysis</span>
-                </h2>
+            <!-- HEADER SECTION -->
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-xl font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                        <i data-lucide="clock-alert" class="w-5 h-5 text-amber-500"></i>
+                        <span>Downtime Analysis</span>
+                    </h2>
+                    <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Analisis Losstime, Kejadian Stop & Distribusi per Kategori Problem</p>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                ${this.kpiCard('Total Downtime', totalDowntime.toFixed(1) + ' mins', 'Accumulated loss duration', 'alert-triangle', 'text-rose-400', 'from-rose-500/10 to-transparent border-rose-500/30')}
-                ${this.kpiCard('Number of Stops', totalStops + ' stops', 'Total stop events', 'pause-circle', 'text-amber-400', 'from-amber-500/10 to-transparent border-amber-500/30')}
-                ${this.kpiCard('MTTR (Mean Time To Repair)', mttr + ' mins', 'Average repair time per stop', 'wrench', 'text-cyan-400', 'from-cyan-500/10 to-transparent border-cyan-500/30')}
-                ${this.kpiCard('MTBF (Mean Time Between Failures)', '320 mins', 'Average operating interval', 'shield-check', 'text-emerald-400', 'from-emerald-500/10 to-transparent border-emerald-500/30')}
+            <!-- 1. OVERALL KPI SUMMARY STRIP (TOTAL DOWNTIME & FREKUENSI STOPS) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-rose-500/40">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-1">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-rose-400 font-mono flex items-center gap-1.5">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i>
+                                Total Downtime
+                            </span>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}">${totalDowntime.toFixed(1)}</span>
+                                <span class="text-sm font-bold text-rose-500 font-mono">mins</span>
+                                <span class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} font-sans">(${totalHours} jam)</span>
+                            </div>
+                            <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Total akumulasi durasi losstime produksi</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-rose-50 text-rose-600' : 'bg-rose-950/60 text-rose-400 border border-rose-800/60'}">
+                            <i data-lucide="clock" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-amber-500/40">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-1">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-mono flex items-center gap-1.5">
+                                <i data-lucide="pause-circle" class="w-4 h-4 text-amber-500"></i>
+                                Total Kejadian Stop
+                            </span>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}">${totalStops}</span>
+                                <span class="text-sm font-bold text-amber-500 font-mono">stops</span>
+                                <span class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} font-sans">(${pareto.length} Kategori Problem)</span>
+                            </div>
+                            <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Total frekuensi insiden / breakdown</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-950/60 text-amber-400 border border-amber-800/60'}">
+                            <i data-lucide="activity" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
-                <h3 class="text-sm font-bold text-slate-100 mb-4">Downtime Reasons Pareto Chart</h3>
-                <div id="chart-pareto-downtime" class="h-64"></div>
+            <!-- 2. TOTAL DOWNTIME PER KATEGORI PROBLEM (DASHBOARD CARDS) -->
+            <div class="${isLight ? 'bg-slate-100/80 border-slate-200' : 'bg-slate-900/60 border-slate-800'} border rounded-2xl p-4 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3 px-1">
+                    <div>
+                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                            <i data-lucide="layers" class="w-4 h-4 text-cyan-500"></i>
+                            <span>Total Downtime Berdasarkan Kategori Problem</span>
+                        </h3>
+                        <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Ringkasan durasi, frekuensi kendala, dan kontribusi loss per kategori permasalahan</p>
+                    </div>
+                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${isLight ? 'bg-cyan-100 text-cyan-800' : 'bg-cyan-950 text-cyan-300 border border-cyan-800'}">
+                        ${pareto.length} Kategori Aktif
+                    </span>
+                </div>
+
+                ${pareto.length === 0 ? `
+                    <div class="p-8 text-center text-slate-500 font-sans text-xs">
+                        <i data-lucide="check-circle" class="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-60"></i>
+                        Tidak ada catatan downtime pada periode filter yang dipilih.
+                    </div>
+                ` : `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                        ${pareto.map(cat => {
+                            const meta = getCategoryMeta(cat.category || cat.reason);
+                            const dur = Number(cat.duration_minutes || 0);
+                            const pct = Number(cat.percentage || 0);
+                            const stops = Number(cat.stop_count || 0);
+                            return `
+                                <div class="relative flex flex-col justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-3.5 shadow-xs transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                                    <!-- TOP BADGE & STOP COUNT -->
+                                    <div class="flex items-start justify-between gap-2 mb-2">
+                                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold border ${meta.badgeColor} max-w-[70%] truncate">
+                                            <i data-lucide="${meta.icon}" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                                            <span class="truncate">${cat.category || cat.reason}</span>
+                                        </div>
+                                        <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-800 text-slate-300'}">
+                                            ${stops} ${stops === 1 ? 'stop' : 'stops'}
+                                        </span>
+                                    </div>
+
+                                    <!-- DURATION DISPLAY -->
+                                    <div class="my-1">
+                                        <div class="flex items-baseline gap-1.5">
+                                            <span class="text-2xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dur.toFixed(1)}</span>
+                                            <span class="text-xs font-bold ${meta.textColor} font-mono">mins</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-[10px] font-sans ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">
+                                            <span>Share Kontribusi</span>
+                                            <span class="font-bold font-mono ${meta.textColor}">${pct}%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- PROGRESS BAR -->
+                                    <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden mt-1.5">
+                                        <div class="${meta.barGradient} h-1.5 rounded-full transition-all duration-500" style="width: ${Math.min(pct, 100)}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `}
             </div>
 
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+            <!-- 3. PROBLEM CATEGORY DOWNTIME PARETO CHART -->
+            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-amber-500"></i>
+                            <span>Problem Category Downtime Pareto Chart</span>
+                        </h3>
+                        <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Analisis peringkat loss downtime berdasarkan Kategori Problem & kurva kumulatif</p>
+                    </div>
+                </div>
+                <div id="chart-pareto-downtime" class="h-72"></div>
+            </div>
+
+            <!-- 4. DOWNTIME & LOSS TROUBLE HISTORY LOGS TABLE -->
+            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
                     <div>
-                        <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
-                            <i data-lucide="history" class="w-4 h-4 text-cyan-400"></i>
-                            Downtime & Loss Trouble History Logs
+                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                            <i data-lucide="history" class="w-4 h-4 text-cyan-500"></i>
+                            <span>Downtime & Loss Trouble History Logs</span>
                         </h3>
-                        <p class="text-xs text-slate-400">Catatan log problem trouble mesin, tool, jig, material & tindakan perbaikan</p>
+                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}">Catatan log problem trouble mesin, tool, jig, material & tindakan perbaikan</p>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-950 text-slate-400 uppercase font-semibold text-[10px] border-b border-slate-800">
+                        <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
                             <tr>
                                 <th class="p-3 text-center w-12">No</th>
                                 <th class="p-3">Waktu Trouble</th>
@@ -8511,44 +8694,46 @@ tbody.innerHTML = '';
                                 <th class="p-3">Tindakan Perbaikan (CAPA)</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-800/60 font-mono">
+                        <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
                             ${downtimes.length === 0 ? `
                                 <tr><td colspan="9" class="p-6 text-center text-slate-500 font-sans">Belum ada riwayat log trouble downtime</td></tr>
-                            ` : downtimes.map((dt, idx) => `
-                                <tr class="hover:bg-slate-800/40 transition-colors">
+                            ` : downtimes.map((dt, idx) => {
+                                const catMeta = getCategoryMeta(dt.problem_type);
+                                return `
+                                <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
                                     <td class="p-3 text-center font-bold text-slate-500 font-mono">${idx + 1}</td>
-                                    <td class="p-3 text-slate-300 text-[11px]">
+                                    <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} text-[11px]">
                                         <div>${dt.start_time ? dt.start_time.slice(0,16).replace('T', ' ') : '-'}</div>
-                                        <div class="text-slate-500 text-[10px]">s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-400 font-bold">ONGOING</span>'}</div>
+                                        <div class="text-slate-500 text-[10px]">s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-500 font-bold">ONGOING</span>'}</div>
                                     </td>
                                     <td class="p-3 font-sans">
-                                        <div class="font-bold text-cyan-400">${dt.production_line ? dt.production_line.name : (dt.production_line_id ? 'Line #' + dt.production_line_id : 'FX Line')}</div>
+                                        <div class="font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-400'}">${dt.production_line ? dt.production_line.name : (dt.production_line_id ? 'Line #' + dt.production_line_id : 'FX Line')}</div>
                                         <div class="text-[10px] text-slate-400 font-mono">${dt.machine ? dt.machine.name : 'MC-MEASURING'}</div>
                                     </td>
                                     <td class="p-3 font-sans">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-200 border border-slate-700">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-800 text-slate-200 border border-slate-700'}">
                                             ${dt.shift ? dt.shift.name : 'Shift 1'}
                                         </span>
-                                        ${dt.team ? `<div class="text-[10px] text-amber-400 font-bold mt-1">👥 ${dt.team}</div>` : ''}
+                                        ${dt.team ? `<div class="text-[10px] text-amber-500 font-bold mt-1">👥 ${dt.team}</div>` : ''}
                                     </td>
-                                    <td class="p-3 text-slate-300 font-sans text-xs">
+                                    <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} font-sans text-xs">
                                         ${dt.product ? dt.product.name : '-'}
                                     </td>
                                     <td class="p-3 font-sans">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${dt.problem_type === 'Mesin' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${catMeta.badgeColor}">
                                             ${dt.problem_type || 'Mesin'}
                                         </span>
                                     </td>
-                                    <td class="p-3 font-sans text-slate-200">
-                                        <div class="font-bold text-slate-100">${dt.description || (dt.downtime_reason ? dt.downtime_reason.name : 'Trouble Operasional')}</div>
+                                    <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
+                                        <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dt.description || (dt.downtime_reason ? dt.downtime_reason.name : 'Trouble Operasional')}</div>
                                         ${dt.description && dt.downtime_reason && dt.downtime_reason.name !== dt.description && dt.downtime_reason.name !== 'Mechanical Jam & Motor Overheat' ? `<div class="text-[10px] text-slate-400 truncate max-w-xs">${dt.downtime_reason.name}</div>` : ''}
                                     </td>
-                                    <td class="p-3 font-bold text-rose-400">${dt.calculated_duration_minutes || dt.duration_minutes} mins</td>
+                                    <td class="p-3 font-bold text-rose-500 font-mono">${dt.calculated_duration_minutes || dt.duration_minutes} mins</td>
                                     <td class="p-3 font-sans text-xs">
-                                        <div class="text-emerald-400 font-medium">${dt.action_taken || '-'}</div>
+                                        <div class="text-emerald-500 font-medium">${dt.action_taken || '-'}</div>
                                     </td>
                                 </tr>
-                            `).join('')}
+                            `;}).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -8556,6 +8741,7 @@ tbody.innerHTML = '';
         `;
 
         this.renderParetoDowntimeChart(pareto);
+        if (window.lucide) window.lucide.createIcons();
         if (this.currentLang === 'ja') {
             i18n.localizeDom(document.getElementById('content-body') || document.body);
         }
@@ -16953,28 +17139,197 @@ tbody.innerHTML = '';
         const el = document.getElementById('chart-pareto-downtime');
         if (!el || !window.ApexCharts) return;
 
-        const isLight = this.theme === 'light';
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+
+        if (!data || data.length === 0) {
+            el.innerHTML = `
+                <div class="h-64 flex flex-col items-center justify-center text-slate-500 py-12">
+                    <i data-lucide="check-circle" class="w-12 h-12 text-emerald-400 mb-2 opacity-60"></i>
+                    <p class="text-sm font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}">Tidak ada data downtime / problem</p>
+                    <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-500'}">Semua mesin beroperasi optimal tanpa gangguan pada filter ini.</p>
+                </div>
+            `;
+            if (window.lucide) window.lucide.createIcons();
+            return;
+        }
+
         const options = {
-            chart: { type: 'line', height: '100%', background: 'transparent', toolbar: { show: false } },
+            chart: {
+                type: 'line',
+                height: 300,
+                background: 'transparent',
+                toolbar: {
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: false,
+                        zoom: false,
+                        zoomin: false,
+                        zoomout: false,
+                        pan: false,
+                        reset: false
+                    }
+                },
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 700,
+                    dynamicAnimation: { enabled: true, speed: 350 }
+                }
+            },
             theme: { mode: isLight ? 'light' : 'dark' },
-            colors: ['#f59e0b', '#0284c7'],
-            stroke: { width: [0, 3], curve: 'smooth' },
-            plotOptions: { bar: { columnWidth: '40%', borderRadius: 4 } },
+            colors: ['#f59e0b', '#06b6d4'],
+            stroke: {
+                width: [0, 3.5],
+                curve: 'smooth'
+            },
+            plotOptions: {
+                bar: {
+                    columnWidth: '40%',
+                    borderRadius: 6,
+                    borderRadiusApplication: 'end',
+                    dataLabels: {
+                        position: 'top'
+                    }
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                enabledOnSeries: [0, 1],
+                formatter: function (val, opts) {
+                    if (opts.seriesIndex === 0) return val > 0 ? val + ' m' : '';
+                    return val + '%';
+                },
+                offsetY: -6,
+                style: {
+                    fontSize: '10.5px',
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    colors: isLight ? ['#b45309', '#0e7490'] : ['#fcd34d', '#67e8f9']
+                },
+                background: {
+                    enabled: true,
+                    foreColor: isLight ? '#ffffff' : '#0f172a',
+                    padding: 3,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: isLight ? '#cbd5e1' : '#334155',
+                    opacity: 0.95
+                }
+            },
             series: [
-                { name: 'Duration (mins)', type: 'column', data: data.map(i => i.duration_minutes) },
-                { name: 'Cumulative %', type: 'line', data: data.map(i => i.cumulative_percentage) },
+                {
+                    name: 'Durasi Downtime (Menit)',
+                    type: 'column',
+                    data: data.map(i => Number(i.duration_minutes || 0))
+                },
+                {
+                    name: 'Persentase Kumulatif (%)',
+                    type: 'line',
+                    data: data.map(i => Number(i.cumulative_percentage || 0))
+                }
             ],
-            xaxis: { 
-                categories: data.map(i => i.reason), 
-                labels: { style: { colors: isLight ? '#475569' : '#64748b', fontSize: '10px' } },
-                axisBorder: { color: isLight ? '#cbd5e1' : '#334155' }
+            xaxis: {
+                categories: data.map(i => i.category || i.reason || 'Uncategorized'),
+                labels: {
+                    style: {
+                        colors: isLight ? '#334155' : '#94a3b8',
+                        fontSize: '11px',
+                        fontWeight: 600
+                    },
+                    rotate: -15,
+                    trim: true,
+                    maxHeight: 60
+                },
+                axisBorder: { color: isLight ? '#cbd5e1' : '#334155' },
+                axisTicks: { color: isLight ? '#cbd5e1' : '#334155' }
             },
             yaxis: [
-                { title: { text: 'Minutes' }, labels: { style: { colors: isLight ? '#475569' : '#64748b' } } },
-                { opposite: true, max: 100, title: { text: 'Cumulative %' }, labels: { style: { colors: isLight ? '#475569' : '#64748b' }, formatter: (v) => v + '%' } },
+                {
+                    title: {
+                        text: 'Durasi (Menit)',
+                        style: {
+                            color: isLight ? '#475569' : '#94a3b8',
+                            fontSize: '11px',
+                            fontWeight: 600
+                        }
+                    },
+                    labels: {
+                        style: { colors: isLight ? '#475569' : '#94a3b8' },
+                        formatter: (val) => Math.round(val) + ' m'
+                    }
+                },
+                {
+                    opposite: true,
+                    max: 100,
+                    min: 0,
+                    title: {
+                        text: 'Persentase Kumulatif (%)',
+                        style: {
+                            color: isLight ? '#475569' : '#94a3b8',
+                            fontSize: '11px',
+                            fontWeight: 600
+                        }
+                    },
+                    labels: {
+                        style: { colors: isLight ? '#475569' : '#94a3b8' },
+                        formatter: (val) => Math.round(val) + '%'
+                    }
+                }
             ],
-            grid: { borderColor: isLight ? '#e2e8f0' : '#1e293b', strokeDashArray: 4 },
-            tooltip: { theme: isLight ? 'light' : 'dark' }
+            annotations: {
+                yaxis: [
+                    {
+                        y: 80,
+                        yAxisIndex: 1,
+                        borderColor: '#ef4444',
+                        strokeDashArray: 4,
+                        borderWidth: 1.5,
+                        label: {
+                            borderColor: '#ef4444',
+                            style: {
+                                color: '#fff',
+                                background: '#ef4444',
+                                fontSize: '10px',
+                                fontWeight: 700
+                            },
+                            text: '80% Pareto Threshold'
+                        }
+                    }
+                ]
+            },
+            grid: {
+                borderColor: isLight ? '#e2e8f0' : '#1e293b',
+                strokeDashArray: 4,
+                padding: { top: 10, right: 20, bottom: 5, left: 10 }
+            },
+            markers: {
+                size: [0, 5],
+                strokeColors: isLight ? '#ffffff' : '#0f172a',
+                strokeWidth: 2,
+                hover: { size: 7 }
+            },
+            legend: {
+                position: 'top',
+                horizontalAlign: 'right',
+                labels: { colors: isLight ? '#334155' : '#94a3b8' },
+                fontSize: '11px'
+            },
+            tooltip: {
+                theme: isLight ? 'light' : 'dark',
+                shared: true,
+                intersect: false,
+                y: {
+                    formatter: function (val, opts) {
+                        if (opts.seriesIndex === 0) {
+                            const rawItem = data[opts.dataPointIndex];
+                            const stopStr = rawItem ? ` (${rawItem.stop_count} stops)` : '';
+                            return val + ' mins' + stopStr;
+                        }
+                        return val + '%';
+                    }
+                }
+            }
         };
 
         if (this.charts['paretoDowntime']) this.charts['paretoDowntime'].destroy();

@@ -351,39 +351,69 @@ class DashboardController extends Controller
     }
 
     /**
-     * Downtime Pareto Chart Data
+     * Downtime Pareto Chart Data grouped by Problem Category
      */
     public function paretoDowntime(Request $request): JsonResponse
     {
-        $query = Downtime::with(['downtimeReason'])
-            ->select('downtime_reason_id', DB::raw('SUM(duration_minutes) as total_duration'), DB::raw('COUNT(*) as stop_count'))
-            ->groupBy('downtime_reason_id')
-            ->orderBy('total_duration', 'desc');
-
+        $query = Downtime::with(['downtimeReason', 'downtimeCategory']);
         $this->applyFilters($query, $request, 'start_time');
 
-        $items = $query->limit(10)->get();
+        $downtimes = $query->get();
 
-        $grandTotal = $items->sum('total_duration');
+        $categoryAgg = [];
+        foreach ($downtimes as $dt) {
+            $cat = trim((string) ($dt->problem_type ?? ''));
+            if (empty($cat)) {
+                $cat = $dt->downtimeCategory->name ?? ($dt->downtimeReason->name ?? 'Lain-lain / Others');
+            }
+
+            if (!isset($categoryAgg[$cat])) {
+                $categoryAgg[$cat] = [
+                    'category' => $cat,
+                    'duration_minutes' => 0.0,
+                    'stop_count' => 0,
+                ];
+            }
+
+            $dur = (float) ($dt->calculated_duration_minutes ?? $dt->duration_minutes ?? 0);
+            $categoryAgg[$cat]['duration_minutes'] += $dur;
+            $categoryAgg[$cat]['stop_count'] += 1;
+        }
+
+        // Sort descending by duration_minutes
+        uasort($categoryAgg, function ($a, $b) {
+            return $b['duration_minutes'] <=> $a['duration_minutes'];
+        });
+
+        $grandTotal = array_sum(array_column($categoryAgg, 'duration_minutes'));
         $cumulative = 0;
 
-        $result = $items->map(function ($row) use ($grandTotal, &$cumulative) {
-            $reason = $row->downtimeReason->name ?? 'Unspecified Breakdown';
-            $duration = round((float) $row->total_duration, 1);
+        $result = [];
+        foreach ($categoryAgg as $row) {
+            $duration = round((float) $row['duration_minutes'], 1);
             $cumulative += $duration;
             $cumPercentage = ($grandTotal > 0) ? round(($cumulative / $grandTotal) * 100, 1) : 0;
+            $percentage = ($grandTotal > 0) ? round(($duration / $grandTotal) * 100, 1) : 0;
 
-            return [
-                'reason' => $reason,
+            $result[] = [
+                'category' => $row['category'],
+                'reason' => $row['category'], // backward compatibility with reason field
                 'duration_minutes' => $duration,
-                'stop_count' => (int) $row->stop_count,
+                'stop_count' => (int) $row['stop_count'],
+                'percentage' => $percentage,
                 'cumulative_percentage' => $cumPercentage,
             ];
-        });
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $result,
+            'data' => array_values($result),
+            'summary' => [
+                'total_downtime' => round((float) $grandTotal, 1),
+                'total_stops' => count($downtimes),
+                'categories_count' => count($result),
+                'top_category' => !empty($result) ? $result[0]['category'] : null,
+            ]
         ]);
     }
 
