@@ -6572,7 +6572,7 @@ tbody.innerHTML = '';
                                     <tr class="line-ng-group-header cursor-pointer select-none ${isLight ? 'bg-rose-50/70 hover:bg-rose-100/80 border-rose-200 text-slate-900' : 'bg-slate-950 hover:bg-slate-800/90 border-slate-800 text-slate-100'} border-t-2 border-b transition-colors" data-toggle-ng-line="${grp.lineId}">
                                         <td class="p-3 text-center">
                                             <button type="button" class="w-6 h-6 rounded-lg ${isLight ? 'bg-white text-slate-700 border-rose-200' : 'bg-slate-900 text-slate-300 border-slate-700'} border flex items-center justify-center transition-transform cursor-pointer shadow-xs">
-                                                <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-ng-${grp.lineId} transition-transform duration-200"></i>
+                                                <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-ng-${grp.lineId} -rotate-90 transition-transform duration-200"></i>
                                             </button>
                                         </td>
                                         <td class="p-3 font-sans">
@@ -6631,7 +6631,7 @@ tbody.innerHTML = '';
                                     ${grp.items.map((item, idx) => {
                                         const ng = item.ng_detail;
                                         return `
-                                            <tr class="ng-line-row-${grp.lineId} ${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors ${item.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/10') : ''}">
+                                            <tr class="ng-line-row-${grp.lineId} hidden ${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors ${item.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/10') : ''}">
                                                 <td class="p-3 text-center font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'} text-[11px]">${idx + 1}</td>
                                                 <td class="p-3 font-sans">
                                                     <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${item.formatted_date}</div>
@@ -7108,9 +7108,9 @@ tbody.innerHTML = '';
                                             <thead class="sticky top-0 z-10 ${isLightModal ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-900 text-slate-300 border-slate-700'} uppercase font-semibold text-[10px] border-b shadow-xs">
                                                 <tr>
                                                     <th class="p-2.5 text-center w-8 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">#</th>
+                                                    <th class="p-2.5 min-w-[140px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">OP Mesin (Ketik / Cari)</th>
                                                     <th class="p-2.5 w-28 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Komponen OEE <span class="text-rose-500">*</span></th>
                                                     <th class="p-2.5 w-24 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Jumlah (Pcs) <span class="text-rose-500">*</span></th>
-                                                    <th class="p-2.5 min-w-[140px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">OP Mesin (Ketik / Cari)</th>
                                                     <th class="p-2.5 min-w-[140px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Bagian NG (Ketik / Cari)</th>
                                                     <th class="p-2.5 min-w-[180px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Penyebab / Remark (Ketik / Cari)</th>
                                                     <th class="p-2.5 text-center w-10 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Aksi</th>
@@ -7234,16 +7234,6 @@ tbody.innerHTML = '';
                         <tr class="${isLightModal ? 'hover:bg-slate-50' : 'hover:bg-slate-800/30'} transition-colors">
                             <td class="p-2 text-center text-slate-500 font-mono text-[11px]">${idx + 1}</td>
                             <td class="p-2 font-sans">
-                                <select data-row-idx="${idx}" data-field="component_type" class="w-full ${isLightModal ? 'bg-slate-50 border-slate-200 text-cyan-800' : 'bg-slate-950 border-slate-800 text-cyan-300'} border rounded-lg px-2 py-1.5 text-xs font-bold focus:outline-none focus:border-cyan-500">
-                                    <option value="ASSY" ${row.component_type === 'ASSY' ? 'selected' : ''}>ASSY</option>
-                                    <option value="ROD" ${row.component_type === 'ROD' ? 'selected' : ''}>ROD</option>
-                                    <option value="CAP" ${row.component_type === 'CAP' ? 'selected' : ''}>CAP</option>
-                                </select>
-                            </td>
-                            <td class="p-2">
-                                <input type="number" min="1" value="${row.quantity}" data-row-idx="${idx}" data-field="quantity" required class="w-full ${isLightModal ? 'bg-slate-50 border-slate-200 text-cyan-900' : 'bg-slate-950 border-slate-800 text-cyan-400'} border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-cyan-500" />
-                            </td>
-                            <td class="p-2 font-sans">
                                 <div class="relative flex items-center">
                                     <input 
                                         type="text" 
@@ -7259,6 +7249,16 @@ tbody.innerHTML = '';
                                         <i data-lucide="chevron-down" class="w-3 h-3"></i>
                                     </span>
                                 </div>
+                            </td>
+                            <td class="p-2 font-sans">
+                                <select data-row-idx="${idx}" data-field="component_type" class="w-full ${isLightModal ? 'bg-slate-50 border-slate-200 text-cyan-800' : 'bg-slate-950 border-slate-800 text-cyan-300'} border rounded-lg px-2 py-1.5 text-xs font-bold focus:outline-none focus:border-cyan-500">
+                                    <option value="ASSY" ${row.component_type === 'ASSY' ? 'selected' : ''}>ASSY</option>
+                                    <option value="ROD" ${row.component_type === 'ROD' ? 'selected' : ''}>ROD</option>
+                                    <option value="CAP" ${row.component_type === 'CAP' ? 'selected' : ''}>CAP</option>
+                                </select>
+                            </td>
+                            <td class="p-2">
+                                <input type="number" min="1" value="${row.quantity}" data-row-idx="${idx}" data-field="quantity" required class="w-full ${isLightModal ? 'bg-slate-50 border-slate-200 text-cyan-900' : 'bg-slate-950 border-slate-800 text-cyan-400'} border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-cyan-500" />
                             </td>
                             <td class="p-2 font-sans">
                                 <div class="relative flex items-center">
