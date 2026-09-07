@@ -76,7 +76,10 @@ class DowntimeController extends Controller
             'end_time' => 'nullable|date',
             'duration_minutes' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
+            'cause' => 'nullable|string',
             'action_taken' => 'nullable|string',
+            'pic' => 'nullable|string',
+            'status' => 'nullable|string|in:CLOSED,OPEN,Closed,Open',
             'is_planned' => 'boolean',
         ]);
 
@@ -134,7 +137,10 @@ class DowntimeController extends Controller
             'team' => 'nullable|string',
             'problem_type' => 'nullable|string',
             'description' => 'nullable|string',
+            'cause' => 'nullable|string',
             'action_taken' => 'nullable|string',
+            'pic' => 'nullable|string',
+            'status' => 'nullable|string|in:CLOSED,OPEN,Closed,Open',
             'duration_minutes' => 'nullable|numeric|min:0',
             'dt_start_time' => 'nullable|string',
             'dt_end_time' => 'nullable|string',
@@ -198,7 +204,10 @@ class DowntimeController extends Controller
         }
         if (isset($validated['downtime_category_id'])) $downtime->downtime_category_id = $validated['downtime_category_id'];
         if (isset($validated['description'])) $downtime->description = $validated['description'];
+        if (isset($validated['cause'])) $downtime->cause = $validated['cause'];
         if (isset($validated['action_taken'])) $downtime->action_taken = $validated['action_taken'];
+        if (isset($validated['pic'])) $downtime->pic = $validated['pic'];
+        if (isset($validated['status'])) $downtime->status = strtoupper($validated['status']);
 
         $downtime->save();
 

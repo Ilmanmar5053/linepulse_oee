@@ -26,7 +26,10 @@ class Downtime extends Model
         'downtime_category_id',
         'downtime_reason_id',
         'description',
+        'cause',
         'action_taken',
+        'pic',
+        'status',
         'is_planned',
         'created_by',
     ];

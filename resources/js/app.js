@@ -4692,19 +4692,19 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- TABEL TROUBLE & DOWNTIME HARIAN -->
+                <!-- TABEL PROBLEM & DOWNTIME HARIAN -->
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 pb-3 border-b ${isLight ? 'border-slate-100' : 'border-slate-800'}">
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                 <i data-lucide="history" class="w-4 h-4 text-amber-400"></i>
-                                Log Trouble & Downtime — Tanggal ${this.selectedDailyDate}
+                                Log Problem & Downtime — Tanggal ${this.selectedDailyDate}
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Daftar kendala trouble mesin, tool, jig, & material khusus untuk tanggal yang dipilih (${downtimes.length} event)</p>
+                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Daftar kendala problem mesin, tool, jig, & material khusus untuk tanggal yang dipilih (${downtimes.length} event)</p>
                         </div>
                         <button id="btn-open-create-dt-modal" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all text-xs">
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                            <span>+ Tambah Trouble Log</span>
+                            <span>+ Tambah Problem Log</span>
                         </button>
                     </div>
 
@@ -4712,31 +4712,34 @@ tbody.innerHTML = '';
                         <table class="w-full text-left text-xs">
                             <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
                                 <tr>
-                                    <th class="p-3 text-center w-12">No</th>
-                                    <th class="p-3">Waktu Trouble</th>
-                                    <th class="p-3">Line & Mesin</th>
+                                    <th class="p-3 text-center w-10">No</th>
+                                    <th class="p-3">Tanggal & Jam</th>
+                                    <th class="p-3">Line & OP Mesin</th>
                                     <th class="p-3">Shift & Team</th>
-                                    <th class="p-3">Product</th>
-                                    <th class="p-3">Jenis Problem</th>
-                                    <th class="p-3">Masalah / Kendala (Trouble)</th>
-                                    <th class="p-3">Durasi</th>
-                                    <th class="p-3">Tindakan Perbaikan (CAPA)</th>
+                                    <th class="p-3">Type Produk / SKU</th>
+                                    <th class="p-3">Kategori Problem</th>
+                                    <th class="p-3">Problem (Masalah)</th>
+                                    <th class="p-3">Penyebab</th>
+                                    <th class="p-3">Perbaikan (CAPA)</th>
+                                    <th class="p-3 text-center">Losstime</th>
+                                    <th class="p-3">PIC</th>
+                                    <th class="p-3 text-center">Status</th>
                                     <th class="p-3 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
                                 ${downtimes.length === 0 ? `
-                                    <tr><td colspan="10" class="p-6 text-center text-slate-500 font-sans">Tidak ada trouble log downtime tercatat pada tanggal ${this.selectedDailyDate}</td></tr>
+                                    <tr><td colspan="13" class="p-6 text-center text-slate-500 font-sans">Tidak ada log problem & downtime tercatat pada tanggal ${this.selectedDailyDate}</td></tr>
                                 ` : downtimes.map((dt, idx) => `
                                     <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
                                         <td class="p-3 text-center font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">${idx + 1}</td>
-                                        <td class="p-3 text-slate-300 text-[11px]">
-                                            <div>${dt.start_time ? dt.start_time.slice(11,16) : '-'}</div>
-                                            <div class="text-slate-500 text-[10px]">s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-400 font-bold">ONGOING</span>'}</div>
+                                        <td class="p-3 text-slate-300 text-[11px] font-sans">
+                                            <div class="font-mono font-bold text-slate-200">${dt.start_time ? dt.start_time.slice(0, 10) : this.selectedDailyDate}</div>
+                                            <div class="text-cyan-400 font-mono text-[10px]">${dt.start_time ? dt.start_time.slice(11,16) : '-'} s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-400 font-bold">ONGOING</span>'}</div>
                                         </td>
                                         <td class="p-3 font-sans">
                                             <div class="font-bold text-cyan-400">${dt.production_line ? dt.production_line.name : 'FX Line'}</div>
-                                            <div class="text-[10px] text-slate-400 font-mono">${dt.machine ? dt.machine.name : 'MC-MEASURING'}</div>
+                                            <div class="text-[10px] text-slate-400 font-mono">${dt.machine ? dt.machine.name : (dt.machine_id ? 'Machine #' + dt.machine_id : 'MC-MEASURING')}</div>
                                         </td>
                                         <td class="p-3 font-sans">
                                             <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-200 border-slate-700'} border">
@@ -4745,30 +4748,42 @@ tbody.innerHTML = '';
                                             ${dt.team ? `<div class="text-[10px] text-amber-400 font-bold mt-1">👥 ${dt.team}</div>` : ''}
                                         </td>
                                         <td class="p-3 text-slate-300 font-sans text-xs">
-                                            ${dt.product ? dt.product.name : '-'}
+                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${dt.product ? dt.product.name : '-'}</div>
+                                            ${dt.product?.sku ? `<div class="text-[10px] text-slate-400 font-mono">SKU: ${dt.product.sku}</div>` : ''}
                                         </td>
                                         <td class="p-3 font-sans">
                                             <span class="px-2 py-0.5 rounded text-[10px] font-bold ${dt.problem_type === 'Mesin' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
                                                 ${dt.problem_type || 'Mesin'}
                                             </span>
+                                            ${dt.downtime_reason ? `<div class="text-[10px] text-slate-400 truncate max-w-[120px] mt-0.5">${dt.downtime_reason.name}</div>` : ''}
                                         </td>
                                         <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
-                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dt.description || (dt.downtime_reason ? dt.downtime_reason.name : 'Trouble Operasional')}</div>
-                                            ${dt.description && dt.downtime_reason && dt.downtime_reason.name !== dt.description && dt.downtime_reason.name !== 'Mechanical Jam & Motor Overheat' ? `<div class="text-[10px] text-slate-400 truncate max-w-xs">${dt.downtime_reason.name}</div>` : ''}
+                                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dt.description || 'Problem Operasional'}</div>
                                         </td>
-                                        <td class="p-3 font-bold text-rose-400">${dt.calculated_duration_minutes || dt.duration_minutes} mins</td>
+                                        <td class="p-3 font-sans text-xs">
+                                            <div class="${isLight ? 'text-slate-700' : 'text-slate-300'}">${dt.cause || '-'}</div>
+                                        </td>
                                         <td class="p-3 font-sans text-xs">
                                             <div class="text-emerald-400 font-medium">${dt.action_taken || '-'}</div>
                                         </td>
+                                        <td class="p-3 font-bold text-center text-rose-400 font-mono">${dt.calculated_duration_minutes || dt.duration_minutes || 0} m</td>
+                                        <td class="p-3 font-sans text-xs">
+                                            <div class="font-semibold text-cyan-300">${dt.pic || '-'}</div>
+                                        </td>
+                                        <td class="p-3 text-center font-sans">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${dt.status === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
+                                                ${dt.status || 'CLOSED'}
+                                            </span>
+                                        </td>
                                         <td class="p-3 text-center font-sans">
                                             <div class="flex items-center justify-center gap-1.5">
-                                                <button data-action="view-dt-record" data-id="${dt.id}" title="Preview Detail Log Trouble" class="w-7 h-7 rounded-lg bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-blue-900/30 hover:scale-110 active:scale-95">
+                                                <button data-action="view-dt-record" data-id="${dt.id}" title="Preview Detail Log Problem" class="w-7 h-7 rounded-lg bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-blue-900/30 hover:scale-110 active:scale-95">
                                                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                                 </button>
-                                                <button data-action="edit-dt-record" data-id="${dt.id}" title="Edit Log Trouble" class="w-7 h-7 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-cyan-900/30 hover:scale-110 active:scale-95">
+                                                <button data-action="edit-dt-record" data-id="${dt.id}" title="Edit Log Problem" class="w-7 h-7 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-cyan-900/30 hover:scale-110 active:scale-95">
                                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                                 </button>
-                                                <button data-action="delete-dt-record" data-id="${dt.id}" title="Hapus Log Trouble" class="w-7 h-7 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-rose-900/30 hover:scale-110 active:scale-95">
+                                                <button data-action="delete-dt-record" data-id="${dt.id}" title="Hapus Log Problem" class="w-7 h-7 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-rose-900/30 hover:scale-110 active:scale-95">
                                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                                 </button>
                                             </div>
@@ -5053,12 +5068,12 @@ tbody.innerHTML = '';
                             </div>
                         </div>
 
-                        <!-- LANGKAH 3: LOG TROUBLE & DOWNTIME DINAMIS (MULTI-ROW) -->
+                        <!-- LANGKAH 3: LOG PROBLEM & DOWNTIME DINAMIS (MULTI-ROW) -->
                         <div class="form-step-card ${isLight ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-950/60 border-amber-500/30'} border rounded-xl p-4 space-y-3">
                             <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-amber-200' : 'border-slate-800/80'} pb-2 gap-2">
                                 <div class="flex items-center gap-2">
                                     <span class="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/40">3</span>
-                                    <h4 class="font-bold text-xs ${isLight ? 'text-amber-800' : 'text-amber-300'} uppercase tracking-wider">Trouble Log & Loss Time (Opsional)</h4>
+                                    <h4 class="font-bold text-xs ${isLight ? 'text-amber-800' : 'text-amber-300'} uppercase tracking-wider">Problem Log & Loss Time (Opsional)</h4>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span id="modal-dt-total-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${isLight ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-amber-950/80 text-amber-400 border border-amber-800'} border">
@@ -5066,13 +5081,13 @@ tbody.innerHTML = '';
                                     </span>
                                     <button type="button" id="btn-modal-add-trouble" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md flex items-center gap-1.5 cursor-pointer transition-all">
                                         <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                                        <span>+ Tambah Trouble Log</span>
+                                        <span>+ Tambah Problem Log</span>
                                     </button>
                                 </div>
                             </div>
 
                             <div id="modal-trouble-logs-container" class="space-y-3 pt-1">
-                                <!-- Dynamic Trouble Log Rows Container -->
+                                <!-- Dynamic Problem Log Rows Container -->
                             </div>
                         </div>
 
@@ -5175,7 +5190,6 @@ tbody.innerHTML = '';
 
             const plannedMins = plannedTimeInp ? parseFloat(plannedTimeInp.value || 0) : 480;
             if (targetQtyInp && cycleTime > 0 && plannedMins > 0) {
-                // Formula: Target Qty = (Planned Time in minutes * 60 seconds) / (Ideal Cycle Time in seconds)
                 const computedTarget = Math.floor((plannedMins * 60) / cycleTime);
                 targetQtyInp.value = computedTarget;
             }
@@ -5234,7 +5248,7 @@ tbody.innerHTML = '';
             const endParts = endStr.split(':');
             let startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1] || 0);
             let endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1] || 0);
-            if (endMins <= startMins) endMins += 24 * 60; // shift passes midnight
+            if (endMins <= startMins) endMins += 24 * 60;
 
             const totalDurationMins = endMins - startMins;
             const plannedTimeMins = Math.max(0, totalDurationMins - breakMins);
@@ -5246,10 +5260,7 @@ tbody.innerHTML = '';
             updateRunTimeAndDowntime();
         };
 
-        // 4. Output Quantities (Input Independen sesuai perlakuan aktual di lapangan)
-        // User dapat mengisi Total Measuring, Finish Good (OK), Not Good (NG), dan Scrap secara mandiri tanpa saling menimpa.
-
-        // 5. Trouble Log Rows Renderer
+        // 5. Problem Log Rows Renderer
         const renderTroubleRows = () => {
             if (!troubleContainer) return;
 
@@ -5257,7 +5268,7 @@ tbody.innerHTML = '';
                 troubleContainer.innerHTML = `
                     <div class="text-center py-4 px-4 ${isLight ? 'bg-slate-100/70 border-slate-300' : 'bg-slate-900/40 border-slate-800'} border border-dashed rounded-xl text-slate-400 text-xs">
                         <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 inline mr-1"></i>
-                        <span>Produksi lancar tanpa kendala. Klik <strong class="text-amber-400 cursor-pointer" id="btn-modal-empty-add-trouble">+ Tambah Trouble Log</strong> jika ada stoppage/downtime hari ini.</span>
+                        <span>Produksi lancar tanpa kendala. Klik <strong class="text-amber-400 cursor-pointer" id="btn-modal-empty-add-trouble">+ Tambah Problem Log</strong> jika ada stoppage/problem hari ini.</span>
                     </div>
                 `;
                 document.getElementById('btn-modal-empty-add-trouble')?.addEventListener('click', () => {
@@ -5269,20 +5280,25 @@ tbody.innerHTML = '';
                         <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
                             <div class="flex items-center gap-2">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">
-                                    Trouble #${idx + 1}
+                                    Problem #${idx + 1}
                                 </span>
-                                <span class="text-[11px] ${isLight ? 'text-slate-800' : 'text-slate-300'} font-sans font-medium">${row.problem_type || 'Mesin'} (${row.duration_minutes || 0} Menit)</span>
+                                <span class="text-[11px] ${isLight ? 'text-slate-800' : 'text-slate-300'} font-sans font-medium">${row.problem_type || 'Mesin'} (${row.duration_minutes || 0} Menit Losstime)</span>
                             </div>
-                            <button type="button" data-del-modal-dt-idx="${idx}" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors cursor-pointer" title="Hapus Baris Trouble Ini">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.status === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
+                                    ${row.status || 'CLOSED'}
+                                </span>
+                                <button type="button" data-del-modal-dt-idx="${idx}" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors cursor-pointer" title="Hapus Baris Problem Ini">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Team & Leader</label>
                                 <div class="grid grid-cols-2 gap-1.5">
-                                    <select data-trouble-field="team" data-row="${idx}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs">
+                                    <select data-trouble-field="team" data-row="${idx}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold text-amber-500">
                                         <option value="Team A" ${row.team === 'Team A' ? 'selected' : ''}>Team A</option>
                                         <option value="Team B" ${row.team === 'Team B' ? 'selected' : ''}>Team B</option>
                                         <option value="Team C" ${row.team === 'Team C' ? 'selected' : ''}>Team C</option>
@@ -5292,7 +5308,7 @@ tbody.innerHTML = '';
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Jenis Problem & Alasan Downtime</label>
+                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Kategori Problem & Alasan Downtime*</label>
                                 <div class="grid grid-cols-2 gap-1.5">
                                     <select data-trouble-field="problem_type" data-row="${idx}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold">
                                         <option value="Mesin" ${row.problem_type === 'Mesin' ? 'selected' : ''}>Mesin</option>
@@ -5301,11 +5317,12 @@ tbody.innerHTML = '';
                                         <option value="Material" ${row.problem_type === 'Material' ? 'selected' : ''}>Material</option>
                                         <option value="Operator" ${row.problem_type === 'Operator' ? 'selected' : ''}>Operator</option>
                                         <option value="Quality" ${row.problem_type === 'Quality' ? 'selected' : ''}>Quality</option>
+                                        <option value="Method" ${row.problem_type === 'Method' ? 'selected' : ''}>Method</option>
                                         <option value="Utility" ${row.problem_type === 'Utility' ? 'selected' : ''}>Utility</option>
                                         <option value="Other" ${row.problem_type === 'Other' ? 'selected' : ''}>Other</option>
                                     </select>
                                     <select data-trouble-field="downtime_reason_id" data-row="${idx}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs">
-                                        <option value="">-- Pilih Reason Master --</option>
+                                        <option value="">-- Master Reason --</option>
                                         ${this.masterData.downtimeReasons.map(dr => `
                                             <option value="${dr.id}" ${row.downtime_reason_id == dr.id ? 'selected' : ''}>${dr.name} (${dr.category || 'Breakdown'})</option>
                                         `).join('')}
@@ -5313,9 +5330,9 @@ tbody.innerHTML = '';
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Waktu Mulai, Selesai & Durasi (Menit)</label>
+                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Jam Mulai, Selesai & Losstime (Menit)*</label>
                                 <div class="grid grid-cols-3 gap-1.5">
-                                    <input type="time" data-trouble-field="start_time" data-row="${idx}" value="${row.start_time || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-1.5 py-1 text-xs font-mono" />
+                                    <input type="time" data-trouble-field="start_time" data-row="${idx}" value="${row.start_time || '08:00'}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-1.5 py-1 text-xs font-mono" />
                                     <input type="time" data-trouble-field="end_time" data-row="${idx}" value="${row.end_time || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-1.5 py-1 text-xs font-mono" />
                                     <input type="number" data-trouble-field="duration_minutes" data-row="${idx}" value="${row.duration_minutes || 0}" min="0" placeholder="Mins" class="${isLight ? 'bg-white border-slate-300 text-rose-600' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded px-1.5 py-1 font-bold text-xs font-mono" />
                                 </div>
@@ -5324,16 +5341,36 @@ tbody.innerHTML = '';
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                             <div>
-                                <input type="text" data-trouble-field="description" data-row="${idx}" placeholder="Deskripsi kendala kerusakan / masalah..." value="${row.description || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs outline-none focus:border-amber-500" />
+                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Problem (Deskripsi Masalah / Kerusakan)*</label>
+                                <input type="text" data-trouble-field="description" data-row="${idx}" placeholder="Deskripsi kendala kerusakan / masalah..." value="${row.description || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs outline-none focus:border-amber-500 font-sans" />
                             </div>
                             <div>
-                                <input type="text" data-trouble-field="action_taken" data-row="${idx}" placeholder="Tindakan perbaikan yang dilakukan (CAPA)..." value="${row.action_taken || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-emerald-800' : 'bg-slate-950 border-slate-800 text-emerald-300'} border rounded px-2 py-1 text-xs outline-none focus:border-emerald-500" />
+                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Penyebab (Akar Masalah)*</label>
+                                <input type="text" data-trouble-field="cause" data-row="${idx}" placeholder="Akar masalah terjadinya kerusakan..." value="${row.cause || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs outline-none focus:border-amber-500 font-sans" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                            <div class="md:col-span-1">
+                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Perbaikan (Tindakan CAPA)*</label>
+                                <input type="text" data-trouble-field="action_taken" data-row="${idx}" placeholder="Tindakan perbaikan yang dilakukan..." value="${row.action_taken || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-emerald-800' : 'bg-slate-950 border-slate-800 text-emerald-300'} border rounded px-2 py-1 text-xs outline-none focus:border-emerald-500 font-sans" />
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">PIC Departemen*</label>
+                                <input type="text" data-trouble-field="pic" data-row="${idx}" placeholder="Nama PIC..." value="${row.pic || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-cyan-800' : 'bg-slate-950 border-slate-800 text-cyan-300'} border rounded px-2 py-1 text-xs outline-none focus:border-cyan-500 font-sans font-medium" />
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Status*</label>
+                                <select data-trouble-field="status" data-row="${idx}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold outline-none focus:border-amber-500">
+                                    <option value="CLOSED" ${row.status === 'CLOSED' ? 'selected' : ''}>CLOSED</option>
+                                    <option value="OPEN" ${row.status === 'OPEN' ? 'selected' : ''}>OPEN</option>
+                                </select>
                             </div>
                         </div>
                     </div>
                 `).join('');
 
-                // Trouble field change bindings
+                // Problem field change bindings
                 troubleContainer.querySelectorAll('[data-trouble-field]').forEach(input => {
                     input.addEventListener('input', (e) => {
                         const field = e.target.getAttribute('data-trouble-field');
@@ -5343,6 +5380,9 @@ tbody.innerHTML = '';
 
                             if (field === 'team') {
                                 dailyTroubleLogsState[rowIdx].leader_name = getLeaderName(e.target.value);
+                                if (!dailyTroubleLogsState[rowIdx].pic) {
+                                    dailyTroubleLogsState[rowIdx].pic = `${dailyTroubleLogsState[rowIdx].leader_name} (${e.target.value})`;
+                                }
                                 renderTroubleRows();
                             }
 
@@ -5366,7 +5406,7 @@ tbody.innerHTML = '';
                     });
                 });
 
-                // Trouble delete row bindings
+                // Problem delete row bindings
                 troubleContainer.querySelectorAll('[data-del-modal-dt-idx]').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const idx = parseInt(e.currentTarget.getAttribute('data-del-modal-dt-idx'));
@@ -5387,16 +5427,20 @@ tbody.innerHTML = '';
         if (addTroubleBtn) {
             addTroubleBtn.addEventListener('click', () => {
                 const defaultTeam = 'Team A';
+                const defaultLeader = getLeaderName(defaultTeam);
                 dailyTroubleLogsState.push({
                     team: defaultTeam,
-                    leader_name: getLeaderName(defaultTeam),
+                    leader_name: defaultLeader,
                     problem_type: 'Mesin',
                     downtime_reason_id: '',
-                    start_time: '',
+                    start_time: '08:00',
                     end_time: '',
                     duration_minutes: 0,
                     description: '',
+                    cause: '',
                     action_taken: '',
+                    pic: `${defaultLeader} (${defaultTeam})`,
+                    status: 'CLOSED',
                     is_planned: false
                 });
                 renderTroubleRows();
@@ -5459,7 +5503,10 @@ tbody.innerHTML = '';
                     end_time: r.end_time ? `${prodDate} ${r.end_time}:00` : null,
                     duration_minutes: parseFloat(r.duration_minutes || 0),
                     description: r.description || null,
+                    cause: r.cause || null,
                     action_taken: r.action_taken || null,
+                    pic: r.pic || null,
+                    status: (r.status || 'CLOSED').toUpperCase(),
                     is_planned: false
                 }));
 
@@ -5472,7 +5519,7 @@ tbody.innerHTML = '';
                         this.selectedDailyDate = data.production_date;
                     }
                     await api.createProductionRecord(data);
-                    this.showNotification('Laporan Produksi Tersimpan', `Data laporan produksi tanggal ${this.selectedDailyDate} beserta ${validTroubleLogs.length} Log Trouble berhasil disimpan!`, 'create');
+                    this.showNotification('Laporan Produksi Tersimpan', `Data laporan produksi tanggal ${this.selectedDailyDate} beserta ${validTroubleLogs.length} Log Problem berhasil disimpan!`, 'create');
                     closeModal();
                     await this.renderDailyReport();
                 } catch (err) {
@@ -5520,10 +5567,26 @@ tbody.innerHTML = '';
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
         const defaultLineId = this.filters.line_id || this.masterData.lines?.[0]?.id || '';
         const defaultShiftId = this.filters.shift_id || this.masterData.shifts?.[0]?.id || '';
+        const curDate = this.selectedDailyDate || new Date().toISOString().slice(0, 10);
+
+        const picOptions = [
+            'Leader Team A (Alim Utama)',
+            'Leader Team B (Dadi)',
+            'Leader Team C (Karyanto)',
+            'Leader Team D (Kurniawan)',
+            'Maintenance Mekanik',
+            'Maintenance Elektrik',
+            'Tooling & Dies Team',
+            'Quality Control (QC Inspector)',
+            'Operator Mesin (OP)',
+            'Supervisor Produksi',
+            ...(this.masterData.groups || []).map(g => `${g.leader_name} (${g.team})`),
+        ];
+        const uniquePicOptions = [...new Set(picOptions)];
 
         const modalHtml = `
             <div id="modal-create-standalone-trouble" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
-                <div class="relative w-full max-w-xl max-h-[92vh] overflow-y-auto ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl shadow-2xl p-6 space-y-4 my-auto">
+                <div class="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl shadow-2xl p-6 space-y-4 my-auto font-sans">
                     
                     <div class="flex items-center justify-between pb-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
                         <div class="flex items-center gap-3">
@@ -5531,8 +5594,8 @@ tbody.innerHTML = '';
                                 <i data-lucide="alert-triangle" class="w-5 h-5"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Tambah Trouble Log & Downtime</h3>
-                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}">Tanggal: <span class="font-mono font-bold text-cyan-400">${this.selectedDailyDate}</span></p>
+                                <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Tambah Problem Log & Downtime</h3>
+                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}">Pencatatan Masalah/Problem Mesin & Downtime Lini Produksi</p>
                             </div>
                         </div>
                         <button type="button" id="btn-close-modal-standalone-dt" class="w-8 h-8 rounded-lg ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-600' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200'} flex items-center justify-center transition-colors cursor-pointer">
@@ -5541,51 +5604,59 @@ tbody.innerHTML = '';
                     </div>
 
                     <form id="form-standalone-trouble" class="space-y-3.5 text-xs">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <datalist id="standalone-problem-pic-list">
+                            ${uniquePicOptions.map(p => `<option value="${p}"></option>`).join('')}
+                        </datalist>
+
+                        <!-- ROW 1: TANGGAL, LINE*, SHIFT*, TEAM* -->
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Production Line</label>
-                                <select name="production_line_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500">
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TANGGAL*</label>
+                                <input type="date" name="production_date" value="${curDate}" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">LINE*</label>
+                                <select name="production_line_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold text-cyan-600 dark:text-cyan-400 outline-none focus:border-amber-500">
                                     ${this.masterData.lines.map(l => `<option value="${l.id}" ${l.id == defaultLineId ? 'selected' : ''}>${l.name}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Mesin Terkait</label>
-                                <select name="machine_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500">
-                                    <!-- Populated dynamically -->
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Produk yang Sedang Berjalan</label>
-                                <select name="product_id" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500">
-                                    <!-- Populated dynamically -->
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Shift Kerja</label>
-                                <select name="shift_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500">
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">SHIFT*</label>
+                                <select name="shift_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-semibold outline-none focus:border-amber-500">
                                     ${this.masterData.shifts.map(s => `<option value="${s.id}" ${s.id == defaultShiftId ? 'selected' : ''}>${s.name}</option>`).join('')}
                                 </select>
                             </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TEAM*</label>
+                                <select name="team" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold text-amber-500 outline-none focus:border-amber-500">
+                                    <option value="Team A">Team A</option>
+                                    <option value="Team B">Team B</option>
+                                    <option value="Team C">Team C</option>
+                                    <option value="Team D">Team D</option>
+                                </select>
+                            </div>
                         </div>
 
+                        <!-- ROW 2: TYPE PRODUK / SKU* & OP MESIN* -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Team & Leader PIC</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <select name="team" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500">
-                                        <option value="Team A">Team A</option>
-                                        <option value="Team B">Team B</option>
-                                        <option value="Team C">Team C</option>
-                                        <option value="Team D">Team D</option>
-                                    </select>
-                                    <input type="text" id="input-trouble-leader-display" readonly placeholder="Leader PIC..." class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-amber-700' : 'bg-slate-950/80 border-slate-800 text-amber-400'} border rounded-lg px-2 py-2 font-mono font-bold text-xs truncate" />
-                                </div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TYPE PRODUK / SKU*</label>
+                                <select name="product_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-amber-500">
+                                    <!-- Populated dynamically per line -->
+                                </select>
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Jenis Problem</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">OP MESIN*</label>
+                                <select name="machine_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500">
+                                    <!-- Populated dynamically per line (Measuring MC first) -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ROW 3: KATEGORI PROBLEM* & ALASAN MASTER DOWNTIME -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">KATEGORI PROBLEM*</label>
                                 <select name="problem_type" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
                                     <option value="Mesin">Mesin (Breakdown Mechanical / Electrical)</option>
                                     <option value="Dies / Tooling">Dies / Tooling (Patah / Aus / Setting)</option>
@@ -5593,45 +5664,69 @@ tbody.innerHTML = '';
                                     <option value="Material">Material (Late Supply / Defect)</option>
                                     <option value="Operator">Operator (Operational Gap / Man)</option>
                                     <option value="Quality">Quality (Quality Problem)</option>
+                                    <option value="Method">Method (Process / Standard)</option>
                                     <option value="Utility">Utility (Power / Air Pressure)</option>
                                     <option value="Other">Other (Choke / Minor Stoppage)</option>
                                 </select>
                             </div>
-                        </div>
-
-                        <div>
-                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Alasan Master Downtime</label>
-                            <select name="downtime_reason_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500">
-                                ${this.masterData.downtimeReasons.map(dr => `<option value="${dr.id}">${dr.name} (${dr.category || 'Breakdown'})</option>`).join('')}
-                            </select>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-2.5">
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Jam Mulai</label>
-                                <input type="time" name="start_time" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">ALASAN MASTER DOWNTIME*</label>
+                                <select name="downtime_reason_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500">
+                                    ${this.masterData.downtimeReasons.map(dr => `<option value="${dr.id}">${dr.name} (${dr.category || 'Breakdown'})</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ROW 4: PROBLEM* -->
+                        <div>
+                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PROBLEM* (Deskripsi Masalah / Kerusakan)</label>
+                            <input type="text" name="description" placeholder="Jelaskan kendala mesin / tooling / kerusakan yang terjadi..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500 font-sans" />
+                        </div>
+
+                        <!-- ROW 5: PENYEBAB* -->
+                        <div>
+                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PENYEBAB* (Akar Masalah / Root Cause)</label>
+                            <input type="text" name="cause" placeholder="Jelaskan akar penyebab terjadinya problem..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500 font-sans" />
+                        </div>
+
+                        <!-- ROW 6: PERBAIKAN* -->
+                        <div>
+                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PERBAIKAN* (Tindakan Penanganan / CAPA)</label>
+                            <input type="text" name="action_taken" placeholder="Tindakan perbaikan dan countermeasure yang dilakukan..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-emerald-700' : 'bg-slate-950 border-slate-800 text-emerald-300'} border rounded-lg px-2.5 py-2 outline-none focus:border-emerald-500 font-sans" />
+                        </div>
+
+                        <!-- ROW 7: WAKTU & LOSSTIME (Wajib Angka)* -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Mulai</label>
+                                <input type="time" name="start_time" value="08:00" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Jam Selesai</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Selesai</label>
                                 <input type="time" name="end_time" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium flex items-center gap-1">
-                                    Durasi (Menit)
-                                    <span class="text-[10px] text-amber-400 font-mono font-bold">(Auto)</span>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold flex items-center justify-between">
+                                    <span>LOSSTIME (Menit)*</span>
+                                    <span class="text-[10px] text-amber-400 font-mono font-bold">(Wajib Angka)</span>
                                 </label>
-                                <input type="number" name="duration_minutes" min="1" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-rose-600' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-amber-500 shadow-2xs" />
+                                <input type="number" name="duration_minutes" min="1" step="1" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-rose-600' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-amber-500" />
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Masalah / Deskripsi Trouble</label>
-                            <input type="text" name="description" placeholder="Jelaskan kendala mesin/tooling/kerusakan..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500" />
-                        </div>
-
-                        <div>
-                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Tindakan Perbaikan (CAPA)</label>
-                            <input type="text" name="action_taken" placeholder="Tindakan yang dilakukan untuk mengatasi masalah..." class="w-full ${isLight ? 'bg-white border-slate-300 text-emerald-700' : 'bg-slate-950 border-slate-800 text-emerald-300'} border rounded-lg px-2.5 py-2 outline-none focus:border-emerald-500" />
+                        <!-- ROW 8: PIC (Daftar Nama PIC Departemen)* & STATUS (dropdown : CLOSED, OPEN)* -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PIC (Daftar Nama PIC Departemen)*</label>
+                                <input type="text" name="pic" list="standalone-problem-pic-list" placeholder="Pilih atau ketik PIC Departemen..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-cyan-800' : 'bg-slate-950 border-slate-800 text-cyan-300'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-cyan-500" />
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">STATUS (CLOSED / OPEN)*</label>
+                                <select name="status" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
+                                    <option value="CLOSED">CLOSED</option>
+                                    <option value="OPEN">OPEN</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="pt-3 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} flex items-center justify-end gap-2.5">
@@ -5640,7 +5735,7 @@ tbody.innerHTML = '';
                             </button>
                             <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-600/30 text-xs cursor-pointer flex items-center gap-1.5 transition-all">
                                 <i data-lucide="save" class="w-4 h-4"></i>
-                                <span>Simpan Trouble Log</span>
+                                <span>Simpan Problem Log</span>
                             </button>
                         </div>
                     </form>
@@ -5673,7 +5768,7 @@ tbody.innerHTML = '';
         const machineSelect = formDt.querySelector('select[name="machine_id"]');
         const productSelect = formDt.querySelector('select[name="product_id"]');
         const teamSelect = formDt.querySelector('select[name="team"]');
-        const leaderDisplay = document.getElementById('input-trouble-leader-display');
+        const picInput = formDt.querySelector('input[name="pic"]');
         const startTimeInp = formDt.querySelector('input[name="start_time"]');
         const endTimeInp = formDt.querySelector('input[name="end_time"]');
         const durationInp = formDt.querySelector('input[name="duration_minutes"]');
@@ -5683,12 +5778,15 @@ tbody.innerHTML = '';
                 g.production_line_id == lineId && 
                 (g.team === teamVal || g.team.toLowerCase().includes((teamVal || '').toLowerCase()) || (teamVal || '').toLowerCase().includes(g.team.toLowerCase()))
             );
-            return match ? match.leader_name : 'Leader Terdaftar';
+            return match ? match.leader_name : '';
         };
 
-        const updateLeaderDisplay = () => {
-            if (leaderDisplay && lineSelect && teamSelect) {
-                leaderDisplay.value = getLeaderName(lineSelect.value, teamSelect.value);
+        const updatePicSuggestion = () => {
+            if (lineSelect && teamSelect && picInput && !picInput.value) {
+                const leader = getLeaderName(lineSelect.value, teamSelect.value);
+                if (leader) {
+                    picInput.value = `${leader} (${teamSelect.value})`;
+                }
             }
         };
 
@@ -5718,11 +5816,10 @@ tbody.innerHTML = '';
             const prods = this.getProductsForLine(lineId);
             const allProds = prods.length > 0 ? prods : (this.masterData.products || []);
             if (productSelect) {
-                productSelect.innerHTML = `<option value="">-- Tidak Terikat Produk Tertentu --</option>` + 
-                    allProds.map(p => `<option value="${p.id}">${p.name} — SKU: ${p.sku}</option>`).join('');
+                productSelect.innerHTML = allProds.map(p => `<option value="${p.id}">${p.name} — SKU: ${p.sku}</option>`).join('');
             }
 
-            updateLeaderDisplay();
+            updatePicSuggestion();
         };
 
         const updateAutoDuration = () => {
@@ -5741,12 +5838,13 @@ tbody.innerHTML = '';
         };
 
         lineSelect?.addEventListener('change', updateMachinesAndProducts);
-        teamSelect?.addEventListener('change', updateLeaderDisplay);
+        teamSelect?.addEventListener('change', updatePicSuggestion);
         startTimeInp?.addEventListener('input', updateAutoDuration);
         endTimeInp?.addEventListener('input', updateAutoDuration);
 
         // Initial setup
         updateMachinesAndProducts();
+        updatePicSuggestion();
 
         if (formDt) {
             formDt.addEventListener('submit', async (e) => {
@@ -5756,9 +5854,12 @@ tbody.innerHTML = '';
 
                 const durationMins = parseFloat(data.duration_minutes || 0);
                 if (isNaN(durationMins) || durationMins <= 0) {
-                    this.showNotification('⚠️ Durasi Wajib Diisi', 'Durasi trouble harus berupa angka menit yang lebih besar dari 0.', 'delete');
+                    this.showNotification('⚠️ Losstime Wajib Diisi', 'Durasi losstime harus berupa angka menit yang lebih besar dari 0.', 'delete');
                     return;
                 }
+
+                const targetDate = data.production_date || this.selectedDailyDate || new Date().toISOString().slice(0, 10);
+                const startTimeVal = data.start_time || '08:00';
 
                 const payload = {
                     production_line_id: data.production_line_id,
@@ -5768,25 +5869,33 @@ tbody.innerHTML = '';
                     team: data.team || null,
                     problem_type: data.problem_type || 'Mesin',
                     downtime_reason_id: data.downtime_reason_id || null,
-                    start_time: `${this.selectedDailyDate} ${data.start_time}:00`,
-                    end_time: data.end_time ? `${this.selectedDailyDate} ${data.end_time}:00` : null,
+                    start_time: `${targetDate} ${startTimeVal}:00`,
+                    end_time: data.end_time ? `${targetDate} ${data.end_time}:00` : null,
                     duration_minutes: durationMins,
                     description: data.description,
+                    cause: data.cause || null,
                     action_taken: data.action_taken || null,
+                    pic: data.pic || null,
+                    status: (data.status || 'CLOSED').toUpperCase(),
                     is_planned: false,
                 };
 
                 try {
                     await api.createDowntime(payload);
-                    this.showNotification('Trouble Log Tersimpan', `Log trouble sebesar ${durationMins} menit berhasil dicatat pada tanggal ${this.selectedDailyDate}!`, 'create');
+                    this.showNotification('Problem Log Tersimpan', `Log problem sebesar ${durationMins} menit berhasil dicatat pada tanggal ${targetDate}!`, 'create');
                     closeModal();
+                    this.selectedDailyDate = targetDate;
                     await this.renderDailyReport();
                 } catch (err) {
-                    const errorMsg = err.response?.data?.message || err.message || 'Gagal menyimpan data trouble log.';
+                    const errorMsg = err.response?.data?.message || err.message || 'Gagal menyimpan data problem log.';
                     this.showNotification('⚠️ Gagal Menyimpan', errorMsg, 'delete');
                 }
             });
         }
+    }
+
+    showCreateDailyProblemModal() {
+        return this.showCreateDailyTroubleModal();
     }
 
     // ==========================================
@@ -13418,7 +13527,7 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 3B-VIEW-DT. MODAL POPUP: DETAIL VIEW DOWNTIME RECORD
+    // 3B-VIEW-DT. MODAL POPUP: DETAIL VIEW PROBLEM & DOWNTIME RECORD
     // ==========================================
     showViewDowntimeModal(id, downtimes) {
         const modalContainer = document.getElementById('modal-container');
@@ -13433,14 +13542,18 @@ tbody.innerHTML = '';
 
         const lineName = item.production_line ? item.production_line.name : `Line #${item.production_line_id || '-'}`;
         const machineName = item.machine ? `${item.machine.name} (${item.machine.code})` : `Machine #${item.machine_id || '-'}`;
-        const productName = item.product ? `${item.product.name} (${item.product.sku})` : 'Tidak terikat produk spesifik';
+        const productName = item.product ? `${item.product.name} (SKU: ${item.product.sku})` : 'Tidak terikat produk spesifik';
         const shiftName = item.shift ? item.shift.name : `Shift #${item.shift_id || '-'}`;
-        const reasonName = item.downtime_reason ? item.downtime_reason.name : (item.downtimeReason?.name || 'Trouble Operasional Mesin');
+        const reasonName = item.downtime_reason ? item.downtime_reason.name : (item.downtimeReason?.name || 'Problem Operasional Mesin');
         const problemType = item.problem_type || 'Mesin';
+        const statusVal = item.status ? String(item.status).toUpperCase() : 'CLOSED';
+        const picVal = item.pic || '-';
+        const causeVal = item.cause || '-';
+        const actionVal = item.action_taken || '-';
 
         modalContainer.innerHTML = `
-            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
-                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-2xl w-full my-auto overflow-hidden font-sans">
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto font-sans">
+                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-2xl w-full my-auto overflow-hidden">
                     <!-- MODAL HEADER -->
                     <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} px-6 py-4 border-b flex items-center justify-between">
                         <div class="flex items-center gap-3">
@@ -13449,8 +13562,9 @@ tbody.innerHTML = '';
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Detail Log Trouble & Downtime #${item.id}</h3>
+                                    <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Detail Log Problem & Downtime #${item.id}</h3>
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${problemType === 'Mesin' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">${problemType}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusVal === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${statusVal}</span>
                                 </div>
                                 <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5 font-mono">
                                     📅 ${troubleDateVal} &bull; 🏭 ${lineName} &bull; ⏰ ${shiftName}
@@ -13463,35 +13577,43 @@ tbody.innerHTML = '';
                     </div>
 
                     <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
-                        <!-- TIME & DURATION TILES -->
-                        <div class="grid grid-cols-3 gap-3 font-mono text-center">
-                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-3">
+                        <!-- TIME, DURATION & STATUS TILES -->
+                        <div class="grid grid-cols-4 gap-2.5 font-mono text-center">
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
                                 <div class="text-[10px] uppercase font-bold text-slate-400 font-sans">Waktu Mulai</div>
-                                <div class="text-xl font-bold text-cyan-400 mt-1">${startTimeVal}</div>
+                                <div class="text-lg font-bold text-cyan-400 mt-1">${startTimeVal}</div>
                             </div>
-                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-3">
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
                                 <div class="text-[10px] uppercase font-bold text-slate-400 font-sans">Waktu Selesai</div>
-                                <div class="text-xl font-bold ${item.end_time ? 'text-cyan-400' : 'text-rose-400 animate-pulse'} mt-1">${endTimeVal}</div>
+                                <div class="text-lg font-bold ${item.end_time ? 'text-cyan-400' : 'text-rose-400 animate-pulse'} mt-1">${endTimeVal}</div>
                             </div>
-                            <div class="${isLight ? 'bg-rose-50/50 border-rose-200' : 'bg-slate-950/70 border-rose-900/40'} border rounded-xl p-3">
-                                <div class="text-[10px] uppercase font-bold text-rose-400 font-sans">Durasi Downtime</div>
-                                <div class="text-xl font-extrabold text-rose-400 mt-1">${durationMins} mins</div>
+                            <div class="${isLight ? 'bg-rose-50/50 border-rose-200' : 'bg-slate-950/70 border-rose-900/40'} border rounded-xl p-2.5">
+                                <div class="text-[10px] uppercase font-bold text-rose-400 font-sans">Losstime</div>
+                                <div class="text-lg font-extrabold text-rose-400 mt-1">${durationMins} mins</div>
+                            </div>
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
+                                <div class="text-[10px] uppercase font-bold text-slate-400 font-sans">Status</div>
+                                <div class="text-sm font-bold ${statusVal === 'OPEN' ? 'text-rose-400' : 'text-emerald-400'} mt-1.5">${statusVal}</div>
                             </div>
                         </div>
 
-                        <!-- PARAMETER LOKASI & MESIN -->
+                        <!-- PARAMETER LOKASI, MESIN & PIC -->
                         <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-2">
                             <div class="font-bold text-[11px] ${isLight ? 'text-amber-800' : 'text-amber-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
                                 <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
-                                Konteks Operasional & Lokasi Kendala
+                                Konteks Operasional & Lokasi Problem
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                                <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400">Tanggal:</span>
+                                    <span class="font-mono font-bold text-cyan-400">${troubleDateVal}</span>
+                                </div>
                                 <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
                                     <span class="text-slate-400">Production Line:</span>
                                     <span class="font-bold text-cyan-400">${lineName}</span>
                                 </div>
                                 <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Mesin Terkait:</span>
+                                    <span class="text-slate-400">OP Mesin:</span>
                                     <span class="font-mono font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${machineName}</span>
                                 </div>
                                 <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
@@ -13502,25 +13624,40 @@ tbody.innerHTML = '';
                                     <span class="text-slate-400">Regu / Team:</span>
                                     <span class="font-bold text-amber-400 font-mono">${item.team || 'Team A'}</span>
                                 </div>
+                                <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400">PIC Departemen:</span>
+                                    <span class="font-bold text-cyan-300">${picVal}</span>
+                                </div>
                                 <div class="col-span-1 sm:col-span-2 flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Produk Sedang Berjalan:</span>
+                                    <span class="text-slate-400">Type Produk / SKU:</span>
                                     <span class="font-bold text-emerald-400">${productName}</span>
                                 </div>
                                 <div class="col-span-1 sm:col-span-2 flex justify-between py-1">
-                                    <span class="text-slate-400">Kategori Master Alasan:</span>
-                                    <span class="font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${reasonName}</span>
+                                    <span class="text-slate-400">Kategori & Master Alasan:</span>
+                                    <span class="font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${problemType} &mdash; ${reasonName}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- MASALAH / GEJALA KERUSAKAN -->
+                        <!-- MASALAH / GEJALA PROBLEM -->
                         <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-2">
                             <div class="font-bold text-[11px] ${isLight ? 'text-rose-800' : 'text-rose-400'} uppercase tracking-wider flex items-center gap-1.5">
                                 <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
-                                Masalah / Deskripsi Kendala (Trouble)
+                                Problem / Deskripsi Masalah
                             </div>
                             <div class="p-3 rounded-lg ${isLight ? 'bg-white text-slate-800 border-slate-200' : 'bg-slate-900 text-slate-200 border-slate-800'} border font-sans text-xs leading-relaxed whitespace-pre-wrap">
                                 ${item.description || 'Tidak ada deskripsi rinci yang dicatat.'}
+                            </div>
+                        </div>
+
+                        <!-- PENYEBAB (AKAR MASALAH) -->
+                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-2">
+                            <div class="font-bold text-[11px] ${isLight ? 'text-amber-800' : 'text-amber-400'} uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                                Penyebab / Akar Masalah (Root Cause)
+                            </div>
+                            <div class="p-3 rounded-lg ${isLight ? 'bg-white text-slate-800 border-slate-200' : 'bg-slate-900 text-slate-200 border-slate-800'} border font-sans text-xs leading-relaxed whitespace-pre-wrap">
+                                ${causeVal}
                             </div>
                         </div>
 
@@ -13531,7 +13668,7 @@ tbody.innerHTML = '';
                                 Tindakan Perbaikan & Countermeasure (CAPA)
                             </div>
                             <div class="p-3 rounded-lg ${isLight ? 'bg-white text-slate-800 border-slate-200' : 'bg-slate-900 text-emerald-300 border-slate-800'} border font-sans text-xs leading-relaxed whitespace-pre-wrap">
-                                ${item.action_taken || 'Belum dicatat atau masih dalam penanganan teknisi.'}
+                                ${actionVal}
                             </div>
                         </div>
                     </div>
@@ -13543,7 +13680,7 @@ tbody.innerHTML = '';
                         </button>
                         <button type="button" id="btn-edit-from-view-dt" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shadow-md shadow-cyan-600/30 flex items-center gap-1.5 cursor-pointer transition-all">
                             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                            <span>Edit Log Trouble</span>
+                            <span>Edit Log Problem</span>
                         </button>
                     </div>
                 </div>
@@ -14240,6 +14377,21 @@ tbody.innerHTML = '';
 
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
 
+        const picOptions = [
+            'Leader Team A (Alim Utama)',
+            'Leader Team B (Dadi)',
+            'Leader Team C (Karyanto)',
+            'Leader Team D (Kurniawan)',
+            'Maintenance Mekanik',
+            'Maintenance Elektrik',
+            'Tooling & Dies Team',
+            'Quality Control (QC Inspector)',
+            'Operator Mesin (OP)',
+            'Supervisor Produksi',
+            ...(this.masterData.groups || []).map(g => `${g.leader_name} (${g.team})`),
+        ];
+        const uniquePicOptions = [...new Set(picOptions)];
+
         const linesOptions = (this.masterData.lines || []).map(l => 
             `<option value="${l.id}" ${item.production_line_id == l.id ? 'selected' : ''}>${l.code} - ${l.name}</option>`
         ).join('');
@@ -14257,8 +14409,8 @@ tbody.innerHTML = '';
         ).join('');
 
         modalContainer.innerHTML = `
-            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
-                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-2xl w-full my-auto overflow-hidden font-sans">
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto font-sans">
+                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-2xl w-full my-auto overflow-hidden">
                     <!-- MODAL HEADER -->
                     <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} px-5 py-4 border-b flex items-center justify-between">
                         <div class="flex items-center gap-2.5">
@@ -14266,8 +14418,8 @@ tbody.innerHTML = '';
                                 <i data-lucide="wrench" class="w-4 h-4"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Edit Log Trouble & Downtime #${item.id}</h3>
-                                <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Ubah data tanggal, line, shift, produk, mesin, waktu, kategori alasan, dan tindakan perbaikan</p>
+                                <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Edit Log Problem & Downtime #${item.id}</h3>
+                                <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Ubah data master problem, parameter lini, waktu, PIC, dan status penanganan</p>
                             </div>
                         </div>
                         <button id="btn-close-edit-dt-modal" class="p-1 rounded-lg ${isLight ? 'text-slate-400 hover:text-slate-800 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} cursor-pointer transition-colors">
@@ -14276,124 +14428,145 @@ tbody.innerHTML = '';
                     </div>
 
                     <form id="form-edit-dt-record" class="p-5 space-y-4 text-xs">
-                        <!-- SEKSI 1: PARAMETER OPERASIONAL -->
+                        <datalist id="edit-problem-pic-list">
+                            ${uniquePicOptions.map(p => `<option value="${p}"></option>`).join('')}
+                        </datalist>
+
+                        <!-- SEKSI 1: PARAMETER OPERASIONAL (TANGGAL, LINE*, SHIFT*, TEAM*, PRODUK, OP MESIN) -->
                         <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-3">
                             <div class="font-bold text-[11px] ${isLight ? 'text-amber-800' : 'text-amber-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
                                 <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
-                                Parameter Tanggal, Lini & Shift
+                                Parameter Tanggal, Lini, Shift & Mesin
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">📅 Tanggal Trouble</label>
-                                    <input type="date" name="trouble_date" value="${troubleDateVal}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-medium" />
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TANGGAL*</label>
+                                    <input type="date" name="trouble_date" value="${troubleDateVal}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">🏭 Production Line</label>
-                                    <select name="production_line_id" id="edit-dt-line-select" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-bold text-cyan-600 dark:text-cyan-400">
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">LINE*</label>
+                                    <select name="production_line_id" id="edit-dt-line-select" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-bold text-cyan-600 dark:text-cyan-400 outline-none focus:border-amber-500">
                                         ${linesOptions}
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">⏰ Shift Kerja</label>
-                                    <select name="shift_id" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-semibold">
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">SHIFT*</label>
+                                    <select name="shift_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-semibold outline-none focus:border-amber-500">
                                         ${shiftsOptions}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TEAM*</label>
+                                    <select name="team" id="edit-dt-team-select" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold text-amber-500 outline-none focus:border-amber-500">
+                                        <option value="Team A" ${item.team === 'Team A' ? 'selected' : ''}>Team A</option>
+                                        <option value="Team B" ${item.team === 'Team B' ? 'selected' : ''}>Team B</option>
+                                        <option value="Team C" ${item.team === 'Team C' ? 'selected' : ''}>Team C</option>
+                                        <option value="Team D" ${item.team === 'Team D' ? 'selected' : ''}>Team D</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">⚙️ Mesin</label>
-                                    <select name="machine_id" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-mono">
-                                        ${machinesOptions}
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TYPE PRODUK / SKU*</label>
+                                    <select name="product_id" id="edit-dt-product-select" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-amber-500">
+                                        <!-- Populated dynamically based on line -->
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">📦 Nama Produk</label>
-                                    <select name="product_id" id="edit-dt-product-select" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-semibold">
-                                        <!-- Populated dynamically based on line -->
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">OP MESIN*</label>
+                                    <select name="machine_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500">
+                                        ${machinesOptions}
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- SEKSI 2: DETAIL TROUBLE, TEAM & DURASI -->
+                        <!-- SEKSI 2: KATEGORI, PROBLEM, PENYEBAB, PERBAIKAN, LOSSTIME, PIC & STATUS -->
                         <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-3">
                             <div class="font-bold text-[11px] ${isLight ? 'text-rose-800' : 'text-rose-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
                                 <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-                                Gejala Trouble, PIC & Waktu Downtime
+                                Detail Problem, Penyebab, Perbaikan & PIC
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">👥 Team</label>
-                                    <select name="team" id="edit-dt-team-select" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-bold">
-                                        <option value="Team A" ${item.team === 'Team A' ? 'selected' : ''}>Team A</option>
-                                        <option value="Team B" ${item.team === 'Team B' ? 'selected' : ''}>Team B</option>
-                                        <option value="Team C" ${item.team === 'Team C' ? 'selected' : ''}>Team C</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">👤 Leader Name / PIC</label>
-                                    <input type="text" id="edit-dt-leader-name" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-200 text-cyan-800' : 'bg-slate-950/60 border-slate-800 text-cyan-400'} border rounded-lg px-2.5 py-2 font-mono font-bold" placeholder="Auto-populated..." />
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">🏷️ Jenis Problem</label>
-                                    <select name="problem_type" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-bold">
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">KATEGORI PROBLEM*</label>
+                                    <select name="problem_type" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
                                         <option value="Mesin" ${item.problem_type === 'Mesin' ? 'selected' : ''}>Mesin</option>
-                                        <option value="Tool" ${item.problem_type === 'Tool' ? 'selected' : ''}>Tool</option>
-                                        <option value="Jig" ${item.problem_type === 'Jig' ? 'selected' : ''}>Jig & Fixture</option>
+                                        <option value="Dies / Tooling" ${item.problem_type === 'Dies / Tooling' || item.problem_type === 'Tool' ? 'selected' : ''}>Dies / Tooling</option>
+                                        <option value="Jig / Fixture" ${item.problem_type === 'Jig / Fixture' || item.problem_type === 'Jig' ? 'selected' : ''}>Jig / Fixture</option>
                                         <option value="Material" ${item.problem_type === 'Material' ? 'selected' : ''}>Material</option>
-                                        <option value="Man" ${item.problem_type === 'Man' ? 'selected' : ''}>Man / Operator</option>
-                                        <option value="Method" ${item.problem_type === 'Method' ? 'selected' : ''}>Method / Process</option>
+                                        <option value="Operator" ${item.problem_type === 'Operator' || item.problem_type === 'Man' ? 'selected' : ''}>Operator</option>
+                                        <option value="Quality" ${item.problem_type === 'Quality' ? 'selected' : ''}>Quality</option>
+                                        <option value="Method" ${item.problem_type === 'Method' ? 'selected' : ''}>Method</option>
                                         <option value="Utility" ${item.problem_type === 'Utility' ? 'selected' : ''}>Utility</option>
                                         <option value="Other" ${item.problem_type === 'Other' ? 'selected' : ''}>Other</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">⚡ Kategori Master Alasan Downtime</label>
-                                    <select name="downtime_reason_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-semibold text-cyan-600 dark:text-cyan-400">
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">ALASAN MASTER DOWNTIME*</label>
+                                    <select name="downtime_reason_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500">
                                         ${downtimeReasonsOptions}
                                     </select>
                                 </div>
                             </div>
 
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PROBLEM* (Deskripsi Masalah / Kerusakan)</label>
+                                <input type="text" name="description" value="${item.description || ''}" placeholder="Jelaskan detail kendala problem yang terjadi..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500" />
+                            </div>
+
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PENYEBAB* (Akar Masalah / Root Cause)</label>
+                                <input type="text" name="cause" value="${item.cause || ''}" placeholder="Jelaskan akar penyebab terjadinya problem..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500" />
+                            </div>
+
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PERBAIKAN* (Tindakan Penanganan / CAPA)</label>
+                                <input type="text" name="action_taken" value="${item.action_taken || ''}" placeholder="Langkah perbaikan / countermeasure yang telah dilakukan..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-emerald-800' : 'bg-slate-900 border-slate-800 text-emerald-300'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-emerald-500" />
+                            </div>
+
                             <div class="grid grid-cols-3 gap-2.5">
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Jam Mulai</label>
-                                    <input type="time" name="dt_start_time" value="${startTimeVal}" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2 py-2 font-mono" />
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Mulai</label>
+                                    <input type="time" name="dt_start_time" value="${startTimeVal}" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2 py-2 font-mono outline-none focus:border-amber-500" />
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Jam Selesai</label>
-                                    <input type="time" name="dt_end_time" value="${endTimeVal}" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2 py-2 font-mono" />
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Selesai</label>
+                                    <input type="time" name="dt_end_time" value="${endTimeVal}" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2 py-2 font-mono outline-none focus:border-amber-500" />
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Durasi (Menit)</label>
-                                    <input type="number" name="duration_minutes" value="${durVal}" min="0" required class="w-full ${isLight ? 'bg-white border-slate-200 text-rose-700' : 'bg-slate-900 border-slate-800 text-rose-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold flex items-center justify-between">
+                                        <span>LOSSTIME (Min)*</span>
+                                        <span class="text-[10px] text-amber-400 font-mono font-bold">(Wajib Angka)</span>
+                                    </label>
+                                    <input type="number" name="duration_minutes" value="${durVal}" min="1" step="1" required class="w-full ${isLight ? 'bg-white border-slate-200 text-rose-700' : 'bg-slate-900 border-slate-800 text-rose-400'} border rounded-lg px-2 py-2 font-mono font-bold outline-none focus:border-amber-500" />
                                 </div>
                             </div>
 
-                            <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Deskripsi Gejala Trouble</label>
-                                <textarea name="description" rows="2" placeholder="Jelaskan detail kendala trouble yang terjadi..." class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans">${item.description || ''}</textarea>
-                            </div>
-
-                            <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Tindakan Perbaikan (Action Taken / CAPA)</label>
-                                <textarea name="action_taken" rows="2" placeholder="Langkah perbaikan / countermeasure yang telah dilakukan..." class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans">${item.action_taken || ''}</textarea>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PIC (Daftar Nama PIC Departemen)*</label>
+                                    <input type="text" name="pic" list="edit-problem-pic-list" value="${item.pic || ''}" placeholder="Pilih atau ketik PIC..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-cyan-800' : 'bg-slate-900 border-slate-800 text-cyan-300'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-cyan-500" />
+                                </div>
+                                <div>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">STATUS (CLOSED / OPEN)*</label>
+                                    <select name="status" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
+                                        <option value="CLOSED" ${String(item.status || '').toUpperCase() !== 'OPEN' ? 'selected' : ''}>CLOSED</option>
+                                        <option value="OPEN" ${String(item.status || '').toUpperCase() === 'OPEN' ? 'selected' : ''}>OPEN</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
                         <!-- MODAL FOOTER -->
                         <div class="pt-3 flex justify-end gap-2 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
                             <button type="button" id="btn-cancel-edit-dt-modal" class="px-4 py-2 ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} rounded-xl text-xs font-medium cursor-pointer transition-colors">Batal</button>
-                            <button type="submit" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-xl shadow-md shadow-cyan-600/30 flex items-center gap-1.5 cursor-pointer transition-all">
+                            <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-md shadow-amber-600/30 flex items-center gap-1.5 cursor-pointer transition-all">
                                 <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                                Simpan Perubahan Log Trouble
+                                Simpan Perubahan Problem Log
                             </button>
                         </div>
                     </form>
@@ -14406,23 +14579,8 @@ tbody.innerHTML = '';
             i18n.localizeDom(modalContainer);
         }
 
-        // Auto update Leader Name based on Line & Team
         const dtLineSelect = document.getElementById('edit-dt-line-select');
-        const dtTeamSelect = document.getElementById('edit-dt-team-select');
-        const dtLeaderInp = document.getElementById('edit-dt-leader-name');
         const dtProductSelect = document.getElementById('edit-dt-product-select');
-
-        const updateDtLeaderName = () => {
-            if (!dtLineSelect || !dtTeamSelect || !dtLeaderInp) return;
-            const lineId = dtLineSelect.value;
-            const teamVal = dtTeamSelect.value;
-            const match = (this.masterData.groups || []).find(g => 
-                g.production_line_id == lineId && 
-                (g.team === teamVal || g.team.toLowerCase().includes((teamVal || '').toLowerCase()) || (teamVal || '').toLowerCase().includes(g.team.toLowerCase()))
-            );
-            dtLeaderInp.value = match ? match.leader_name : 'Belum Didaftar';
-        };
-
         const dtMachineSelect = modalContainer.querySelector('select[name="machine_id"]');
 
         const populateDtMachines = (preferredMachineId = null) => {
@@ -14461,8 +14619,6 @@ tbody.innerHTML = '';
                     <option value="${p.id}" ${item.product_id == p.id ? 'selected' : ''}>${p.name} — SKU: ${p.sku}</option>
                 `).join('');
             }
-
-            updateDtLeaderName();
         };
 
         if (dtLineSelect) {
@@ -14472,9 +14628,6 @@ tbody.innerHTML = '';
             });
             populateDtProducts();
             populateDtMachines(item.machine_id);
-        }
-        if (dtTeamSelect) {
-            dtTeamSelect.addEventListener('change', updateDtLeaderName);
         }
 
         const startTimeInput = modalContainer.querySelector('input[name="dt_start_time"]');
@@ -14488,7 +14641,7 @@ tbody.innerHTML = '';
                 let sMins = parseInt(sParts[0]) * 60 + parseInt(sParts[1] || 0);
                 let eMins = parseInt(eParts[0]) * 60 + parseInt(eParts[1] || 0);
                 if (eMins < sMins) eMins += 24 * 60;
-                if (durInput) durInput.value = Math.max(0, eMins - sMins);
+                if (durInput) durInput.value = Math.max(1, eMins - sMins);
             }
         };
 
@@ -14504,13 +14657,22 @@ tbody.innerHTML = '';
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
 
+            const durationMins = parseFloat(data.duration_minutes || 0);
+            if (isNaN(durationMins) || durationMins <= 0) {
+                this.showNotification('⚠️ Losstime Wajib Diisi', 'Durasi losstime harus berupa angka menit yang lebih besar dari 0.', 'delete');
+                return;
+            }
+
             try {
                 await api.updateDowntime(id, data);
-                this.showNotification('Log Trouble Diperbarui', `Log trouble #${id} berhasil diperbarui!`, 'update');
+                this.showNotification('Log Problem Diperbarui', `Log problem #${id} berhasil diperbarui!`, 'update');
                 modalContainer.innerHTML = '';
+                if (data.trouble_date) {
+                    this.selectedDailyDate = data.trouble_date;
+                }
                 await this.renderDailyReport();
             } catch (err) {
-                alert('Gagal memperbarui log trouble: ' + (err.response?.data?.message || err.message));
+                alert('Gagal memperbarui log problem: ' + (err.response?.data?.message || err.message));
             }
         });
     }
@@ -14570,18 +14732,18 @@ tbody.innerHTML = '';
                             <i data-lucide="trash-2" class="w-5 h-5"></i>
                         </div>
                         <div>
-                            <h3 class="font-bold text-sm text-slate-100">Hapus Log Trouble #${id}</h3>
-                            <p class="text-xs text-slate-400">Tindakan ini akan menghapus log kendala downtime dari riwayat.</p>
+                            <h3 class="font-bold text-sm text-slate-100">Hapus Log Problem #${id}</h3>
+                            <p class="text-xs text-slate-400">Tindakan ini akan menghapus log kendala problem/downtime dari riwayat.</p>
                         </div>
                     </div>
 
                     <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 mb-5">
-                        Apakah Anda yakin ingin menghapus <span class="font-bold text-rose-400">Log Trouble #${id}</span>?
+                        Apakah Anda yakin ingin menghapus <span class="font-bold text-rose-400">Log Problem #${id}</span>?
                     </div>
 
                     <div class="flex justify-end gap-2">
                         <button type="button" id="btn-cancel-del-dt" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium cursor-pointer transition-colors">Batal</button>
-                        <button type="button" id="btn-confirm-del-dt" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg shadow-md shadow-rose-600/30 cursor-pointer transition-all">Ya, Hapus Log</button>
+                        <button type="button" id="btn-confirm-del-dt" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg shadow-md shadow-rose-600/30 cursor-pointer transition-all">Ya, Hapus Log Problem</button>
                     </div>
                 </div>
             </div>
@@ -14596,14 +14758,15 @@ tbody.innerHTML = '';
         document.getElementById('btn-confirm-del-dt').addEventListener('click', async () => {
             try {
                 await api.deleteDowntime(id);
-                this.showNotification('Log Trouble Dihapus', `Log trouble #${id} berhasil dihapus!`, 'delete');
+                this.showNotification('Log Problem Dihapus', `Log problem #${id} berhasil dihapus dari database!`, 'delete');
                 modalContainer.innerHTML = '';
                 await this.renderDailyReport();
             } catch (err) {
-                alert('Gagal menghapus log trouble: ' + (err.response?.data?.message || err.message));
+                alert('Gagal menghapus log problem: ' + (err.response?.data?.message || err.message));
             }
         });
     }
+
 
     // ==========================================
     // 10. USER MANAGEMENT & RBAC PAGE

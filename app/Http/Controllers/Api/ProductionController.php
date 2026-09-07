@@ -467,10 +467,10 @@ class ProductionController extends Controller
 
                 Downtime::create([
                     'production_record_id' => $record->id,
-                    'production_line_id' => $record->production_line_id,
-                    'machine_id' => $record->machine_id,
-                    'shift_id' => $record->shift_id,
-                    'product_id' => $record->product_id,
+                    'production_line_id' => !empty($dtLog['production_line_id']) ? $dtLog['production_line_id'] : $record->production_line_id,
+                    'machine_id' => !empty($dtLog['machine_id']) ? $dtLog['machine_id'] : $record->machine_id,
+                    'shift_id' => !empty($dtLog['shift_id']) ? $dtLog['shift_id'] : $record->shift_id,
+                    'product_id' => !empty($dtLog['product_id']) ? $dtLog['product_id'] : $record->product_id,
                     'team' => $dtLog['team'] ?? null,
                     'problem_type' => $probType,
                     'start_time' => $startTime,
@@ -478,7 +478,10 @@ class ProductionController extends Controller
                     'duration_minutes' => $durMins,
                     'downtime_reason_id' => $reasonId,
                     'description' => $dtLog['description'] ?? null,
+                    'cause' => $dtLog['cause'] ?? null,
                     'action_taken' => $dtLog['action_taken'] ?? null,
+                    'pic' => $dtLog['pic'] ?? ($dtLog['leader_name'] ?? null),
+                    'status' => strtoupper($dtLog['status'] ?? 'CLOSED'),
                     'is_planned' => filter_var($dtLog['is_planned'] ?? false, FILTER_VALIDATE_BOOLEAN),
                     'created_by' => auth()->id() ?? 1,
                 ]);
