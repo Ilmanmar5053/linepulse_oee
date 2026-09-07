@@ -462,7 +462,7 @@ class ProductionController extends Controller
 
                 $durMins = isset($dtLog['duration_minutes']) && $dtLog['duration_minutes'] !== '' ? (float) $dtLog['duration_minutes'] : ($endTime && $startTime ? $startTime->diffInMinutes($endTime) : 0);
 
-                $probType = $dtLog['problem_type'] ?? 'Mesin';
+                $probType = $dtLog['problem_type'] ?? 'Problem Mesin Mekanik';
                 $reasonId = !empty($dtLog['downtime_reason_id']) ? $dtLog['downtime_reason_id'] : null;
 
                 Downtime::create([

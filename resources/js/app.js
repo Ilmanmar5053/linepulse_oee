@@ -4752,8 +4752,15 @@ tbody.innerHTML = '';
                                             ${dt.product?.sku ? `<div class="text-[10px] text-slate-400 font-mono">SKU: ${dt.product.sku}</div>` : ''}
                                         </td>
                                         <td class="p-3 font-sans">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${dt.problem_type === 'Mesin' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
-                                                ${dt.problem_type || 'Mesin'}
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                                                dt.problem_type === 'Problem Mesin Mekanik' ? 'bg-rose-950 text-rose-300 border border-rose-800' :
+                                                dt.problem_type === 'Problem Mesin Elektrik' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                                                dt.problem_type === 'Problem Tool' ? 'bg-orange-950 text-orange-300 border border-orange-800' :
+                                                dt.problem_type === 'Planning Downtime' ? 'bg-blue-950 text-blue-300 border border-blue-800' :
+                                                dt.problem_type === 'Inventory' ? 'bg-purple-950 text-purple-300 border border-purple-800' :
+                                                'bg-slate-800 text-slate-300 border border-slate-700'
+                                            }">
+                                                ${dt.problem_type || 'Problem Mesin Mekanik'}
                                             </span>
                                         </td>
                                         <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
@@ -5309,15 +5316,12 @@ tbody.innerHTML = '';
                             <div>
                                 <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Kategori Problem*</label>
                                 <select data-trouble-field="problem_type" data-row="${idx}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold">
-                                    <option value="Mesin" ${row.problem_type === 'Mesin' ? 'selected' : ''}>Mesin</option>
-                                    <option value="Dies / Tooling" ${row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Dies / Tooling</option>
-                                    <option value="Jig / Fixture" ${row.problem_type === 'Jig / Fixture' ? 'selected' : ''}>Jig / Fixture</option>
-                                    <option value="Material" ${row.problem_type === 'Material' ? 'selected' : ''}>Material</option>
-                                    <option value="Operator" ${row.problem_type === 'Operator' ? 'selected' : ''}>Operator</option>
-                                    <option value="Quality" ${row.problem_type === 'Quality' ? 'selected' : ''}>Quality</option>
-                                    <option value="Method" ${row.problem_type === 'Method' ? 'selected' : ''}>Method</option>
-                                    <option value="Utility" ${row.problem_type === 'Utility' ? 'selected' : ''}>Utility</option>
-                                    <option value="Other" ${row.problem_type === 'Other' ? 'selected' : ''}>Other</option>
+                                    <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory</option>
+                                    <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others</option>
+                                    <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime</option>
+                                    <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik</option>
+                                    <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || (!row.problem_type && idx === 0) || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik</option>
+                                    <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' || row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool</option>
                                 </select>
                             </div>
                             <div>
@@ -5422,7 +5426,7 @@ tbody.innerHTML = '';
                 dailyTroubleLogsState.push({
                     team: defaultTeam,
                     leader_name: defaultLeader,
-                    problem_type: 'Mesin',
+                    problem_type: 'Problem Mesin Mekanik',
                     downtime_reason_id: '',
                     start_time: '08:00',
                     end_time: '',
@@ -5488,7 +5492,7 @@ tbody.innerHTML = '';
                     (r.duration_minutes > 0) || (r.description && r.description.trim() !== '') || (r.start_time && r.start_time.trim() !== '')
                 ).map(r => ({
                     team: r.team || null,
-                    problem_type: r.problem_type || 'Mesin',
+                    problem_type: r.problem_type || 'Problem Mesin Mekanik',
                     downtime_reason_id: r.downtime_reason_id || null,
                     start_time: r.start_time ? `${prodDate} ${r.start_time}:00` : `${prodDate} 08:00:00`,
                     end_time: r.end_time ? `${prodDate} ${r.end_time}:00` : null,
@@ -5645,15 +5649,12 @@ tbody.innerHTML = '';
                             <div>
                                 <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Kategori Problem*</label>
                                 <select name="problem_type" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
-                                    <option value="Mesin">Mesin (Breakdown Mechanical / Electrical)</option>
-                                    <option value="Dies / Tooling">Dies / Tooling (Patah / Aus / Setting)</option>
-                                    <option value="Jig / Fixture">Jig / Fixture (Stuck / Misalignment)</option>
-                                    <option value="Material">Material (Late Supply / Defect)</option>
-                                    <option value="Operator">Operator (Operational Gap / Man)</option>
-                                    <option value="Quality">Quality (Quality Problem)</option>
-                                    <option value="Method">Method (Process / Standard)</option>
-                                    <option value="Utility">Utility (Power / Air Pressure)</option>
-                                    <option value="Other">Other (Choke / Minor Stoppage)</option>
+                                    <option value="Inventory">Inventory</option>
+                                    <option value="Others">Others</option>
+                                    <option value="Planning Downtime">Planning Downtime</option>
+                                    <option value="Problem Mesin Elektrik">Problem Mesin Elektrik</option>
+                                    <option value="Problem Mesin Mekanik" selected>Problem Mesin Mekanik</option>
+                                    <option value="Problem Tool">Problem Tool</option>
                                 </select>
                             </div>
                         </div>
@@ -5848,7 +5849,7 @@ tbody.innerHTML = '';
                     shift_id: data.shift_id,
                     product_id: data.product_id || null,
                     team: data.team || null,
-                    problem_type: data.problem_type || 'Mesin',
+                    problem_type: data.problem_type || 'Problem Mesin Mekanik',
                     downtime_reason_id: data.downtime_reason_id || null,
                     start_time: `${targetDate} ${startTimeVal}:00`,
                     end_time: data.end_time ? `${targetDate} ${data.end_time}:00` : null,
@@ -13544,7 +13545,14 @@ tbody.innerHTML = '';
                             <div>
                                 <div class="flex items-center gap-2">
                                     <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Detail Log Problem #${item.id}</h3>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${problemType === 'Mesin' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">${problemType}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                        problemType === 'Problem Mesin Mekanik' ? 'bg-rose-950 text-rose-300 border border-rose-800' :
+                                        problemType === 'Problem Mesin Elektrik' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                                        problemType === 'Problem Tool' ? 'bg-orange-950 text-orange-300 border border-orange-800' :
+                                        problemType === 'Planning Downtime' ? 'bg-blue-950 text-blue-300 border border-blue-800' :
+                                        problemType === 'Inventory' ? 'bg-purple-950 text-purple-300 border border-purple-800' :
+                                        'bg-slate-800 text-slate-300 border border-slate-700'
+                                    }">${problemType}</span>
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusVal === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${statusVal}</span>
                                 </div>
                                 <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5 font-mono">
@@ -14460,15 +14468,12 @@ tbody.innerHTML = '';
                                 <div>
                                     <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Kategori Problem*</label>
                                     <select name="problem_type" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
-                                        <option value="Mesin" ${item.problem_type === 'Mesin' ? 'selected' : ''}>Mesin</option>
-                                        <option value="Dies / Tooling" ${item.problem_type === 'Dies / Tooling' || item.problem_type === 'Tool' ? 'selected' : ''}>Dies / Tooling</option>
-                                        <option value="Jig / Fixture" ${item.problem_type === 'Jig / Fixture' || item.problem_type === 'Jig' ? 'selected' : ''}>Jig / Fixture</option>
-                                        <option value="Material" ${item.problem_type === 'Material' ? 'selected' : ''}>Material</option>
-                                        <option value="Operator" ${item.problem_type === 'Operator' || item.problem_type === 'Man' ? 'selected' : ''}>Operator</option>
-                                        <option value="Quality" ${item.problem_type === 'Quality' ? 'selected' : ''}>Quality</option>
-                                        <option value="Method" ${item.problem_type === 'Method' ? 'selected' : ''}>Method</option>
-                                        <option value="Utility" ${item.problem_type === 'Utility' ? 'selected' : ''}>Utility</option>
-                                        <option value="Other" ${item.problem_type === 'Other' ? 'selected' : ''}>Other</option>
+                                        <option value="Inventory" ${item.problem_type === 'Inventory' ? 'selected' : ''}>Inventory</option>
+                                        <option value="Others" ${item.problem_type === 'Others' || item.problem_type === 'Other' ? 'selected' : ''}>Others</option>
+                                        <option value="Planning Downtime" ${item.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime</option>
+                                        <option value="Problem Mesin Elektrik" ${item.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik</option>
+                                        <option value="Problem Mesin Mekanik" ${item.problem_type === 'Problem Mesin Mekanik' || item.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik</option>
+                                        <option value="Problem Tool" ${item.problem_type === 'Problem Tool' || item.problem_type === 'Tool' || item.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool</option>
                                     </select>
                                 </div>
                             </div>
@@ -16892,14 +16897,12 @@ tbody.innerHTML = '';
                             <div>
                                 <label class="block text-slate-400 mb-1 font-medium">Jenis Trouble</label>
                                 <select data-modal-dt-idx="${idx}" data-modal-dt-field="problem_type" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-100 font-sans text-xs">
-                                    <option value="Mesin" ${row.problem_type === 'Mesin' ? 'selected' : ''}>Mesin (Breakdown Mechanical / Electrical)</option>
-                                    <option value="Tool" ${row.problem_type === 'Tool' ? 'selected' : ''}>Tool (Patah / Aus / Setting Cutting Tool)</option>
-                                    <option value="Jig" ${row.problem_type === 'Jig' ? 'selected' : ''}>Jig & Fixture (Stuck / Misalignment)</option>
-                                    <option value="Material" ${row.problem_type === 'Material' ? 'selected' : ''}>Material (Late Supply / Raw Material Defect)</option>
-                                    <option value="Man" ${row.problem_type === 'Man' ? 'selected' : ''}>Man / Operator (Setting / Operational Gap)</option>
-                                    <option value="Method" ${row.problem_type === 'Method' ? 'selected' : ''}>Method / Process (Trial / Parameter Setup)</option>
-                                    <option value="Utility" ${row.problem_type === 'Utility' ? 'selected' : ''}>Utility (Power Cut / Air Pressure Drop)</option>
-                                    <option value="Other" ${row.problem_type === 'Other' ? 'selected' : ''}>Other / Choke & Minor Stop</option>
+                                    <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory</option>
+                                    <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others</option>
+                                    <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime</option>
+                                    <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik</option>
+                                    <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik</option>
+                                    <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' || row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool</option>
                                 </select>
                             </div>
                         </div>
