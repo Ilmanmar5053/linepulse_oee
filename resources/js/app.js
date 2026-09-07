@@ -4681,9 +4681,8 @@ tbody.innerHTML = '';
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                 <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
-                                List Data Produksi (Grouping per Line) — Tanggal ${this.selectedDailyDate}
+                                List Data Produksi — Tanggal ${this.selectedDailyDate}
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Daftar inputan per lini produksi (${lineGroups.length} Line aktif, ${records.length} total record shift / batch). Klik baris Line untuk collapse / expand.</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <!-- EXPAND / COLLAPSE ALL BUTTONS -->
@@ -4866,9 +4865,8 @@ tbody.innerHTML = '';
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                 <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
-                                Log Problem & Downtime (Grouping per Line) — Tanggal ${this.selectedDailyDate}
+                                Log Problem & Downtime — Tanggal ${this.selectedDailyDate}
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Daftar kendala problem per lini produksi (${dtLineGroups.length} Line tercatat, ${downtimes.length} total event problem). Klik baris Line untuk collapse / expand.</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <!-- EXPAND / COLLAPSE ALL BUTTONS FOR PROBLEM TABLE -->
