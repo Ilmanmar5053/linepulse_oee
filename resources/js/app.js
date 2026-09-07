@@ -3147,6 +3147,9 @@ tbody.innerHTML = '';
         if (!this.selectedMonitoringDate) {
             this.selectedMonitoringDate = new Date().toISOString().slice(0, 10);
         }
+        if (!this.monitoringStatusFilter) {
+            this.monitoringStatusFilter = 'ALL';
+        }
 
         const res = await api.getRealtimeStatus({ date: this.selectedMonitoringDate });
         let machines = res.data.data || [];
@@ -3176,6 +3179,26 @@ tbody.innerHTML = '';
                 (m.product_name || '').toLowerCase().includes(searchQuery)
             );
         }
+
+        // Calculate dynamic status counts
+        const totalCount = machines.length;
+        const runningCount = machines.filter(m => (m.status || '').toUpperCase() === 'RUNNING').length;
+        const breakdownCount = machines.filter(m => (m.status || '').toUpperCase() === 'BREAKDOWN').length;
+        const idleCount = machines.filter(m => (m.status || '').toUpperCase() === 'IDLE').length;
+        const maintCount = machines.filter(m => (m.status || '').toUpperCase() === 'MAINTENANCE').length;
+        const stopCount = machines.filter(m => ['STOP', 'STOPPED', 'OFFLINE'].includes((m.status || '').toUpperCase())).length;
+
+        // Apply status filter
+        let displayMachines = machines;
+        if (this.monitoringStatusFilter && this.monitoringStatusFilter !== 'ALL') {
+            if (this.monitoringStatusFilter === 'STOP') {
+                displayMachines = machines.filter(m => ['STOP', 'STOPPED', 'OFFLINE'].includes((m.status || '').toUpperCase()));
+            } else {
+                displayMachines = machines.filter(m => (m.status || '').toUpperCase() === this.monitoringStatusFilter);
+            }
+        }
+
+        const activeFilter = this.monitoringStatusFilter;
 
         const content = document.getElementById('content-body');
         content.innerHTML = `
@@ -3217,9 +3240,65 @@ tbody.innerHTML = '';
                 </div>
             </div>
 
+            <!-- DYNAMIC STATUS FILTER TOOLBAR -->
+            <div class="bg-slate-900/90 border border-slate-800/90 rounded-xl p-2.5 mb-5 shadow-sm backdrop-blur-sm flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1.5">
+                        <i data-lucide="filter" class="w-3.5 h-3.5 text-cyan-400"></i> Status:
+                    </span>
+                    
+                    <!-- ALL -->
+                    <button data-status="ALL" class="btn-monitoring-status-filter px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${activeFilter === 'ALL' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800'}">
+                        <span>Semua Status</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${activeFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}">${totalCount}</span>
+                    </button>
+
+                    <!-- RUNNING -->
+                    <button data-status="RUNNING" class="btn-monitoring-status-filter px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${activeFilter === 'RUNNING' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'bg-slate-950 text-emerald-400 hover:bg-emerald-950/40 border border-emerald-900/50'}">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 ${runningCount > 0 ? 'animate-pulse' : ''}"></span>
+                        <span>Running</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${activeFilter === 'RUNNING' ? 'bg-white/20 text-white' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${runningCount}</span>
+                    </button>
+
+                    <!-- BREAKDOWN -->
+                    <button data-status="BREAKDOWN" class="btn-monitoring-status-filter px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${activeFilter === 'BREAKDOWN' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30' : 'bg-slate-950 text-rose-400 hover:bg-rose-950/40 border border-rose-900/50'}">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 ${breakdownCount > 0 ? 'animate-ping' : ''}"></span>
+                        <span>Breakdown</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${activeFilter === 'BREAKDOWN' ? 'bg-white/20 text-white' : 'bg-rose-950 text-rose-300 border border-rose-800'}">${breakdownCount}</span>
+                    </button>
+
+                    <!-- IDLE -->
+                    <button data-status="IDLE" class="btn-monitoring-status-filter px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${activeFilter === 'IDLE' ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30' : 'bg-slate-950 text-amber-400 hover:bg-amber-950/40 border border-amber-900/50'}">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>Idle</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${activeFilter === 'IDLE' ? 'bg-white/20 text-white' : 'bg-amber-950 text-amber-300 border border-amber-800'}">${idleCount}</span>
+                    </button>
+
+                    <!-- MAINTENANCE -->
+                    <button data-status="MAINTENANCE" class="btn-monitoring-status-filter px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${activeFilter === 'MAINTENANCE' ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30' : 'bg-slate-950 text-purple-400 hover:bg-purple-950/40 border border-purple-900/50'}">
+                        <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                        <span>Maintenance</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${activeFilter === 'MAINTENANCE' ? 'bg-white/20 text-white' : 'bg-purple-950 text-purple-300 border border-purple-800'}">${maintCount}</span>
+                    </button>
+
+                    <!-- STOP -->
+                    <button data-status="STOP" class="btn-monitoring-status-filter px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${activeFilter === 'STOP' ? 'bg-slate-700 text-white shadow-md shadow-slate-700/30' : 'bg-slate-950 text-slate-400 hover:bg-slate-800 border border-slate-800'}">
+                        <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                        <span>Stop / Offline</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${activeFilter === 'STOP' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}">${stopCount}</span>
+                    </button>
+                </div>
+
+                <div class="text-xs text-slate-400 font-mono flex items-center gap-1.5">
+                    <span>Menampilkan:</span>
+                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 bg-slate-950 border border-slate-800 rounded">${displayMachines.length}</span>
+                    <span>dari ${totalCount} mesin</span>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                ${machines.length === 0 ? '<div class="col-span-full bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400 text-sm">Tidak ada data mesin ditemukan pada tanggal ' + this.selectedMonitoringDate + '.</div>' : ''}
-                ${machines.map(m => `
+                ${displayMachines.length === 0 ? '<div class="col-span-full bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400 text-sm">Tidak ada data mesin dengan status ' + (activeFilter === 'ALL' ? '' : activeFilter) + ' pada tanggal ' + this.selectedMonitoringDate + '.</div>' : ''}
+                ${displayMachines.map(m => `
                     <div class="bg-slate-900 border ${m.status === 'RUNNING' ? 'border-emerald-500/40 shadow-emerald-950/20' : (m.status === 'BREAKDOWN' ? 'border-rose-500/40 shadow-rose-950/20' : 'border-slate-800')} rounded-xl p-4 flex flex-col justify-between shadow-lg hover:border-slate-700 transition-all relative group">
                         <div>
                             <!-- CARD HEADER & DYNAMIC STATUS BADGE -->
@@ -3228,7 +3307,7 @@ tbody.innerHTML = '';
                                 
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[10px] font-bold rounded px-2 py-0.5 border ${m.status_badge_color || 'bg-slate-800 text-slate-400 border-slate-700'}">
-                                        ${m.status === 'RUNNING' ? '🟢 RUNNING' : (m.status === 'BREAKDOWN' ? '🔴 BREAKDOWN' : (m.status === 'IDLE' ? '🟡 IDLE' : '⏹️ STOP'))}
+                                        ${m.status === 'RUNNING' ? '🟢 RUNNING' : (m.status === 'BREAKDOWN' ? '🔴 BREAKDOWN' : (m.status === 'IDLE' ? '🟡 IDLE' : (m.status === 'MAINTENANCE' ? '🔧 MAINTENANCE' : '⏹️ STOP')))}
                                     </span>
                                 </div>
                             </div>
@@ -3272,6 +3351,15 @@ tbody.innerHTML = '';
         `;
 
         if (window.lucide) window.lucide.createIcons();
+
+        // Status Filter Buttons Event Listeners
+        document.querySelectorAll('.btn-monitoring-status-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const status = e.currentTarget.getAttribute('data-status');
+                this.monitoringStatusFilter = status;
+                this.renderMonitoring();
+            });
+        });
 
         // Date Filter Event Listener
         const dateInput = document.getElementById('input-monitoring-date');
