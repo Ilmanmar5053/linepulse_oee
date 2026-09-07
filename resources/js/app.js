@@ -16857,9 +16857,8 @@ tbody.innerHTML = '';
 
     // ==========================================
     // APEXCHARTS HELPER RENDERING METHODS
-    // ==========================================
-    renderGlobalOeeAndProductionTrendChart(dataPayload = {}, kpi = {}, mode = 'lines_oee') {
-        const el = document.getElementById('chart-global-oee-trend');
+    renderGlobalOeeAndProductionTrendChart(dataPayload = {}, kpi = {}, mode = 'lines_oee', containerId = 'chart-global-oee-trend', chartInstanceKey = 'globalOeeTrend') {
+        const el = document.getElementById(containerId);
         if (!el || !window.ApexCharts) return;
 
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
@@ -17223,9 +17222,11 @@ tbody.innerHTML = '';
             }
         };
 
-        if (this.charts['globalOeeTrend']) this.charts['globalOeeTrend'].destroy();
-        this.charts['globalOeeTrend'] = new window.ApexCharts(el, options);
-        this.charts['globalOeeTrend'].render();
+        if (this.charts[chartInstanceKey]) {
+            try { this.charts[chartInstanceKey].destroy(); } catch (e) {}
+        }
+        this.charts[chartInstanceKey] = new window.ApexCharts(el, options);
+        this.charts[chartInstanceKey].render();
     }
 
     attachOeeSonarRipples(chartContext, rawPoints, isOeeMode) {
@@ -18917,30 +18918,25 @@ tbody.innerHTML = '';
 
     async renderTvDisplay() {
         if (!this.tvSubTab) this.tvSubTab = 'overview';
+        if (!this.tvTrendMode) this.tvTrendMode = 'lines_oee';
 
         // If in TV mode with no specific machine filter selected, default to all measuring machines across all lines
         if (!this.filters.machine_id) {
             this.filters.machine_id = 'all_measuring';
         }
 
-        const [kpiRes, trendRes, realtimeRes, sixLossRes] = await Promise.all([
+        const [kpiRes, trendRes, realtimeRes, lineRankingRes] = await Promise.all([
             api.getOeeKpi(this.filters),
             api.getOeeTrend(this.filters),
-            api.getRealtimeStatus(this.filters),
-            api.getSixBigLosses(this.filters),
+            this.getDashboardRealtimeMachines(false),
+            api.getLineRanking(this.filters),
         ]);
 
-        const kpi = kpiRes.data.data;
-        const trends = trendRes.data.data;
-        const machines = realtimeRes.data.data || [];
-        const sixLosses = sixLossRes.data.data;
-
-        // Dynamic Machine Status Counts from Database
-        const runningCount = machines.filter(m => m.status === 'RUNNING').length;
-        const idleCount = machines.filter(m => m.status === 'IDLE').length;
-        const stopMachines = machines.filter(m => ['STOP', 'STOPPED', 'BREAKDOWN', 'MAINTENANCE', 'OFFLINE'].includes((m.status || '').toUpperCase()));
-        const stopCount = stopMachines.length;
-        const totalMachines = machines.length;
+        const kpi = kpiRes.data?.data || {};
+        const trends = trendRes.data?.data || [];
+        const machines = realtimeRes || [];
+        const lines = lineRankingRes.data?.data || [];
+        const dataPayload = { kpi, trends, machines, lines };
 
         // Helper calculations for 4 Macro KPI Cards
         const oeeVal = kpi.oee != null ? Number(kpi.oee) : 0;
@@ -18977,28 +18973,24 @@ tbody.innerHTML = '';
         };
 
         // Determine Status Visuals for each Metric
-        // 1. Overall OEE: Dynamic (Bagus = Hijau, Kurang = Orange, Jelek = Merah)
         const oeeStatus = oeeVal >= 85 
             ? { label: 'Optimal / World Class', color: '#10b981', grad: 'from-emerald-600 to-emerald-400', tagClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', benchBadge: 'text-emerald-400 bg-emerald-950/40 border-emerald-800/40' }
             : (oeeVal >= 65 
                 ? { label: 'Warning / Minor Loss', color: '#f97316', grad: 'from-amber-600 to-orange-500', tagClass: 'bg-orange-500/10 text-orange-400 border-orange-500/30', benchBadge: 'text-orange-400 bg-orange-950/40 border-orange-800/40' }
                 : { label: 'Critical / Breakdown', color: '#ef4444', grad: 'from-rose-600 to-red-500', tagClass: 'bg-rose-500/10 text-rose-400 border-rose-500/30', benchBadge: 'text-rose-400 bg-rose-950/40 border-rose-800/40' });
 
-        // 2. Availability (A): Tema Biru (Sky/Blue)
         const availStatus = availVal >= 90
             ? { label: 'On Target (>=90%)', color: '#0ea5e9', grad: 'from-blue-600 to-sky-400', tagClass: 'bg-sky-500/10 text-sky-400 border-sky-500/30' }
             : (availVal >= 80
                 ? { label: 'Warning (80-89%)', color: '#38bdf8', grad: 'from-blue-600 to-cyan-400', tagClass: 'bg-sky-500/10 text-sky-300 border-sky-500/30' }
                 : { label: 'Needs Improvement', color: '#ef4444', grad: 'from-rose-600 to-rose-400', tagClass: 'bg-rose-500/10 text-rose-400 border-rose-500/30' });
 
-        // 3. Performance (P): Tema Hijau (Emerald/Green)
         const perfStatus = perfVal >= 95
             ? { label: 'On Target (>=95%)', color: '#10b981', grad: 'from-emerald-600 to-teal-400', tagClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' }
             : (perfVal >= 85
                 ? { label: 'Warning (85-94%)', color: '#22c55e', grad: 'from-emerald-500 to-green-400', tagClass: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' }
                 : { label: 'Needs Improvement', color: '#ef4444', grad: 'from-rose-600 to-rose-400', tagClass: 'bg-rose-500/10 text-rose-400 border-rose-500/30' });
 
-        // 4. Quality Rate (Q): Tema Merah / Jingga (Orange/Red)
         const qualStatus = qualVal >= 99
             ? { label: 'Zero Defect Target', color: '#f97316', grad: 'from-orange-600 to-amber-400', tagClass: 'bg-orange-500/10 text-orange-400 border-orange-500/30' }
             : (qualVal >= 95
@@ -19053,11 +19045,21 @@ tbody.innerHTML = '';
                 </div>
             </div>
 
-            <!-- SECTION 1: MACRO KPIS OVERVIEW (4 OEE METRIC CARDS) -->
-            <div class="mb-4">
+            <!-- SECTION 1: MACRO KPIS OVERVIEW (4 MODERN INDUSTRIAL CARDS) -->
+            <div class="mb-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="gauge" class="w-4 h-4 text-cyan-400"></i>
+                        Macro KPIs Overview
+                    </h3>
+                    <span class="text-xs text-cyan-400 cursor-pointer hover:underline flex items-center gap-1 font-semibold" id="tv-btn-kpi-details">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Details
+                    </span>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- CARD 1: OVERALL OEE (Dynamic: Green/Orange/Red) -->
-                    <div class="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-between">
+                    <div class="relative overflow-hidden bg-slate-900 border border-slate-800 shadow-xl border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
                         <div class="flex items-center justify-between mb-1">
                             <div class="flex items-center gap-1.5">
                                 <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${oeeStatus.color}; box-shadow: 0 0 10px ${oeeStatus.color}"></span>
@@ -19067,288 +19069,283 @@ tbody.innerHTML = '';
                         </div>
 
                         <div class="my-1.5 flex items-baseline justify-between">
-                            <div class="flex items-baseline space-x-1">
-                                <span class="font-mono text-3xl font-extrabold tracking-tight text-white">${oeeVal.toFixed(2)}</span>
-                                <span class="font-mono text-sm font-semibold text-slate-400">%</span>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-3xl font-black font-mono tracking-tight" style="color: ${oeeStatus.color}">${oeeVal.toFixed(2)}</span>
+                                <span class="text-xs font-semibold text-slate-400">%</span>
                             </div>
-                            <div class="text-right font-mono">
-                                <span class="block text-[10px] uppercase font-bold text-slate-400">Target</span>
-                                <span class="text-xs font-bold text-slate-200">85.00%</span>
-                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${oeeStatus.tagClass}">
+                                ${oeeStatus.label}
+                            </span>
                         </div>
 
-                        <!-- Half-Arc Gauge Visual -->
-                        <div class="relative my-0.5">
-                            <div id="tv-gauge-oee" class="flex justify-center -my-1.5"></div>
-                            <div class="flex justify-between items-center text-[10px] font-mono font-bold text-slate-500 mt-2 px-3">
-                                <span>0%</span>
-                                <span class="${oeeStatus.benchBadge} font-semibold px-1.5 py-0.5 rounded border">Benchmark: 85%</span>
-                                <span>100%</span>
-                            </div>
+                        <!-- Mini Speedometer Gauge (Overall OEE) -->
+                        <div class="my-1 flex items-center justify-center">
+                            <div id="tv-gauge-oee" class="flex items-center justify-center"></div>
                         </div>
 
-                        <!-- Progress Bar with Target Notch at 85% -->
-                        <div class="my-2.5">
-                            <div class="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-950 border border-slate-800">
-                                <div class="h-full rounded-full bg-gradient-to-r ${oeeStatus.grad} transition-all duration-500" style="width: ${Math.min(oeeVal, 100)}%;"></div>
-                                <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_4px_#fff]" style="left: 85%;" title="Target: 85.00%"></div>
-                            </div>
-                        </div>
-
-                        <div class="pt-2.5 border-t border-slate-800/80 flex justify-between items-center text-[11px] font-mono text-slate-400">
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${oeeStatus.tagClass}">${oeeStatus.label}</span>
-                            <span>Prev: <strong class="text-slate-200">${prevOee != null ? prevOee.toFixed(2) + '%' : '0.00%'}</strong></span>
+                        <div class="pt-2 border-t border-slate-800/80 text-[11px] flex items-center justify-between">
+                            <span class="text-slate-400 font-medium">World Class Std: 85%</span>
+                            <span class="font-mono text-[10px] px-1.5 py-0.2 rounded border ${oeeStatus.benchBadge}">
+                                Gap: ${(oeeVal - 85).toFixed(1)}%
+                            </span>
                         </div>
                     </div>
 
-                    <!-- CARD 2: AVAILABILITY (Blue Theme) -->
-                    <div class="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-between">
+                    <!-- CARD 2: AVAILABILITY (A) (Tema Biru: Sky/Blue) -->
+                    <div class="relative overflow-hidden bg-slate-900 border border-slate-800 shadow-xl border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
                         <div class="flex items-center justify-between mb-1">
                             <div class="flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${availStatus.color}; box-shadow: 0 0 10px ${availStatus.color}"></span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8]"></span>
                                 <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Availability (A)</span>
                             </div>
                             ${getDeltaBadge(availDiff)}
                         </div>
 
                         <div class="my-1.5 flex items-baseline justify-between">
-                            <div class="flex items-baseline space-x-1">
-                                <span class="font-mono text-3xl font-extrabold tracking-tight text-white">${availVal.toFixed(2)}</span>
-                                <span class="font-mono text-sm font-semibold text-slate-400">%</span>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-3xl font-black font-mono tracking-tight text-sky-400">${availVal.toFixed(2)}</span>
+                                <span class="text-xs font-semibold text-slate-400">%</span>
                             </div>
-                            <div class="text-right font-mono">
-                                <span class="block text-[10px] uppercase font-bold text-slate-400">Target</span>
-                                <span class="text-xs font-bold text-slate-200">90.00%</span>
-                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${availStatus.tagClass}">
+                                Target: 90%
+                            </span>
                         </div>
 
-                        <!-- Half-Arc Gauge Visual -->
-                        <div class="relative my-0.5">
-                            <div id="tv-gauge-avail" class="flex justify-center -my-1.5"></div>
-                            <div class="flex justify-between items-center text-[10px] font-mono font-bold text-slate-500 mt-2 px-3">
-                                <span>0%</span>
-                                <span class="text-sky-400 font-semibold bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-800/40">Benchmark: 90%</span>
-                                <span>100%</span>
-                            </div>
+                        <!-- Mini Speedometer Gauge (Availability) -->
+                        <div class="my-1 flex items-center justify-center">
+                            <div id="tv-gauge-avail" class="flex items-center justify-center"></div>
                         </div>
 
-                        <!-- Progress Bar with Target Notch at 90% -->
-                        <div class="my-2.5">
-                            <div class="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-950 border border-slate-800">
-                                <div class="h-full rounded-full bg-gradient-to-r ${availStatus.grad} transition-all duration-500" style="width: ${Math.min(availVal, 100)}%;"></div>
-                                <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_4px_#fff]" style="left: 90%;" title="Target: 90.00%"></div>
-                            </div>
-                        </div>
-
-                        <div class="pt-2.5 border-t border-slate-800/80 flex justify-between items-center text-[11px] font-mono text-slate-400">
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${availStatus.tagClass}">${availStatus.label}</span>
-                            <span>Prev: <strong class="text-slate-200">${prevAvail != null ? prevAvail.toFixed(2) + '%' : '0.00%'}</strong></span>
+                        <div class="pt-2 border-t border-slate-800/80 text-[11px] flex items-center justify-between">
+                            <span class="text-slate-400 font-medium">Total Downtime Loss</span>
+                            <span class="font-mono text-[10px] text-sky-400 font-bold bg-sky-950/40 px-1.5 py-0.2 rounded border border-sky-800/40">
+                                ${kpi.total_downtime_minutes != null ? kpi.total_downtime_minutes : 0} min
+                            </span>
                         </div>
                     </div>
 
-                    <!-- CARD 3: PERFORMANCE (Green Theme) -->
-                    <div class="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-between">
+                    <!-- CARD 3: PERFORMANCE (P) (Tema Hijau: Emerald/Green) -->
+                    <div class="relative overflow-hidden bg-slate-900 border border-slate-800 shadow-xl border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
                         <div class="flex items-center justify-between mb-1">
                             <div class="flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${perfStatus.color}; box-shadow: 0 0 10px ${perfStatus.color}"></span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]"></span>
                                 <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Performance (P)</span>
                             </div>
                             ${getDeltaBadge(perfDiff)}
                         </div>
 
                         <div class="my-1.5 flex items-baseline justify-between">
-                            <div class="flex items-baseline space-x-1">
-                                <span class="font-mono text-3xl font-extrabold tracking-tight text-white">${perfVal.toFixed(2)}</span>
-                                <span class="font-mono text-sm font-semibold text-slate-400">%</span>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-3xl font-black font-mono tracking-tight text-emerald-400">${perfVal.toFixed(2)}</span>
+                                <span class="text-xs font-semibold text-slate-400">%</span>
                             </div>
-                            <div class="text-right font-mono">
-                                <span class="block text-[10px] uppercase font-bold text-slate-400">Target</span>
-                                <span class="text-xs font-bold text-slate-200">95.00%</span>
-                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${perfStatus.tagClass}">
+                                Target: 95%
+                            </span>
                         </div>
 
-                        <!-- Half-Arc Gauge Visual -->
-                        <div class="relative my-0.5">
-                            <div id="tv-gauge-perf" class="flex justify-center -my-1.5"></div>
-                            <div class="flex justify-between items-center text-[10px] font-mono font-bold text-slate-500 mt-2 px-3">
-                                <span>0%</span>
-                                <span class="text-emerald-400 font-semibold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/40">Benchmark: 95%</span>
-                                <span>100%</span>
-                            </div>
+                        <!-- Mini Speedometer Gauge (Performance) -->
+                        <div class="my-1 flex items-center justify-center">
+                            <div id="tv-gauge-perf" class="flex items-center justify-center"></div>
                         </div>
 
-                        <!-- Progress Bar with Target Notch at 95% -->
-                        <div class="my-2.5">
-                            <div class="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-950 border border-slate-800">
-                                <div class="h-full rounded-full bg-gradient-to-r ${perfStatus.grad} transition-all duration-500" style="width: ${Math.min(perfVal, 100)}%;"></div>
-                                <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_4px_#fff]" style="left: 95%;" title="Target: 95.00%"></div>
-                            </div>
-                        </div>
-
-                        <div class="pt-2.5 border-t border-slate-800/80 flex justify-between items-center text-[11px] font-mono text-slate-400">
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${perfStatus.tagClass}">${perfStatus.label}</span>
-                            <span>Prev: <strong class="text-slate-200">${prevPerf != null ? prevPerf.toFixed(2) + '%' : '0.00%'}</strong></span>
+                        <div class="pt-2 border-t border-slate-800/80 text-[11px] flex items-center justify-between">
+                            <span class="text-slate-400 font-medium">Actual / Target</span>
+                            <span class="font-mono text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                                ${(kpi.total_actual_qty || 0).toLocaleString()} / ${(kpi.total_target_qty || 0).toLocaleString()}
+                            </span>
                         </div>
                     </div>
 
-                    <!-- CARD 4: QUALITY (Orange/Red Theme) -->
-                    <div class="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-between">
+                    <!-- CARD 4: QUALITY RATE (Q) (Tema Merah / Jingga) -->
+                    <div class="relative overflow-hidden bg-slate-900 border border-slate-800 shadow-xl border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
                         <div class="flex items-center justify-between mb-1">
                             <div class="flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${qualStatus.color}; box-shadow: 0 0 10px ${qualStatus.color}"></span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_10px_#fb923c]"></span>
                                 <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Quality Rate (Q)</span>
                             </div>
                             ${getDeltaBadge(qualDiff)}
                         </div>
 
                         <div class="my-1.5 flex items-baseline justify-between">
-                            <div class="flex items-baseline space-x-1">
-                                <span class="font-mono text-3xl font-extrabold tracking-tight text-white">${qualVal.toFixed(2)}</span>
-                                <span class="font-mono text-sm font-semibold text-slate-400">%</span>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-3xl font-black font-mono tracking-tight text-orange-400">${qualVal.toFixed(2)}</span>
+                                <span class="text-xs font-semibold text-slate-400">%</span>
                             </div>
-                            <div class="text-right font-mono">
-                                <span class="block text-[10px] uppercase font-bold text-slate-400">Target</span>
-                                <span class="text-xs font-bold text-slate-200">99.00%</span>
-                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${qualStatus.tagClass}">
+                                Target: 99%
+                            </span>
                         </div>
 
-                        <!-- Half-Arc Gauge Visual -->
-                        <div class="relative my-0.5">
-                            <div id="tv-gauge-qual" class="flex justify-center -my-1.5"></div>
-                            <div class="flex justify-between items-center text-[10px] font-mono font-bold text-slate-500 mt-2 px-3">
-                                <span>0%</span>
-                                <span class="text-orange-400 font-semibold bg-orange-950/40 px-1.5 py-0.5 rounded border border-orange-800/40">Benchmark: 99%</span>
-                                <span>100%</span>
-                            </div>
+                        <!-- Mini Speedometer Gauge (Quality) -->
+                        <div class="my-1 flex items-center justify-center">
+                            <div id="tv-gauge-qual" class="flex items-center justify-center"></div>
                         </div>
 
-                        <!-- Progress Bar with Target Notch at 99% -->
-                        <div class="my-2.5">
-                            <div class="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-950 border border-slate-800">
-                                <div class="h-full rounded-full bg-gradient-to-r ${qualStatus.grad} transition-all duration-500" style="width: ${Math.min(qualVal, 100)}%;"></div>
-                                <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_4px_#fff]" style="left: 99%;" title="Target: 99.00%"></div>
-                            </div>
-                        </div>
-
-                        <div class="pt-2.5 border-t border-slate-800/80 flex justify-between items-center text-[11px] font-mono text-slate-400">
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${qualStatus.tagClass}">${qualStatus.label}</span>
-                            <span>Prev: <strong class="text-slate-200">${prevQual != null ? prevQual.toFixed(2) + '%' : '0.00%'}</strong></span>
+                        <div class="pt-2 border-t border-slate-800/80 text-[11px] flex items-center justify-between">
+                            <span class="text-slate-400 font-medium">Reject / Scrap Qty</span>
+                            <span class="font-mono text-[10px] text-orange-400 font-bold bg-orange-950/40 px-1.5 py-0.2 rounded border border-orange-800/40">
+                                ${(kpi.total_reject_qty || 0).toLocaleString()} pcs
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- SECTION 2: MACHINE STATUS OVERVIEW (LEFT) + SIX BIG LOSSES (RIGHT) -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                <!-- MACHINE STATUS OVERVIEW (7 COLS) -->
-                <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col justify-between">
+            <!-- SECTION 2: GRAFIK TREN GLOBAL OEE & HASIL PRODUKSI -->
+            <div class="mb-5 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+                <div class="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-3 mb-4 gap-3">
                     <div>
-                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                        <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                            <i data-lucide="line-chart" class="w-5 h-5 text-cyan-400"></i>
+                            <span>Grafik Performa OEE - Semua Line</span>
+                        </h3>
+                    </div>
+
+                    <!-- MODE TOGGLE PILLS -->
+                    <div class="flex flex-wrap items-center gap-1.5 bg-slate-950 border border-slate-800 p-1 rounded-lg text-xs font-semibold">
+                        <button data-mode="lines_oee" class="tv-btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.tvTrendMode || 'lines_oee') === 'lines_oee' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                            <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
+                            <span>OEE Semua Line (FX-1 s/d FX-11)</span>
+                        </button>
+                        <button data-mode="lines_prod" class="tv-btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.tvTrendMode || 'lines_oee') === 'lines_prod' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                            <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
+                            <span>Output Per Line (Pcs)</span>
+                        </button>
+                        <button data-mode="lines_dual" class="tv-btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.tvTrendMode || 'lines_oee') === 'lines_dual' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                            <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
+                            <span>Multi-Axis (OEE & Output)</span>
+                        </button>
+                        <button data-mode="date_trend" class="tv-btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.tvTrendMode || 'lines_oee') === 'date_trend' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                            <span>Tren Tanggal</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MAIN CHART CONTAINER -->
+                <div id="tv-chart-global-oee-trend" class="w-full h-80 min-h-[320px]"></div>
+
+                <!-- CHART FOOTER METRIC HIGHLIGHTS -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 mt-2 border-t border-slate-800/80 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+                        <span class="text-slate-400">Total Lini Terpantau:</span>
+                        <strong class="font-mono text-cyan-300 font-bold">${lines.length || 11} Lines (FX-1 ~ FX-11)</strong>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+                        <span class="text-slate-400">Total Output:</span>
+                        <strong class="font-mono text-emerald-400 font-bold">${(kpi.total_actual_qty || 0).toLocaleString()} pcs</strong>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                        <span class="text-slate-400">Target Benchmark:</span>
+                        <strong class="font-mono text-amber-300 font-bold">85.0% World Class</strong>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_8px_#f43f5e]"></span>
+                        <span class="text-slate-400">Defect Rate:</span>
+                        <strong class="font-mono text-rose-400 font-bold">${(kpi.total_actual_qty ? ((kpi.total_reject_qty || 0) / kpi.total_actual_qty * 100).toFixed(2) : '0.00')}%</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: RESUME SEMUA HASIL PRODUKSI (GLOBAL PRODUCTION SUMMARY BANNER) -->
+            ${(() => {
+                const targetQty = (kpi.total_target_qty || 0);
+                const actualQty = (kpi.total_actual_qty || 0);
+                const goodQty = (kpi.total_good_qty || 0);
+                const rejectQty = (kpi.total_reject_qty || 0);
+                const downtimeMins = (kpi.total_downtime_minutes || 0);
+                const achievePct = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) : '0.0';
+                const yieldPct = actualQty > 0 ? ((goodQty / actualQty) * 100).toFixed(1) : '0.0';
+                const defectRatePct = actualQty > 0 ? ((rejectQty / actualQty) * 100).toFixed(2) : '0.00';
+                const dtHours = (downtimeMins / 60).toFixed(1);
+
+                return `
+                <div class="mb-5 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-3 mb-3 gap-2">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                <i data-lucide="boxes" class="w-4 h-4"></i>
+                            </div>
                             <div>
                                 <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
-                                    <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
-                                    Machine Status Overview
+                                    <span>Resume Hasil Produksi Global</span>
                                 </h3>
-                                <p class="text-[11px] text-slate-400 mt-0.5">
-                                    Live Factory Status: 
-                                    <span class="text-emerald-400 font-bold">${runningCount} Running</span>, 
-                                    <span class="text-amber-400 font-bold">${idleCount} Idle</span>, 
-                                    <span class="text-rose-400 font-bold">${stopCount} Stop</span>
-                                </p>
                             </div>
-                            <div class="font-mono text-xs text-slate-400">
-                                Total: <strong class="text-slate-200">${totalMachines} Machines</strong>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="text-slate-400 font-mono">Pencapaian Target: <strong class="${Number(achievePct) >= 100 ? 'text-emerald-400' : 'text-amber-400'} font-bold">${achievePct}%</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- 5 Production Result Metric Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                        <!-- 1. Plan Target -->
+                        <div class="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="target" class="w-3.5 h-3.5 text-sky-400"></i> Target Plan</span>
+                                <span class="text-[10px] font-mono text-slate-500">PLAN</span>
+                            </div>
+                            <div class="text-xl font-black font-mono text-slate-100">${targetQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span class="text-sky-400 font-semibold">100%</span> baseline target
                             </div>
                         </div>
 
-                        <!-- STOP / BREAKDOWN MACHINES HIGHLIGHTS ALERT (IF ANY) -->
-                        ${stopCount > 0 ? `
-                            <div class="mb-4 bg-rose-950/60 border-2 border-rose-500/90 rounded-xl p-3.5 shadow-lg shadow-rose-950/60">
-                                <div class="flex items-center justify-between pb-2 border-b border-rose-800/80 mb-2.5">
-                                    <div class="flex items-center gap-2">
-                                        <span class="flex h-3 w-3 relative">
-                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-                                        </span>
-                                        <span class="text-xs font-black uppercase tracking-wider text-rose-200">
-                                            ATTENTION: STOPPED / BREAKDOWN MACHINES (${stopCount})
-                                        </span>
-                                    </div>
-                                    <span class="text-[10px] font-mono font-bold text-rose-300 bg-rose-900/90 px-2 py-0.5 rounded border border-rose-700">
-                                        NEEDS IMMEDIATE ACTION
-                                    </span>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                                    ${stopMachines.map(m => `
-                                        <div class="bg-slate-950 border-2 border-rose-500/80 rounded-lg p-2.5 flex items-center justify-between shadow-md">
-                                            <div class="truncate pr-2">
-                                                <div class="flex items-center gap-2 mb-1">
-                                                    <span class="font-mono font-black text-xs text-rose-400">${m.machine_code}</span>
-                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border border-rose-500 bg-rose-500/20 text-rose-300">
-                                                        ${this.getStatusIcon(m.status)} ${m.status}
-                                                    </span>
-                                                </div>
-                                                <div class="text-xs font-bold text-slate-200 truncate">${m.machine_name} • <span class="text-slate-400 font-normal">${m.line_name || 'N/A'}</span></div>
-                                                <div class="text-[10px] text-amber-400 font-mono mt-0.5 truncate">${m.product_name || 'No Active SKU'}</div>
-                                            </div>
-                                            <div class="text-right font-mono flex-shrink-0">
-                                                <div class="text-base font-black text-rose-400">${m.oee != null ? Number(m.oee).toFixed(1) + '%' : '0.0%'}</div>
-                                                <div class="text-[10px] text-slate-400">${m.total_count || 0} pcs</div>
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
+                        <!-- 2. Actual Produced -->
+                        <div class="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-400"></i> Total Output</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${Number(achievePct) >= 100 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}">${achievePct}%</span>
                             </div>
-                        ` : ''}
+                            <div class="text-xl font-black font-mono text-emerald-400">${actualQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span class="${actualQty >= targetQty ? 'text-emerald-400' : 'text-amber-400'}">${actualQty >= targetQty ? '▲ +' + (actualQty - targetQty).toLocaleString() : '▼ -' + (targetQty - actualQty).toLocaleString()} pcs gap</span>
+                            </div>
+                        </div>
 
-                        <!-- ALL MACHINES GRID -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[420px] overflow-y-auto pr-1">
-                            ${machines.length === 0 ? '<div class="col-span-2 text-center text-slate-500 py-8 text-xs font-sans">No machine records found.</div>' : ''}
-                            ${machines.map(m => `
-                                <div class="bg-slate-950 border ${['STOP', 'STOPPED', 'BREAKDOWN'].includes((m.status || '').toUpperCase()) ? 'border-rose-600/80 bg-rose-950/20' : 'border-slate-800'} rounded-lg p-2.5 flex items-center justify-between hover:border-slate-700 transition-all shadow-sm">
-                                    <div class="truncate pr-2">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <span class="font-mono font-bold text-xs text-cyan-400">${m.machine_code}</span>
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${this.getMachineStatusBadge(m.status)}">
-                                                ${this.getStatusIcon(m.status)}
-                                                <span>${m.status}</span>
-                                            </span>
-                                        </div>
-                                        <div class="text-xs font-semibold text-slate-200 truncate">${m.machine_name} • <span class="text-slate-400 font-normal">${m.line_name || 'N/A'}</span></div>
-                                        <div class="text-[10px] text-amber-400 font-medium truncate flex items-center gap-1 mt-1 bg-amber-950/40 border border-amber-800/40 px-1.5 py-0.5 rounded w-fit max-w-full">
-                                            <i data-lucide="package" class="w-3 h-3 text-amber-400 flex-shrink-0"></i>
-                                            <span class="truncate">${m.product_name || 'No Active SKU'}</span>
-                                        </div>
-                                    </div>
-                                    <div class="text-right font-mono flex-shrink-0">
-                                        <div class="text-sm font-bold text-slate-100">${m.oee != null ? Number(m.oee).toFixed(2) + '%' : '0.00%'} <span class="text-[10px] text-slate-400 font-normal">OEE</span></div>
-                                        <div class="text-[10px] text-slate-400 mt-0.5">${m.total_count || 0} / ${m.target_count || 0} pcs</div>
-                                    </div>
-                                </div>
-                            `).join('')}
+                        <!-- 3. Good Output (OK) -->
+                        <div class="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-cyan-400"></i> Good Output (OK)</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">${yieldPct}% Yield</span>
+                            </div>
+                            <div class="text-xl font-black font-mono text-cyan-300">${goodQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span>Siap kirim / Lolos QC</span>
+                            </div>
+                        </div>
+
+                        <!-- 4. Rejects / NG Defect -->
+                        <div class="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i> Defect (NG)</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${Number(defectRatePct) > 1.5 ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">${defectRatePct}% Defect</span>
+                            </div>
+                            <div class="text-xl font-black font-mono text-rose-400">${rejectQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span>${rejectQty === 0 ? 'Zero Defect' : 'Perlu countermeasure'}</span>
+                            </div>
+                        </div>
+
+                        <!-- 5. Downtime Loss -->
+                        <div class="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3 col-span-2 md:col-span-1">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> Total Downtime</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-950 text-amber-400 border border-amber-800">${dtHours}h</span>
+                            </div>
+                            <div class="text-xl font-black font-mono text-amber-400">${downtimeMins.toLocaleString()} <span class="text-xs font-normal text-slate-400">min</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span>Waktu henti produksi</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- SIX BIG LOSSES BREAKDOWN (5 COLS) -->
-                <div id="card-tv-six-losses" class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col justify-between h-fit self-start cursor-pointer group hover:border-cyan-500/60 transition-all">
-                    <div>
-                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-                            <div>
-                                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2 group-hover:text-cyan-400 transition-colors">
-                                    <i data-lucide="pie-chart" class="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform"></i>
-                                    <span>Six Big Losses Breakdown</span>
-                                    <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center gap-1 opacity-80 group-hover:opacity-100"><i data-lucide="maximize-2" class="w-3 h-3"></i> Detail</span>
-                                </h3>
-                                <p class="text-[11px] text-slate-400 mt-0.5">Total downtime & speed loss across 6 TPM pillars &bull; <span class="text-cyan-400 underline">Klik untuk detail</span></p>
-                            </div>
-                            <div id="tv-six-losses-total-badge"></div>
-                        </div>
-
-                        <div id="tv-chart-six-losses"></div>
-                    </div>
-                </div>
-            </div>
+                `;
+            })()}
         `;
 
         if (window.lucide) window.lucide.createIcons();
@@ -19359,16 +19356,21 @@ tbody.innerHTML = '';
         this.renderSpeedometerGauge('#tv-gauge-perf', perfVal, perfStatus.color);
         this.renderSpeedometerGauge('#tv-gauge-qual', qualVal, qualStatus.color);
 
-        // Render Six Big Losses Pareto
-        this.renderSixLossesChart(sixLosses, 'tv-chart-six-losses', 'tv-six-losses-total-badge');
+        // Render Global OEE & Production Spline Line Trend Chart
+        this.renderGlobalOeeAndProductionTrendChart(dataPayload, kpi, this.tvTrendMode || 'lines_oee', 'tv-chart-global-oee-trend', 'tvGlobalOeeTrend');
 
-        // Bind TV Six Losses Card Click
-        const tvSixLossesCard = document.getElementById('card-tv-six-losses');
-        if (tvSixLossesCard) {
-            tvSixLossesCard.addEventListener('click', () => {
-                this.showSixBigLossesDetailModal(sixLosses);
+        // Bind Mode Switcher Buttons for Global Trend Chart in TV mode
+        document.querySelectorAll('.tv-btn-trend-mode').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const mode = e.currentTarget.getAttribute('data-mode') || 'lines_oee';
+                this.tvTrendMode = mode;
+                document.querySelectorAll('.tv-btn-trend-mode').forEach(b => {
+                    const active = b.getAttribute('data-mode') === mode;
+                    b.className = `tv-btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${active ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5`;
+                });
+                this.renderGlobalOeeAndProductionTrendChart(dataPayload, kpi, mode, 'tv-chart-global-oee-trend', 'tvGlobalOeeTrend');
             });
-        }
+        });
 
         const btnExit = document.getElementById('btn-exit-tv');
         if (btnExit) {
