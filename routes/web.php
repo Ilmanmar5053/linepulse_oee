@@ -26,6 +26,7 @@ Route::prefix('api/v1')->group(function () {
     Route::get('/dashboard/machine-ranking', [DashboardController::class, 'machineRanking']);
     Route::get('/dashboard/line-ranking', [DashboardController::class, 'lineRanking']);
     Route::get('/dashboard/shift-comparison', [DashboardController::class, 'shiftComparison']);
+    Route::get('/dashboard/team-comparison', [DashboardController::class, 'teamComparison']);
 
     Route::get('/production-monitoring/realtime-status', [ProductionController::class, 'realtimeStatus']);
     Route::get('/production-records', [ProductionController::class, 'index']);

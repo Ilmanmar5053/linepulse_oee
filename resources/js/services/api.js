@@ -17,6 +17,7 @@ export const api = {
     getMachineRanking: (params) => axios.get(`${API_BASE}/dashboard/machine-ranking`, { params }),
     getLineRanking: (params) => axios.get(`${API_BASE}/dashboard/line-ranking`, { params }),
     getShiftComparison: (params) => axios.get(`${API_BASE}/dashboard/shift-comparison`, { params }),
+    getTeamComparison: (params) => axios.get(`${API_BASE}/dashboard/team-comparison`, { params }),
 
     // Realtime & Operations
     getRealtimeStatus: (params) => axios.get(`${API_BASE}/production-monitoring/realtime-status`, { params }),

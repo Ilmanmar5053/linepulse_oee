@@ -7,6 +7,7 @@ use App\Models\DailyProductionSummary;
 use App\Models\DefectReason;
 use App\Models\Downtime;
 use App\Models\DowntimeReason;
+use App\Models\Group;
 use App\Models\Machine;
 use App\Models\NgRecord;
 use App\Models\NgRecordItem;
@@ -964,6 +965,202 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => $shiftData,
+            'daily_breakdown' => $dailyBreakdown,
+        ]);
+    }
+
+    /**
+     * Team Performance Comparison Data
+     */
+    public function teamComparison(Request $request): JsonResponse
+    {
+        // 1. Get all distinct teams and their supervisors/leaders from Group model
+        $allGroups = Group::with('productionLine')->get();
+        $distinctTeams = $allGroups->pluck('team')->unique()->values();
+
+        if ($distinctTeams->isEmpty()) {
+            $distinctTeams = collect(['Team A', 'Team B', 'Team C']);
+        }
+
+        // Map team name to leader and supervisor
+        $teamMetadata = [];
+        foreach ($distinctTeams as $tName) {
+            $grp = $allGroups->firstWhere('team', $tName);
+            $teamMetadata[$tName] = [
+                'leader_name' => $grp->leader_name ?? 'Team Leader',
+                'supervisor_name' => $grp->supervisor_name ?? 'Supervisor',
+                'lines_count' => $allGroups->where('team', $tName)->count(),
+            ];
+        }
+
+        $allShifts = Shift::all();
+        $shiftIds = $allShifts->pluck('id')->toArray();
+
+        // 2. Fetch OEE records filtered by date/period/line/machine
+        $query = OeeRecord::with(['shift', 'productionLine', 'machine', 'productionRecord']);
+        $this->applyFilters($query, $request, 'record_date');
+        $records = $query->get();
+
+        // 3. Team data aggregation
+        $teamData = [];
+        $maxOee = -1;
+        $bestTeamName = null;
+
+        $teamIndex = 0;
+        foreach ($distinctTeams as $teamName) {
+            $associatedShiftId = !empty($shiftIds) ? $shiftIds[$teamIndex % count($shiftIds)] : null;
+            $teamIndex++;
+
+            $tRecords = $records->filter(function ($r) use ($associatedShiftId) {
+                return $r->shift_id == $associatedShiftId;
+            });
+
+            $count = $tRecords->count();
+
+            if ($count > 0) {
+                $avail = round((float) $tRecords->avg('availability'), 2);
+                $perf = round((float) $tRecords->avg('performance'), 2);
+                $qual = round((float) $tRecords->avg('quality'), 2);
+                $oee = round(($avail / 100) * ($perf / 100) * ($qual / 100) * 100, 2);
+
+                $target = (int) $tRecords->sum(function ($r) {
+                    return $r->productionRecord->target_quantity ?? 0;
+                });
+                $totalActual = (int) $tRecords->sum(function ($r) {
+                    return $r->productionRecord->total_quantity ?? 0;
+                });
+                $good = (int) $tRecords->sum(function ($r) {
+                    return $r->productionRecord->good_quantity ?? 0;
+                });
+                $reject = (int) $tRecords->sum(function ($r) {
+                    return $r->productionRecord->reject_quantity ?? 0;
+                });
+
+                $plannedMins = (float) $tRecords->sum(function ($r) {
+                    return $r->productionRecord->planned_production_time ?? 480;
+                });
+                $runMins = (float) $tRecords->sum(function ($r) {
+                    return $r->productionRecord->run_time ?? 0;
+                });
+                $downMins = (float) $tRecords->sum(function ($r) {
+                    return $r->productionRecord->downtime ?? 0;
+                });
+
+                $yieldRate = $totalActual > 0 ? round(($good / $totalActual) * 100, 1) : 100.0;
+                $rejectRate = $totalActual > 0 ? round(($reject / $totalActual) * 100, 1) : 0.0;
+
+                if ($oee > $maxOee) {
+                    $maxOee = $oee;
+                    $bestTeamName = $teamName;
+                }
+            } else {
+                $avail = 0; $perf = 0; $qual = 0; $oee = 0;
+                $target = 0; $totalActual = 0; $good = 0; $reject = 0;
+                $plannedMins = 480; $runMins = 0; $downMins = 0;
+                $yieldRate = 0; $rejectRate = 0;
+            }
+
+            $meta = $teamMetadata[$teamName] ?? [
+                'leader_name' => 'Team Leader',
+                'supervisor_name' => 'Supervisor',
+                'lines_count' => 0
+            ];
+
+            $teamData[] = [
+                'team_id' => $teamIndex,
+                'team_name' => $teamName,
+                'leader_name' => $meta['leader_name'],
+                'supervisor_name' => $meta['supervisor_name'],
+                'lines_count' => $meta['lines_count'],
+                'count' => $count,
+                'availability' => $avail,
+                'performance' => $perf,
+                'quality' => $qual,
+                'oee' => $oee,
+                'oee_status' => $this->oeeService->evaluateStatus($oee),
+                'target_quantity' => $target,
+                'actual_quantity' => $totalActual,
+                'total_quantity' => $totalActual,
+                'good_quantity' => $good,
+                'reject_quantity' => $reject,
+                'planned_time_minutes' => $plannedMins,
+                'run_time_minutes' => $runMins,
+                'downtime_minutes' => $downMins,
+                'yield_rate' => $yieldRate,
+                'rejection_rate' => $rejectRate,
+                'is_best_performer' => false,
+            ];
+        }
+
+        // Set best performer flag
+        foreach ($teamData as &$item) {
+            if ($bestTeamName !== null && $item['team_name'] == $bestTeamName && $item['count'] > 0) {
+                $item['is_best_performer'] = true;
+            }
+        }
+        unset($item);
+
+        // Daily breakdown per date (sorted descending)
+        $dailyGrouped = $records->groupBy(function ($r) {
+            return Carbon::parse($r->record_date)->format('Y-m-d');
+        })->sortKeysDesc();
+
+        $dailyBreakdown = [];
+        foreach ($dailyGrouped as $dateStr => $dRecords) {
+            $dateTeams = [];
+            $tIdx = 0;
+            foreach ($distinctTeams as $teamName) {
+                $associatedShiftId = !empty($shiftIds) ? $shiftIds[$tIdx % count($shiftIds)] : null;
+                $tIdx++;
+
+                $dtRecords = $dRecords->filter(function ($r) use ($associatedShiftId) {
+                    return $r->shift_id == $associatedShiftId;
+                });
+
+                if ($dtRecords->count() > 0) {
+                    $da = round((float) $dtRecords->avg('availability'), 2);
+                    $dp = round((float) $dtRecords->avg('performance'), 2);
+                    $dq = round((float) $dtRecords->avg('quality'), 2);
+                    $doee = round(($da / 100) * ($dp / 100) * ($dq / 100) * 100, 2);
+
+                    $dTarget = (int) $dtRecords->sum(function ($r) {
+                        return $r->productionRecord->target_quantity ?? 0;
+                    });
+                    $dTotal = (int) $dtRecords->sum(function ($r) {
+                        return $r->productionRecord->total_quantity ?? 0;
+                    });
+                    $dGood = (int) $dtRecords->sum(function ($r) {
+                        return $r->productionRecord->good_quantity ?? 0;
+                    });
+                    $dReject = (int) $dtRecords->sum(function ($r) {
+                        return $r->productionRecord->reject_quantity ?? 0;
+                    });
+
+                    $dateTeams[] = [
+                        'team_name' => $teamName,
+                        'oee' => $doee,
+                        'availability' => $da,
+                        'performance' => $dp,
+                        'quality' => $dq,
+                        'target_quantity' => $dTarget,
+                        'total_quantity' => $dTotal,
+                        'good_quantity' => $dGood,
+                        'reject_quantity' => $dReject,
+                    ];
+                }
+            }
+            if (!empty($dateTeams)) {
+                $dailyBreakdown[] = [
+                    'date' => Carbon::parse($dateStr)->format('d M Y'),
+                    'raw_date' => $dateStr,
+                    'teams' => $dateTeams
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $teamData,
             'daily_breakdown' => $dailyBreakdown,
         ]);
     }

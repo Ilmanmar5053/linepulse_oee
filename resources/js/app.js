@@ -287,13 +287,13 @@ class OeeApp {
         }
 
         const permissionMap = {
-            production_manager: ['dashboard', 'daily-report', 'monitoring', 'machines', 'lines', 'shifts', 'downtime', 'quality', 'reports', 'master', 'settings', 'database'],
-            production_supervisor: ['dashboard', 'daily-report', 'ng-report', 'monitoring', 'machines', 'shifts', 'downtime', 'reports'],
-            production_leader: ['dashboard', 'daily-report', 'ng-report', 'monitoring', 'machines', 'shifts', 'downtime', 'reports'],
+            production_manager: ['dashboard', 'daily-report', 'monitoring', 'machines', 'lines', 'shifts', 'teams', 'downtime', 'quality', 'reports', 'master', 'settings', 'database'],
+            production_supervisor: ['dashboard', 'daily-report', 'ng-report', 'monitoring', 'machines', 'shifts', 'teams', 'downtime', 'reports'],
+            production_leader: ['dashboard', 'daily-report', 'ng-report', 'monitoring', 'machines', 'shifts', 'teams', 'downtime', 'reports'],
             quality_control: ['dashboard', 'ng-report', 'quality', 'reports'],
             operator: ['dashboard', 'daily-report', 'ng-report', 'monitoring'],
             maintenance: ['dashboard', 'machines', 'downtime', 'monitoring'],
-            management: ['dashboard', 'monitoring', 'machines', 'lines', 'shifts', 'downtime', 'quality', 'reports', 'settings', 'database'],
+            management: ['dashboard', 'monitoring', 'machines', 'lines', 'shifts', 'teams', 'downtime', 'quality', 'reports', 'settings', 'database'],
         };
 
         for (const rk of roleKeys) {
@@ -1019,7 +1019,7 @@ class OeeApp {
                             ` : ''}
 
                             <!-- MODUL 2: ANALISIS & PERFORMANCE -->
-                            ${(this.hasAccessToTab('machines') || this.hasAccessToTab('lines') || this.hasAccessToTab('shifts') || this.hasAccessToTab('downtime') || this.hasAccessToTab('quality')) ? `
+                            ${(this.hasAccessToTab('machines') || this.hasAccessToTab('lines') || this.hasAccessToTab('shifts') || this.hasAccessToTab('teams') || this.hasAccessToTab('downtime') || this.hasAccessToTab('quality')) ? `
                                 <div class="sidebar-section-divider"></div>
                                 <div class="px-2.5 pt-1.5 pb-1 flex items-center justify-between">
                                     <span class="sidebar-section-title text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
@@ -1030,6 +1030,7 @@ class OeeApp {
                                 ${this.navItem('machines', 'cpu', this.t('nav.machine_perf', 'Machine Performance'))}
                                 ${this.navItem('lines', 'git-fork', this.t('nav.line_perf', 'Production Lines'))}
                                 ${this.navItem('shifts', 'clock', this.t('nav.shift_perf', 'Shift Performance'))}
+                                ${this.navItem('teams', 'users', this.t('nav.team_perf', 'Team Performance'))}
                                 ${this.navItem('downtime', 'alert-triangle', this.t('nav.downtime_analysis', 'Downtime Analysis'))}
                                 ${this.navItem('quality', 'pie-chart', this.t('nav.quality_perf', 'Quality Performance'), 'PARETO')}
                             ` : ''}
@@ -1619,6 +1620,9 @@ class OeeApp {
                     break;
                 case 'shifts':
                     await this.renderShifts();
+                    break;
+                case 'teams':
+                    await this.renderTeams();
                     break;
                 case 'downtime':
                     await this.renderDowntime();
@@ -7624,58 +7628,101 @@ tbody.innerHTML = '';
     // 5. SHIFT PERFORMANCE PAGE
     // ==========================================
     async renderShifts() {
-        const res = await api.getShiftComparison(this.shiftFilters || this.filters || {});
+        this.shiftFilters = this.shiftFilters || { date: '', production_line_id: '', machine_id: '' };
+        const res = await api.getShiftComparison(this.shiftFilters);
         const shifts = res.data.data || [];
         const dailyBreakdown = res.data.daily_breakdown || [];
-        const isLight = this.theme === 'light';
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
 
         const shiftColors = isLight ? {
             1: { 
-                cardGradient: 'bg-gradient-to-br from-cyan-50/90 via-white to-slate-50/90', 
-                border: 'border-cyan-200 shadow-sm', 
-                badge: 'bg-cyan-100 text-cyan-800 border-cyan-300 font-bold', 
-                text: 'text-cyan-700', 
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-sm',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/90 shadow-inner'
+                cardGradient: 'bg-gradient-to-br from-sky-50/90 via-white to-slate-50/90', 
+                border: 'border-sky-200 shadow-sm', 
+                badge: 'bg-sky-100 text-sky-800 border-sky-300 font-bold', 
+                text: 'text-sky-700', 
+                bar: 'bg-sky-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
             },
             2: { 
                 cardGradient: 'bg-gradient-to-br from-amber-50/90 via-white to-slate-50/90', 
                 border: 'border-amber-200 shadow-sm', 
-                badge: 'bg-amber-100 text-amber-800 border-amber-300 font-bold', 
+                badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold', 
                 text: 'text-amber-700', 
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-sm',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/90 shadow-inner'
+                bar: 'bg-amber-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
             },
             3: { 
                 cardGradient: 'bg-gradient-to-br from-emerald-50/90 via-white to-slate-50/90', 
                 border: 'border-emerald-200 shadow-sm', 
                 badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold', 
                 text: 'text-emerald-700', 
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-sm',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/90 shadow-inner'
+                bar: 'bg-emerald-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+            },
+            4: { 
+                cardGradient: 'bg-gradient-to-br from-purple-50/90 via-white to-slate-50/90', 
+                border: 'border-purple-200 shadow-sm', 
+                badge: 'bg-purple-100 text-purple-800 border-purple-300 font-bold', 
+                text: 'text-purple-700', 
+                bar: 'bg-purple-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+            },
+            5: { 
+                cardGradient: 'bg-gradient-to-br from-rose-50/90 via-white to-slate-50/90', 
+                border: 'border-rose-200 shadow-sm', 
+                badge: 'bg-rose-100 text-rose-800 border-rose-300 font-bold', 
+                text: 'text-rose-700', 
+                bar: 'bg-rose-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
             },
         } : {
             1: { 
-                cardGradient: 'bg-gradient-to-br from-cyan-500/10 via-slate-900 to-slate-900', 
-                border: 'border-cyan-500/50', 
-                badge: 'bg-cyan-950/80 text-cyan-400 border-cyan-800', 
-                text: 'text-cyan-400', 
+                cardGradient: 'bg-gradient-to-br from-sky-500/10 via-slate-900 to-slate-900', 
+                border: 'border-sky-500/40', 
+                badge: 'bg-sky-950/80 text-sky-400 border-sky-800', 
+                text: 'text-sky-400', 
+                bar: 'bg-sky-400',
                 subCardBg: 'bg-slate-950/70 border-slate-800',
                 bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
             },
             2: { 
                 cardGradient: 'bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900', 
-                border: 'border-amber-500/50', 
+                border: 'border-amber-500/40', 
                 badge: 'bg-amber-950/80 text-amber-400 border-amber-800', 
                 text: 'text-amber-400', 
+                bar: 'bg-amber-400',
                 subCardBg: 'bg-slate-950/70 border-slate-800',
                 bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
             },
             3: { 
                 cardGradient: 'bg-gradient-to-br from-emerald-500/10 via-slate-900 to-slate-900', 
-                border: 'border-emerald-500/50', 
+                border: 'border-emerald-500/40', 
                 badge: 'bg-emerald-950/80 text-emerald-400 border-emerald-800', 
                 text: 'text-emerald-400', 
+                bar: 'bg-emerald-400',
+                subCardBg: 'bg-slate-950/70 border-slate-800',
+                bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
+            },
+            4: { 
+                cardGradient: 'bg-gradient-to-br from-purple-500/10 via-slate-900 to-slate-900', 
+                border: 'border-purple-500/40', 
+                badge: 'bg-purple-950/80 text-purple-400 border-purple-800', 
+                text: 'text-purple-400', 
+                bar: 'bg-purple-400',
+                subCardBg: 'bg-slate-950/70 border-slate-800',
+                bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
+            },
+            5: { 
+                cardGradient: 'bg-gradient-to-br from-rose-500/10 via-slate-900 to-slate-900', 
+                border: 'border-rose-500/40', 
+                badge: 'bg-rose-950/80 text-rose-400 border-rose-800', 
+                text: 'text-rose-400', 
+                bar: 'bg-rose-400',
                 subCardBg: 'bg-slate-950/70 border-slate-800',
                 bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
             },
@@ -7691,113 +7738,130 @@ tbody.innerHTML = '';
 
         const content = document.getElementById('content-body');
         content.innerHTML = `
+            <!-- HEADER CONTEXT & TAB SWITCHER (SHIFT VS TEAM) -->
             <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
-                        <i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h2 class="text-xl font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                        <i data-lucide="clock" class="w-5 h-5 text-cyan-500"></i>
                         <span>Shift Performance</span>
                     </h2>
+
+                    <!-- 2-TAB SEGMENTED CONTROLLER (SHIFT & TEAM PERFORMANCES) -->
+                    <div class="flex items-center gap-1 p-1 ${isLight ? 'bg-slate-200/80 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl shadow-xs">
+                        <button type="button" data-perf-tab="shifts" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'bg-white text-cyan-800 shadow-sm' : 'bg-cyan-950 text-cyan-300 border border-cyan-800/80'}">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-500"></i> Shift Performance
+                        </button>
+                        <button type="button" data-perf-tab="teams" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}">
+                            <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-400"></i> Team Performance
+                        </button>
+                    </div>
                 </div>
 
-                <!-- SHIFT REALTIME FILTER BAR -->
-                <div class="flex flex-wrap items-center gap-2.5 bg-slate-900 border border-slate-800 rounded-xl p-2 shadow-lg text-xs">
-                    <div class="flex items-center gap-1.5 px-2">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan-400"></i>
-                        <input type="date" id="shift-filter-date" value="${this.shiftFilters?.date || ''}" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans" />
+                <!-- REALTIME FILTER CONTROLS -->
+                <div class="flex flex-wrap items-center gap-2 bg-transparent text-xs">
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan-500"></i>
+                        <input type="date" id="shift-filter-date" value="${this.shiftFilters?.date || ''}" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans" />
                     </div>
-                    <div class="flex items-center gap-1.5">
-                        <select id="shift-filter-line" class="bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans">
-                            <option value="">All Production Lines</option>
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                        <i data-lucide="git-branch" class="w-3.5 h-3.5 text-emerald-500"></i>
+                        <select id="shift-filter-line" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans">
+                            <option value="">Semua Lini</option>
                             ${lineOptions}
                         </select>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                        <select id="shift-filter-machine" class="bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans">
-                            <option value="">All Machines</option>
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                        <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <select id="shift-filter-machine" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans">
+                            <option value="">Semua Mesin</option>
                             ${machineOptions}
                         </select>
                     </div>
-                    <button id="btn-reset-shift-filters" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-medium cursor-pointer transition-colors flex items-center gap-1">
-                        <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset
+                    <button id="btn-reset-shift-filters" class="p-2 ${isLight ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} border rounded-lg transition-colors cursor-pointer" title="Reset Filter">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- SHIFT COMPARISON CARDS -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                ${shifts.map(shift => {
-                    const theme = shiftColors[shift.shift_id] || shiftColors[1];
+            <!-- COMPACT, SLEEK & INFORMATIVE SHIFT CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
+                ${shifts.map((shift, sIdx) => {
+                    const theme = shiftColors[shift.shift_id] || shiftColors[(sIdx % 5) + 1];
                     const bestBadge = shift.is_best_performer ? `
-                        <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-800 border-amber-300 shadow-sm' : 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse shadow-md shadow-amber-500/10'} text-[10px] font-bold">
-                            <span>🏆 Best Performer</span>
-                        </div>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border text-[10px] font-bold shadow-xs animate-pulse">
+                            🏆 Best Performer
+                        </span>
                     ` : '';
 
                     return `
-                        <div class="${theme.cardGradient} border ${shift.is_best_performer ? (isLight ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-amber-500/60 ring-2 ring-amber-500/20') : theme.border} rounded-2xl p-5 shadow-xl relative overflow-hidden transition-all hover:scale-[1.01]">
-                            <div class="flex items-center justify-between mb-3">
+                        <div class="${theme.cardGradient} border ${shift.is_best_performer ? (isLight ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-amber-500/60 ring-2 ring-amber-500/20') : theme.border} rounded-2xl p-4.5 shadow-lg relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group">
+                            <!-- TOP BAR: BADGE, WORKING HOURS & STATUS -->
+                            <div class="flex items-start justify-between gap-2 mb-3">
                                 <div>
-                                    <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${theme.badge}">
-                                        ${shift.shift_name}
-                                    </span>
-                                    <span class="text-[10px] ${isLight ? 'text-slate-600 font-medium' : 'text-slate-400'} font-mono block mt-1.5 flex items-center gap-1">
-                                        <span>⏰</span> ${shift.working_hours}
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${theme.badge} font-mono shadow-xs">
+                                            🕒 ${shift.shift_name}
+                                        </span>
+                                    </div>
+                                    <span class="text-[10.5px] ${isLight ? 'text-slate-600 font-medium' : 'text-slate-400'} font-mono block mt-1">
+                                        ${shift.working_hours}
                                     </span>
                                 </div>
                                 <div class="flex flex-col items-end gap-1">
-                                    <span class="px-2.5 py-0.5 rounded text-[10px] font-bold border ${this.getStatusBadge(shift.oee_status)}">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${this.getStatusBadge(shift.oee_status)}">
                                         ${shift.oee_status}
                                     </span>
                                     ${bestBadge}
                                 </div>
                             </div>
 
-                            <!-- OEE BIG SCORE -->
-                            <div class="flex items-baseline gap-2 mb-4 pb-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'}">
-                                <span class="text-4xl font-extrabold ${theme.text} font-mono tracking-tight">${shift.oee}%</span>
-                                <span class="text-xs font-semibold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider font-sans">Overall OEE</span>
-                            </div>
-
-                            <!-- OEE PILLARS BREAKDOWN -->
-                            <div class="grid grid-cols-3 gap-2 mb-4 text-center font-mono text-xs">
-                                <div class="${theme.subCardBg} border rounded-xl p-2.5">
-                                    <div class="text-[10px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans mb-0.5">Availability</div>
-                                    <div class="${isLight ? 'text-emerald-700 font-extrabold text-sm' : 'text-emerald-400 font-extrabold'}">${shift.availability}%</div>
+                            <!-- OEE HERO ROW & PROGRESS BAR -->
+                            <div class="mb-3.5 pb-2.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-3xl font-black ${theme.text} font-mono tracking-tight">${shift.oee}%</span>
+                                    <span class="text-[11px] font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} uppercase font-sans">Overall OEE</span>
                                 </div>
-                                <div class="${theme.subCardBg} border rounded-xl p-2.5">
-                                    <div class="text-[10px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans mb-0.5">Performance</div>
-                                    <div class="${isLight ? 'text-amber-700 font-extrabold text-sm' : 'text-amber-400 font-extrabold'}">${shift.performance}%</div>
-                                </div>
-                                <div class="${theme.subCardBg} border rounded-xl p-2.5">
-                                    <div class="text-[10px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans mb-0.5">Quality</div>
-                                    <div class="${isLight ? 'text-purple-700 font-extrabold text-sm' : 'text-purple-400 font-extrabold'}">${shift.quality}%</div>
+                                <div class="w-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} rounded-full h-1.5 mt-1.5 overflow-hidden">
+                                    <div class="${theme.bar} h-full rounded-full transition-all duration-700" style="width: ${Math.min(100, shift.oee)}%"></div>
                                 </div>
                             </div>
 
-                            <!-- PRODUCTION OUTPUT QUANTITIES -->
-                            <div class="space-y-2.5 text-xs font-mono ${theme.bottomBoxBg} rounded-xl p-3.5 border">
-                                <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-400'}">
-                                    <span class="font-sans ${isLight ? 'font-medium text-slate-600' : ''}">Target Qty:</span>
-                                    <span class="${isLight ? 'text-slate-900 font-bold' : 'text-slate-200 font-bold'}">${shift.target_quantity.toLocaleString()} pcs</span>
+                            <!-- 3 PILLARS (AVAILABILITY, PERFORMANCE, QUALITY) -->
+                            <div class="grid grid-cols-3 gap-1.5 mb-3 text-center font-mono">
+                                <div class="${theme.subCardBg} border rounded-xl p-2">
+                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Avail</div>
+                                    <div class="${isLight ? 'text-emerald-700' : 'text-emerald-400'} font-bold text-xs mt-0.5">${shift.availability}%</div>
                                 </div>
-                                <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-400'}">
-                                    <span class="font-sans ${isLight ? 'font-medium text-slate-600' : ''}">Total Measuring:</span>
-                                    <span class="${isLight ? 'text-cyan-700 font-bold' : 'text-cyan-400 font-bold'}">${shift.total_quantity.toLocaleString()} pcs</span>
+                                <div class="${theme.subCardBg} border rounded-xl p-2">
+                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Perf</div>
+                                    <div class="${isLight ? 'text-amber-700' : 'text-amber-400'} font-bold text-xs mt-0.5">${shift.performance}%</div>
                                 </div>
-                                <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-400'}">
-                                    <span class="font-sans ${isLight ? 'font-medium text-slate-600' : ''}">Finish Good:</span>
-                                    <span class="${isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400 font-bold'}">${shift.good_quantity.toLocaleString()} pcs</span>
+                                <div class="${theme.subCardBg} border rounded-xl p-2">
+                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Qual</div>
+                                    <div class="${isLight ? 'text-purple-700' : 'text-purple-400'} font-bold text-xs mt-0.5">${shift.quality}%</div>
                                 </div>
-                                <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-400'}">
-                                    <span class="font-sans ${isLight ? 'font-medium text-slate-600' : ''}">Not Good (NG):</span>
-                                    <span class="${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${shift.reject_quantity.toLocaleString()} pcs</span>
+                            </div>
+
+                            <!-- COMPACT PRODUCTION QUANTITIES -->
+                            <div class="space-y-1.5 text-[11px] font-mono ${theme.bottomBoxBg} rounded-xl p-3 border">
+                                <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}">
+                                    <span class="font-sans text-[10.5px]">Target / Actual:</span>
+                                    <strong class="${isLight ? 'text-slate-900' : 'text-white'} font-bold">${shift.target_quantity.toLocaleString()} / <span class="text-cyan-500">${shift.total_quantity.toLocaleString()}</span></strong>
                                 </div>
-                                <div class="pt-2 border-t ${isLight ? 'border-slate-200' : 'border-slate-800/80'} flex justify-between items-center text-[11px]">
-                                    <span class="font-sans ${isLight ? 'font-medium text-slate-600' : 'text-slate-400'}">Yield / Reject Rate:</span>
+                                <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}">
+                                    <span class="font-sans text-[10.5px]">Good / NG:</span>
                                     <span>
-                                        <strong class="${isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400 font-bold'} font-mono">${shift.yield_rate}%</strong>
-                                        <span class="${isLight ? 'text-slate-400' : 'text-slate-500'} mx-1">/</span>
-                                        <strong class="${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'} font-mono">${shift.rejection_rate}%</strong>
+                                        <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${shift.good_quantity.toLocaleString()} OK</strong>
+                                        <span class="text-slate-400 mx-0.5">•</span>
+                                        <strong class="${isLight ? 'text-rose-700' : 'text-rose-400'}">${shift.reject_quantity.toLocaleString()} NG</strong>
+                                    </span>
+                                </div>
+                                <div class="pt-1.5 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} flex justify-between items-center text-[10.5px]">
+                                    <span class="font-sans text-slate-500">Yield / Reject:</span>
+                                    <span>
+                                        <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${shift.yield_rate}%</strong>
+                                        <span class="text-slate-400 mx-0.5">/</span>
+                                        <strong class="${isLight ? 'text-rose-700' : 'text-rose-400'}">${shift.rejection_rate}%</strong>
                                     </span>
                                 </div>
                             </div>
@@ -7807,61 +7871,59 @@ tbody.innerHTML = '';
             </div>
 
             <!-- ANIMATED SHIFT COMPARISON CHART -->
-            <div class="${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-5">
+            <div class="${isLight ? 'bg-white border-slate-200 shadow-lg' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5">
                 <div class="flex items-center justify-between mb-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
                     <div>
                         <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
                             <i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan-500"></i>
                             Shift OEE & Pillars Comparative Metrics
                         </h3>
-                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}">Direct side-by-side comparison across Shift 1, Shift 2, and Shift 3</p>
                     </div>
                 </div>
                 <div id="chart-shift-comparison" class="w-full h-72"></div>
             </div>
 
             <!-- DAILY BREAKDOWN PER PRODUCTION DATE TABLE -->
-            <div class="${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-5">
-                <div class="flex items-center justify-between mb-4">
+            <div class="${isLight ? 'bg-white border-slate-200 shadow-lg' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-4 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
                     <div>
                         <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
                             <i data-lucide="calendar-range" class="w-4 h-4 text-amber-500"></i>
-                            Daily Production Shift Breakdown (Per Tanggal Produksi)
+                            Daily Production Shift Breakdown
                         </h3>
-                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}">Realtime breakdown per tanggal produksi untuk masing-masing Shift</p>
                     </div>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="${isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-slate-950 text-slate-400 border-slate-800'} uppercase font-semibold text-[10px] border-b">
+                        <thead class="${isLight ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-950 text-slate-400 border-slate-800'} uppercase font-semibold text-[10px] border-b">
                             <tr>
                                 <th class="p-3">Tanggal Produksi</th>
                                 <th class="p-3">Shift Name</th>
-                                <th class="p-3">OEE %</th>
-                                <th class="p-3">Availability</th>
-                                <th class="p-3">Performance</th>
-                                <th class="p-3">Quality</th>
-                                <th class="p-3">Total Measuring</th>
-                                <th class="p-3">Finish Good</th>
-                                <th class="p-3">Not Good (NG)</th>
+                                <th class="p-3 text-center">OEE %</th>
+                                <th class="p-3 text-center">Availability</th>
+                                <th class="p-3 text-center">Performance</th>
+                                <th class="p-3 text-center">Quality</th>
+                                <th class="p-3 text-right">Total Measuring</th>
+                                <th class="p-3 text-right">Finish Good</th>
+                                <th class="p-3 text-right">Not Good (NG)</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y ${isLight ? 'divide-slate-200/80' : 'divide-slate-800/60'} font-mono">
+                        <tbody class="divide-y ${isLight ? 'divide-slate-200 text-slate-800' : 'divide-slate-800/60 text-slate-200'} font-mono">
                             ${dailyBreakdown.length === 0 ? `
-                                <tr><td colspan="9" class="p-6 text-center ${isLight ? 'text-slate-400' : 'text-slate-500'} font-sans">Belum ada data log produksi untuk filter terpilih</td></tr>
+                                <tr><td colspan="9" class="p-6 text-center text-slate-500 font-sans">Belum ada data log produksi untuk filter terpilih</td></tr>
                             ` : dailyBreakdown.map(day => {
                                 return day.shifts.map((s, idx) => `
                                     <tr class="${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors">
-                                        ${idx === 0 ? `<td rowspan="${day.shifts.length}" class="p-3 ${isLight ? 'text-cyan-700 bg-slate-50 border-slate-200 font-bold' : 'text-cyan-400 bg-slate-950/40 border-slate-800 font-bold'} font-sans align-middle border-r">${day.date}</td>` : ''}
+                                        ${idx === 0 ? `<td rowspan="${day.shifts.length}" class="p-3 ${isLight ? 'text-cyan-800 bg-slate-50 border-slate-200 font-bold' : 'text-cyan-400 bg-slate-950/40 border-slate-800 font-bold'} font-sans align-middle border-r">${day.date}</td>` : ''}
                                         <td class="p-3 font-sans font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${s.shift_name}</td>
-                                        <td class="p-3 ${isLight ? 'text-cyan-700' : 'text-cyan-400'} font-bold">${s.oee}%</td>
-                                        <td class="p-3 ${isLight ? 'text-emerald-700' : 'text-emerald-400'} font-semibold">${s.availability}%</td>
-                                        <td class="p-3 ${isLight ? 'text-amber-700' : 'text-amber-400'} font-semibold">${s.performance}%</td>
-                                        <td class="p-3 ${isLight ? 'text-purple-700' : 'text-purple-400'} font-semibold">${s.quality}%</td>
-                                        <td class="p-3 ${isLight ? 'text-slate-800' : 'text-slate-200'} font-semibold">${(s.total_quantity ?? 0).toLocaleString()} pcs</td>
-                                        <td class="p-3 ${isLight ? 'text-emerald-700' : 'text-emerald-400'} font-semibold">${(s.good_quantity ?? 0).toLocaleString()} pcs</td>
-                                        <td class="p-3 ${isLight ? 'text-rose-700' : 'text-rose-400'} font-semibold">${(s.reject_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-3 text-center ${isLight ? 'text-cyan-800' : 'text-cyan-400'} font-bold">${s.oee}%</td>
+                                        <td class="p-3 text-center ${isLight ? 'text-emerald-800' : 'text-emerald-400'} font-semibold">${s.availability}%</td>
+                                        <td class="p-3 text-center ${isLight ? 'text-amber-800' : 'text-amber-400'} font-semibold">${s.performance}%</td>
+                                        <td class="p-3 text-center ${isLight ? 'text-purple-800' : 'text-purple-400'} font-semibold">${s.quality}%</td>
+                                        <td class="p-3 text-right ${isLight ? 'text-slate-800' : 'text-slate-200'} font-semibold">${(s.total_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-3 text-right ${isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400 font-bold'}">${(s.good_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-3 text-right ${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${(s.reject_quantity ?? 0).toLocaleString()} pcs</td>
                                     </tr>
                                 `).join('');
                             }).join('')}
@@ -7875,6 +7937,14 @@ tbody.innerHTML = '';
 
         // Render Shift Comparison ApexChart
         this.renderShiftComparisonChart(shifts);
+
+        // Tab switcher event listeners
+        content.querySelectorAll('[data-perf-tab]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tab = btn.getAttribute('data-perf-tab');
+                this.switchTab(tab);
+            });
+        });
 
         // Filter event listeners
         const dateInput = document.getElementById('shift-filter-date');
@@ -7902,7 +7972,7 @@ tbody.innerHTML = '';
         }
 
         if (this.currentLang === 'ja') {
-            i18n.localizeDom(document.getElementById('content-body') || document.body);
+            i18n.localizeDom(content);
         }
     }
 
@@ -7910,7 +7980,7 @@ tbody.innerHTML = '';
         const el = document.getElementById('chart-shift-comparison');
         if (!el || !window.ApexCharts) return;
 
-        const isLight = this.theme === 'light';
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
         const categories = ['OEE Score', 'Availability', 'Performance', 'Quality Rate'];
 
         const series = shifts.map(s => {
@@ -7929,17 +7999,16 @@ tbody.innerHTML = '';
                 animations: {
                     enabled: true,
                     easing: 'easeinout',
-                    speed: 700,
-                    animateGradually: { enabled: true, delay: 100 }
+                    speed: 600,
                 }
             },
             theme: { mode: isLight ? 'light' : 'dark' },
-            colors: ['#0284c7', '#f59e0b', '#10b981'],
+            colors: ['#0284c7', '#f59e0b', '#10b981', '#8b5cf6', '#f43f5e'],
             plotOptions: {
                 bar: {
                     horizontal: false,
-                    columnWidth: '45%',
-                    borderRadius: 5,
+                    columnWidth: '40%',
+                    borderRadius: 6,
                     dataLabels: { position: 'top' }
                 }
             },
@@ -7975,6 +8044,410 @@ tbody.innerHTML = '';
         if (this.charts['shiftComp']) this.charts['shiftComp'].destroy();
         this.charts['shiftComp'] = new window.ApexCharts(el, options);
         this.charts['shiftComp'].render();
+    }
+
+    // ==========================================
+    // 5B. TEAM PERFORMANCE PAGE
+    // ==========================================
+    async renderTeams() {
+        this.teamFilters = this.teamFilters || { date: '', production_line_id: '', machine_id: '' };
+        const res = await api.getTeamComparison(this.teamFilters);
+        const teams = res.data.data || [];
+        const dailyBreakdown = res.data.daily_breakdown || [];
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+
+        const teamColors = isLight ? {
+            1: { 
+                cardGradient: 'bg-gradient-to-br from-indigo-50/90 via-white to-slate-50/90', 
+                border: 'border-indigo-200 shadow-sm', 
+                badge: 'bg-indigo-100 text-indigo-800 border-indigo-300 font-bold', 
+                text: 'text-indigo-700', 
+                bar: 'bg-indigo-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+            },
+            2: { 
+                cardGradient: 'bg-gradient-to-br from-emerald-50/90 via-white to-slate-50/90', 
+                border: 'border-emerald-200 shadow-sm', 
+                badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold', 
+                text: 'text-emerald-700', 
+                bar: 'bg-emerald-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+            },
+            3: { 
+                cardGradient: 'bg-gradient-to-br from-amber-50/90 via-white to-slate-50/90', 
+                border: 'border-amber-200 shadow-sm', 
+                badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold', 
+                text: 'text-amber-700', 
+                bar: 'bg-amber-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+            },
+            4: { 
+                cardGradient: 'bg-gradient-to-br from-purple-50/90 via-white to-slate-50/90', 
+                border: 'border-purple-200 shadow-sm', 
+                badge: 'bg-purple-100 text-purple-800 border-purple-300 font-bold', 
+                text: 'text-purple-700', 
+                bar: 'bg-purple-500',
+                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
+                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+            },
+        } : {
+            1: { 
+                cardGradient: 'bg-gradient-to-br from-indigo-500/10 via-slate-900 to-slate-900', 
+                border: 'border-indigo-500/40', 
+                badge: 'bg-indigo-950/80 text-indigo-300 border-indigo-800', 
+                text: 'text-indigo-400', 
+                bar: 'bg-indigo-400',
+                subCardBg: 'bg-slate-950/70 border-slate-800',
+                bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
+            },
+            2: { 
+                cardGradient: 'bg-gradient-to-br from-emerald-500/10 via-slate-900 to-slate-900', 
+                border: 'border-emerald-500/40', 
+                badge: 'bg-emerald-950/80 text-emerald-300 border-emerald-800', 
+                text: 'text-emerald-400', 
+                bar: 'bg-emerald-400',
+                subCardBg: 'bg-slate-950/70 border-slate-800',
+                bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
+            },
+            3: { 
+                cardGradient: 'bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900', 
+                border: 'border-amber-500/40', 
+                badge: 'bg-amber-950/80 text-amber-300 border-amber-800', 
+                text: 'text-amber-400', 
+                bar: 'bg-amber-400',
+                subCardBg: 'bg-slate-950/70 border-slate-800',
+                bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
+            },
+            4: { 
+                cardGradient: 'bg-gradient-to-br from-purple-500/10 via-slate-900 to-slate-900', 
+                border: 'border-purple-500/40', 
+                badge: 'bg-purple-950/80 text-purple-300 border-purple-800', 
+                text: 'text-purple-400', 
+                bar: 'bg-purple-400',
+                subCardBg: 'bg-slate-950/70 border-slate-800',
+                bottomBoxBg: 'bg-slate-950/50 border-slate-800/60'
+            },
+        };
+
+        const lineOptions = (this.masterData?.lines || []).map(l => 
+            `<option value="${l.id}" ${(this.teamFilters?.production_line_id == l.id) ? 'selected' : ''}>${l.name} (${l.code})</option>`
+        ).join('');
+
+        const machineOptions = (this.masterData?.machines || []).map(m => 
+            `<option value="${m.id}" ${(this.teamFilters?.machine_id == m.id) ? 'selected' : ''}>${m.name} (${m.code})</option>`
+        ).join('');
+
+        const content = document.getElementById('content-body');
+        content.innerHTML = `
+            <!-- HEADER CONTEXT & TAB SWITCHER (SHIFT VS TEAM) -->
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h2 class="text-xl font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
+                        <span>Team Performance</span>
+                    </h2>
+
+                    <!-- 2-TAB SEGMENTED CONTROLLER (SHIFT & TEAM PERFORMANCES) -->
+                    <div class="flex items-center gap-1 p-1 ${isLight ? 'bg-slate-200/80 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl shadow-xs">
+                        <button type="button" data-perf-tab="shifts" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-500"></i> Shift Performance
+                        </button>
+                        <button type="button" data-perf-tab="teams" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'bg-white text-indigo-800 shadow-sm' : 'bg-indigo-950 text-indigo-300 border border-indigo-800/80'}">
+                            <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-400"></i> Team Performance
+                        </button>
+                    </div>
+                </div>
+
+                <!-- REALTIME FILTER CONTROLS -->
+                <div class="flex flex-wrap items-center gap-2 bg-transparent text-xs">
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500"></i>
+                        <input type="date" id="team-filter-date" value="${this.teamFilters?.date || ''}" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans" />
+                    </div>
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                        <i data-lucide="git-branch" class="w-3.5 h-3.5 text-emerald-500"></i>
+                        <select id="team-filter-line" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans">
+                            <option value="">Semua Lini</option>
+                            ${lineOptions}
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                        <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <select id="team-filter-machine" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans">
+                            <option value="">Semua Mesin</option>
+                            ${machineOptions}
+                        </select>
+                    </div>
+                    <button id="btn-reset-team-filters" class="p-2 ${isLight ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} border rounded-lg transition-colors cursor-pointer" title="Reset Filter">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- COMPACT, SLEEK & INFORMATIVE TEAM CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
+                ${teams.map((team, tIdx) => {
+                    const theme = teamColors[team.team_id] || teamColors[(tIdx % 4) + 1];
+                    const bestBadge = team.is_best_performer ? `
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border text-[10px] font-bold shadow-xs animate-pulse">
+                            🏆 Best Team
+                        </span>
+                    ` : '';
+
+                    return `
+                        <div class="${theme.cardGradient} border ${team.is_best_performer ? (isLight ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-amber-500/60 ring-2 ring-amber-500/20') : theme.border} rounded-2xl p-4.5 shadow-lg relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group">
+                            <!-- TOP BAR: BADGE, LEADER/SPV & STATUS -->
+                            <div class="flex items-start justify-between gap-2 mb-3">
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${theme.badge} font-mono shadow-xs">
+                                            👥 ${team.team_name}
+                                        </span>
+                                    </div>
+                                    <span class="text-[10.5px] ${isLight ? 'text-slate-600 font-medium' : 'text-slate-400'} font-sans block mt-1 truncate max-w-[200px]" title="Leader: ${team.leader_name} • SPV: ${team.supervisor_name}">
+                                        👤 ${team.leader_name}
+                                    </span>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${this.getStatusBadge(team.oee_status)}">
+                                        ${team.oee_status}
+                                    </span>
+                                    ${bestBadge}
+                                </div>
+                            </div>
+
+                            <!-- OEE HERO ROW & PROGRESS BAR -->
+                            <div class="mb-3.5 pb-2.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="text-3xl font-black ${theme.text} font-mono tracking-tight">${team.oee}%</span>
+                                    <span class="text-[11px] font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} uppercase font-sans">Team OEE</span>
+                                </div>
+                                <div class="w-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} rounded-full h-1.5 mt-1.5 overflow-hidden">
+                                    <div class="${theme.bar} h-full rounded-full transition-all duration-700" style="width: ${Math.min(100, team.oee)}%"></div>
+                                </div>
+                            </div>
+
+                            <!-- 3 PILLARS (AVAILABILITY, PERFORMANCE, QUALITY) -->
+                            <div class="grid grid-cols-3 gap-1.5 mb-3 text-center font-mono">
+                                <div class="${theme.subCardBg} border rounded-xl p-2">
+                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Avail</div>
+                                    <div class="${isLight ? 'text-emerald-700' : 'text-emerald-400'} font-bold text-xs mt-0.5">${team.availability}%</div>
+                                </div>
+                                <div class="${theme.subCardBg} border rounded-xl p-2">
+                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Perf</div>
+                                    <div class="${isLight ? 'text-amber-700' : 'text-amber-400'} font-bold text-xs mt-0.5">${team.performance}%</div>
+                                </div>
+                                <div class="${theme.subCardBg} border rounded-xl p-2">
+                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Qual</div>
+                                    <div class="${isLight ? 'text-purple-700' : 'text-purple-400'} font-bold text-xs mt-0.5">${team.quality}%</div>
+                                </div>
+                            </div>
+
+                            <!-- COMPACT PRODUCTION QUANTITIES -->
+                            <div class="space-y-1.5 text-[11px] font-mono ${theme.bottomBoxBg} rounded-xl p-3 border">
+                                <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}">
+                                    <span class="font-sans text-[10.5px]">Target / Actual:</span>
+                                    <strong class="${isLight ? 'text-slate-900' : 'text-white'} font-bold">${team.target_quantity.toLocaleString()} / <span class="text-indigo-500">${team.total_quantity.toLocaleString()}</span></strong>
+                                </div>
+                                <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}">
+                                    <span class="font-sans text-[10.5px]">Good / NG:</span>
+                                    <span>
+                                        <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${team.good_quantity.toLocaleString()} OK</strong>
+                                        <span class="text-slate-400 mx-0.5">•</span>
+                                        <strong class="${isLight ? 'text-rose-700' : 'text-rose-400'}">${team.reject_quantity.toLocaleString()} NG</strong>
+                                    </span>
+                                </div>
+                                <div class="pt-1.5 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} flex justify-between items-center text-[10.5px]">
+                                    <span class="font-sans text-slate-500">Yield / Reject:</span>
+                                    <span>
+                                        <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${team.yield_rate}%</strong>
+                                        <span class="text-slate-400 mx-0.5">/</span>
+                                        <strong class="${isLight ? 'text-rose-700' : 'text-rose-400'}">${team.rejection_rate}%</strong>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <!-- ANIMATED TEAM COMPARISON CHART -->
+            <div class="${isLight ? 'bg-white border-slate-200 shadow-lg' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
+                    <div>
+                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-400"></i>
+                            Team OEE & Pillars Comparative Metrics
+                        </h3>
+                    </div>
+                </div>
+                <div id="chart-team-comparison" class="w-full h-72"></div>
+            </div>
+
+            <!-- DAILY BREAKDOWN PER PRODUCTION DATE TABLE FOR TEAMS -->
+            <div class="${isLight ? 'bg-white border-slate-200 shadow-lg' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-4 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
+                    <div>
+                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
+                            <i data-lucide="calendar-range" class="w-4 h-4 text-amber-500"></i>
+                            Daily Production Team Breakdown
+                        </h3>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="${isLight ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-950 text-slate-400 border-slate-800'} uppercase font-semibold text-[10px] border-b">
+                            <tr>
+                                <th class="p-3">Tanggal Produksi</th>
+                                <th class="p-3">Team Name</th>
+                                <th class="p-3 text-center">OEE %</th>
+                                <th class="p-3 text-center">Availability</th>
+                                <th class="p-3 text-center">Performance</th>
+                                <th class="p-3 text-center">Quality</th>
+                                <th class="p-3 text-right">Total Measuring</th>
+                                <th class="p-3 text-right">Finish Good</th>
+                                <th class="p-3 text-right">Not Good (NG)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y ${isLight ? 'divide-slate-200 text-slate-800' : 'divide-slate-800/60 text-slate-200'} font-mono">
+                            ${dailyBreakdown.length === 0 ? `
+                                <tr><td colspan="9" class="p-6 text-center text-slate-500 font-sans">Belum ada data log produksi untuk filter terpilih</td></tr>
+                            ` : dailyBreakdown.map(day => {
+                                return day.teams.map((t, idx) => `
+                                    <tr class="${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors">
+                                        ${idx === 0 ? `<td rowspan="${day.teams.length}" class="p-3 ${isLight ? 'text-indigo-800 bg-slate-50 border-slate-200 font-bold' : 'text-indigo-400 bg-slate-950/40 border-slate-800 font-bold'} font-sans align-middle border-r">${day.date}</td>` : ''}
+                                        <td class="p-3 font-sans font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${t.team_name}</td>
+                                        <td class="p-3 text-center ${isLight ? 'text-indigo-800' : 'text-indigo-400'} font-bold">${t.oee}%</td>
+                                        <td class="p-3 text-center ${isLight ? 'text-emerald-800' : 'text-emerald-400'} font-semibold">${t.availability}%</td>
+                                        <td class="p-3 text-center ${isLight ? 'text-amber-800' : 'text-amber-400'} font-semibold">${t.performance}%</td>
+                                        <td class="p-3 text-center ${isLight ? 'text-purple-800' : 'text-purple-400'} font-semibold">${t.quality}%</td>
+                                        <td class="p-3 text-right ${isLight ? 'text-slate-800' : 'text-slate-200'} font-semibold">${(t.total_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-3 text-right ${isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400 font-bold'}">${(t.good_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-3 text-right ${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${(t.reject_quantity ?? 0).toLocaleString()} pcs</td>
+                                    </tr>
+                                `).join('');
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+
+        // Render Team Comparison ApexChart
+        this.renderTeamComparisonChart(teams);
+
+        // Tab switcher event listeners
+        content.querySelectorAll('[data-perf-tab]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tab = btn.getAttribute('data-perf-tab');
+                this.switchTab(tab);
+            });
+        });
+
+        // Filter event listeners
+        const dateInput = document.getElementById('team-filter-date');
+        const lineSelect = document.getElementById('team-filter-line');
+        const machineSelect = document.getElementById('team-filter-machine');
+        const resetBtn = document.getElementById('btn-reset-team-filters');
+
+        const updateFilters = () => {
+            this.teamFilters = {
+                date: dateInput ? dateInput.value : '',
+                production_line_id: lineSelect ? lineSelect.value : '',
+                machine_id: machineSelect ? machineSelect.value : ''
+            };
+            this.renderTeams();
+        };
+
+        if (dateInput) dateInput.addEventListener('change', updateFilters);
+        if (lineSelect) lineSelect.addEventListener('change', updateFilters);
+        if (machineSelect) machineSelect.addEventListener('change', updateFilters);
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.teamFilters = {};
+                this.renderTeams();
+            });
+        }
+
+        if (this.currentLang === 'ja') {
+            i18n.localizeDom(content);
+        }
+    }
+
+    renderTeamComparisonChart(teams) {
+        const el = document.getElementById('chart-team-comparison');
+        if (!el || !window.ApexCharts) return;
+
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const categories = ['OEE Score', 'Availability', 'Performance', 'Quality Rate'];
+
+        const series = teams.map(t => {
+            return {
+                name: t.team_name,
+                data: [t.oee, t.availability, t.performance, t.quality]
+            };
+        });
+
+        const options = {
+            chart: {
+                type: 'bar',
+                height: 280,
+                background: 'transparent',
+                toolbar: { show: false },
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 600,
+                }
+            },
+            theme: { mode: isLight ? 'light' : 'dark' },
+            colors: ['#6366f1', '#10b981', '#f59e0b', '#ec4899'],
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '40%',
+                    borderRadius: 6,
+                    dataLabels: { position: 'top' }
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                style: { colors: [isLight ? '#0f172a' : '#ffffff'], fontSize: '10px', fontWeight: 'bold' },
+                formatter: val => val + '%',
+                offsetY: -18
+            },
+            stroke: { show: true, width: 2, colors: ['transparent'] },
+            series: series,
+            xaxis: {
+                categories: categories,
+                labels: { style: { colors: isLight ? '#334155' : '#94a3b8', fontSize: '11px', fontWeight: '600' } },
+                axisBorder: { color: isLight ? '#cbd5e1' : '#334155' }
+            },
+            yaxis: {
+                max: 100,
+                labels: { style: { colors: isLight ? '#475569' : '#64748b', fontSize: '10px' }, formatter: val => val + '%' }
+            },
+            grid: { borderColor: isLight ? '#e2e8f0' : '#1e293b', strokeDashArray: 4, padding: { top: 10, right: 10, bottom: 0, left: 10 } },
+            legend: {
+                position: 'top',
+                horizontalAlign: 'right',
+                labels: { colors: isLight ? '#1e293b' : '#cbd5e1' }
+            },
+            tooltip: {
+                theme: isLight ? 'light' : 'dark',
+                y: { formatter: val => val + '%' }
+            }
+        };
+
+        if (this.charts['teamComp']) this.charts['teamComp'].destroy();
+        this.charts['teamComp'] = new window.ApexCharts(el, options);
+        this.charts['teamComp'].render();
     }
 
     // ==========================================
