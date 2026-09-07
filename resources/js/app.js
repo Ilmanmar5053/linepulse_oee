@@ -7052,7 +7052,7 @@ tbody.innerHTML = '';
                                     <div class="flex flex-wrap items-center justify-between gap-2 border-b ${isLightModal ? 'border-cyan-100' : 'border-slate-800/80'} pb-2">
                                         <div class="flex items-center gap-2">
                                             <span class="w-5 h-5 rounded-full ${isLightModal ? 'bg-cyan-100 text-cyan-800 border-cyan-300' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'} font-bold text-xs flex items-center justify-center border">1</span>
-                                            <h4 class="font-bold text-xs ${isLightModal ? 'text-cyan-900' : 'text-cyan-300'} uppercase tracking-wider">Komponen Utama (Wajib OEE) — Rincian Multi-Baris</h4>
+                                            <h4 class="font-bold text-xs ${isLightModal ? 'text-cyan-900' : 'text-cyan-300'} uppercase tracking-wider">Komponen Utama NG</h4>
                                         </div>
                                         
                                         <!-- LIVE BALANCE INDICATOR -->
@@ -7061,9 +7061,7 @@ tbody.innerHTML = '';
                                         </div>
                                     </div>
 
-                                    <div class="flex flex-wrap items-center justify-between gap-2">
-                                        <p class="text-[11px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'}">Tambahkan baris rincian defect per jenis penyebab & bagian part. Total wajib seimbang dengan Target (${targetNg} Pcs).</p>
-                                        
+                                    <div class="flex flex-wrap items-center justify-end gap-2">
                                         <!-- BUTTON TAMBAH BARIS DATA -->
                                         <button type="button" id="btn-add-ng-row" class="px-3 py-1.5 rounded-lg text-xs font-bold ${isLightModal ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-cyan-600 hover:bg-cyan-500'} text-white shadow-md flex items-center gap-1.5 cursor-pointer transition-all">
                                             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -7134,8 +7132,6 @@ tbody.innerHTML = '';
                                             Non-OEE Tracking
                                         </span>
                                     </div>
-
-                                    <p class="text-[11px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'}">Dicatat untuk ketertelusuran material QC tanpa mempengaruhi Quality Rate kalkulasi OEE.</p>
 
                                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         <div>
