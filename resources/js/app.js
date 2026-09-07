@@ -2168,7 +2168,165 @@ tbody.innerHTML = '';
                 </div>
             </div>
 
-            <!-- SECTION 2: MACHINE STATUS & SIX BIG LOSSES GRID -->
+            <!-- SECTION 2: RESUME SEMUA HASIL PRODUKSI (GLOBAL PRODUCTION SUMMARY BANNER) -->
+            ${(() => {
+                const targetQty = (kpi.total_target_qty || 0);
+                const actualQty = (kpi.total_actual_qty || 0);
+                const goodQty = (kpi.total_good_qty || 0);
+                const rejectQty = (kpi.total_reject_qty || 0);
+                const downtimeMins = (kpi.total_downtime_minutes || 0);
+                const achievePct = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) : '0.0';
+                const yieldPct = actualQty > 0 ? ((goodQty / actualQty) * 100).toFixed(1) : '0.0';
+                const defectRatePct = actualQty > 0 ? ((rejectQty / actualQty) * 100).toFixed(2) : '0.00';
+                const dtHours = (downtimeMins / 60).toFixed(1);
+
+                return `
+                <div class="mb-5 ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-3 mb-3 gap-2">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                <i data-lucide="boxes" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
+                                    <span>Resume Semua Hasil Produksi</span>
+                                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">LIVE RESUME</span>
+                                </h3>
+                                <p class="text-xs text-slate-400">Ringkasan total kuantitas rencana target, aktual output, good product, reject defect, serta waktu loss periode ini</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="text-slate-400 font-mono">Pencapaian Target: <strong class="${Number(achievePct) >= 100 ? 'text-emerald-400' : 'text-amber-400'} font-bold">${achievePct}%</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- 5 Production Result Metric Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                        <!-- 1. Plan Target -->
+                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="target" class="w-3.5 h-3.5 text-sky-400"></i> Target Plan</span>
+                                <span class="text-[10px] font-mono text-slate-500">PLAN</span>
+                            </div>
+                            <div class="text-xl font-black font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'}">${targetQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span class="text-sky-400 font-semibold">100%</span> baseline target
+                            </div>
+                        </div>
+
+                        <!-- 2. Actual Produced -->
+                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-400"></i> Total Output</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${Number(achievePct) >= 100 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}">${achievePct}%</span>
+                            </div>
+                            <div class="text-xl font-black font-mono text-emerald-400">${actualQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span class="${actualQty >= targetQty ? 'text-emerald-400' : 'text-amber-400'}">${actualQty >= targetQty ? '▲ +' + (actualQty - targetQty).toLocaleString() : '▼ -' + (targetQty - actualQty).toLocaleString()} pcs gap</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Good Output (OK) -->
+                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-cyan-400"></i> Good Output (OK)</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">${yieldPct}% Yield</span>
+                            </div>
+                            <div class="text-xl font-black font-mono text-cyan-300">${goodQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span>Siap kirim / Lolos QC</span>
+                            </div>
+                        </div>
+
+                        <!-- 4. Rejects / NG Defect -->
+                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i> Defect (NG)</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${Number(defectRatePct) > 1.5 ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">${defectRatePct}% Defect</span>
+                            </div>
+                            <div class="text-xl font-black font-mono text-rose-400">${rejectQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span>${rejectQty === 0 ? 'Zero Defect' : 'Perlu countermeasure'}</span>
+                            </div>
+                        </div>
+
+                        <!-- 5. Downtime Loss -->
+                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3 col-span-2 md:col-span-1">
+                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                <span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> Total Downtime</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-950 text-amber-400 border border-amber-800">${dtHours}h</span>
+                            </div>
+                            <div class="text-xl font-black font-mono text-amber-400">${downtimeMins.toLocaleString()} <span class="text-xs font-normal text-slate-400">min</span></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                <span>Waktu henti produksi</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            })()}
+
+            <!-- SECTION 3: GRAFIK TREN GLOBAL OEE & HASIL PRODUKSI (INTERACTIVE ANIMATED SPLINE LINE CHART) -->
+            <div class="mb-5 ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-xl">
+                <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-3 mb-4 gap-3">
+                    <div>
+                        <h3 class="text-base font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
+                            <i data-lucide="line-chart" class="w-5 h-5 text-cyan-400"></i>
+                            <span>Tren Kinerja OEE Global & Hasil Produksi</span>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-800/60 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                                SMOOTH SPLINE
+                            </span>
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Grafik garis interaktif beranimasi dengan breakpoint mulus untuk analisis tren OEE global & kuantitas output produksi</p>
+                    </div>
+
+                    <!-- MODE TOGGLE PILLS -->
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} p-1 rounded-lg border text-xs font-semibold">
+                        <button id="btn-trend-mode-oee" data-mode="oee" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'oee') === 'oee' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                            <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
+                            <span>OEE & 3 Pilar TPM (%)</span>
+                        </button>
+                        <button id="btn-trend-mode-prod" data-mode="prod" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'oee') === 'prod' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                            <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
+                            <span>Hasil Produksi (Pcs)</span>
+                        </button>
+                        <button id="btn-trend-mode-dual" data-mode="dual" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'oee') === 'dual' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                            <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
+                            <span>Multi-Axis (OEE & Output)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MAIN CHART CONTAINER -->
+                <div id="chart-global-oee-trend" class="w-full h-80 min-h-[320px]"></div>
+
+                <!-- CHART FOOTER METRIC HIGHLIGHTS -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 mt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+                        <span class="text-slate-400">Rata-rata OEE:</span>
+                        <strong class="font-mono text-cyan-300 font-bold">${oeeVal.toFixed(2)}%</strong>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+                        <span class="text-slate-400">Total Output:</span>
+                        <strong class="font-mono text-emerald-400 font-bold">${(kpi.total_actual_qty || 0).toLocaleString()} pcs</strong>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                        <span class="text-slate-400">Target Benchmark:</span>
+                        <strong class="font-mono text-amber-300 font-bold">85.0% World Class</strong>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_8px_#f43f5e]"></span>
+                        <span class="text-slate-400">Defect Rate:</span>
+                        <strong class="font-mono text-rose-400 font-bold">${(kpi.total_actual_qty ? ((kpi.total_reject_qty || 0) / kpi.total_actual_qty * 100).toFixed(2) : '0.00')}%</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: MACHINE STATUS & SIX BIG LOSSES GRID -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- DYNAMIC MACHINE STATUS CARD (2 COLS) -->
                 <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col justify-start">
@@ -2297,6 +2455,22 @@ tbody.innerHTML = '';
         this.renderSpeedometerGauge('#dash-gauge-avail', availVal, availStatus.color);
         this.renderSpeedometerGauge('#dash-gauge-perf', perfVal, perfStatus.color);
         this.renderSpeedometerGauge('#dash-gauge-qual', qualVal, qualStatus.color);
+
+        // Render Global OEE & Production Spline Line Trend Chart
+        this.renderGlobalOeeAndProductionTrendChart(trends, kpi, this.dashTrendMode || 'oee');
+
+        // Bind Mode Switcher Buttons for Global Trend Chart
+        document.querySelectorAll('.btn-trend-mode').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const mode = e.currentTarget.getAttribute('data-mode') || 'oee';
+                this.dashTrendMode = mode;
+                document.querySelectorAll('.btn-trend-mode').forEach(b => {
+                    const active = b.getAttribute('data-mode') === mode;
+                    b.className = `btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${active ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5`;
+                });
+                this.renderGlobalOeeAndProductionTrendChart(trends, kpi, mode);
+            });
+        });
 
         // Render Six Big Losses Chart
         this.renderSixLossesChart(sixLosses);
@@ -14863,37 +15037,287 @@ tbody.innerHTML = '';
     // ==========================================
     // APEXCHARTS HELPER RENDERING METHODS
     // ==========================================
-    renderOeeTrendChart(data) {
-        const el = document.getElementById('chart-oee-trend');
+    renderGlobalOeeAndProductionTrendChart(trends = [], kpi = {}, mode = 'oee') {
+        const el = document.getElementById('chart-global-oee-trend');
         if (!el || !window.ApexCharts) return;
 
-        const isLight = this.theme === 'light';
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+
+        // Prepare data with fallbacks if empty
+        const safeTrends = (trends && trends.length > 0) ? trends : [
+            {
+                label: 'Today',
+                date: 'Today',
+                oee: Number(kpi.oee || 0),
+                availability: Number(kpi.availability || 0),
+                performance: Number(kpi.performance || 0),
+                quality: Number(kpi.quality || 0),
+                target_qty: Number(kpi.total_target_qty || 0),
+                actual_qty: Number(kpi.total_actual_qty || 0),
+                good_qty: Number(kpi.total_good_qty || 0),
+                reject_qty: Number(kpi.total_reject_qty || 0),
+                downtime_mins: Number(kpi.total_downtime_minutes || 0),
+                defect_rate: kpi.total_actual_qty ? ((kpi.total_reject_qty || 0) / kpi.total_actual_qty * 100).toFixed(2) : 0,
+            }
+        ];
+
+        const categories = safeTrends.map(i => i.label || i.date);
+
+        let series = [];
+        let colors = [];
+        let yaxisConfig = [];
+        let annotations = {};
+
+        if (mode === 'prod') {
+            // MODE 2: Production Output vs Target (Pcs)
+            series = [
+                { name: 'Target Plan (Pcs)', type: 'line', data: safeTrends.map(i => i.target_qty || 0) },
+                { name: 'Aktual Output (Pcs)', type: 'area', data: safeTrends.map(i => i.actual_qty || 0) },
+                { name: 'Good Output OK (Pcs)', type: 'area', data: safeTrends.map(i => i.good_qty || 0) },
+                { name: 'Defect / NG (Pcs)', type: 'line', data: safeTrends.map(i => i.reject_qty || 0) },
+            ];
+            colors = ['#94a3b8', '#10b981', '#06b6d4', '#f43f5e'];
+            yaxisConfig = [{
+                labels: {
+                    style: { colors: isLight ? '#475569' : '#94a3b8', fontSize: '11px', fontFamily: 'monospace' },
+                    formatter: (v) => Number(v || 0).toLocaleString() + ' pcs'
+                },
+                title: { text: 'Output Produksi (Pcs)', style: { color: isLight ? '#475569' : '#94a3b8', fontSize: '11px', fontWeight: 600 } }
+            }];
+        } else if (mode === 'dual') {
+            // MODE 3: Multi-Axis (OEE % on Left Axis, Actual Output Pcs on Right Axis)
+            series = [
+                { name: 'Overall OEE (%)', type: 'area', data: safeTrends.map(i => Number(i.oee || 0)) },
+                { name: 'Aktual Output (Pcs)', type: 'line', data: safeTrends.map(i => i.actual_qty || 0) },
+                { name: 'Defect NG (Pcs)', type: 'line', data: safeTrends.map(i => i.reject_qty || 0) },
+            ];
+            colors = ['#06b6d4', '#10b981', '#f43f5e'];
+            yaxisConfig = [
+                {
+                    seriesName: 'Overall OEE (%)',
+                    max: 120,
+                    labels: {
+                        style: { colors: '#06b6d4', fontSize: '11px', fontFamily: 'monospace' },
+                        formatter: (v) => Number(v || 0).toFixed(0) + '%'
+                    },
+                    title: { text: 'OEE Rate (%)', style: { color: '#06b6d4', fontSize: '11px', fontWeight: 600 } }
+                },
+                {
+                    seriesName: 'Aktual Output (Pcs)',
+                    opposite: true,
+                    labels: {
+                        style: { colors: '#10b981', fontSize: '11px', fontFamily: 'monospace' },
+                        formatter: (v) => Number(v || 0).toLocaleString() + ' pcs'
+                    },
+                    title: { text: 'Output Produksi (Pcs)', style: { color: '#10b981', fontSize: '11px', fontWeight: 600 } }
+                }
+            ];
+        } else {
+            // MODE 1 (DEFAULT): OEE & 3 TPM Pillars (%)
+            series = [
+                { name: 'Overall OEE (%)', type: 'area', data: safeTrends.map(i => Number(i.oee || 0)) },
+                { name: 'Availability (%)', type: 'line', data: safeTrends.map(i => Number(i.availability || 0)) },
+                { name: 'Performance (%)', type: 'line', data: safeTrends.map(i => Number(i.performance || 0)) },
+                { name: 'Quality Rate (%)', type: 'line', data: safeTrends.map(i => Number(i.quality || 0)) },
+            ];
+            colors = ['#06b6d4', '#38bdf8', '#10b981', '#f59e0b'];
+            yaxisConfig = [{
+                min: 0,
+                max: 120,
+                labels: {
+                    style: { colors: isLight ? '#475569' : '#94a3b8', fontSize: '11px', fontFamily: 'monospace' },
+                    formatter: (v) => Number(v || 0).toFixed(0) + '%'
+                },
+                title: { text: 'OEE & KPI (%)', style: { color: isLight ? '#475569' : '#94a3b8', fontSize: '11px', fontWeight: 600 } }
+            }];
+
+            annotations = {
+                yaxis: [
+                    {
+                        y: 85,
+                        borderColor: '#10b981',
+                        strokeDashArray: 4,
+                        label: {
+                            borderColor: '#10b981',
+                            style: {
+                                color: '#ffffff',
+                                background: '#059669',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                padding: { left: 6, right: 6, top: 2, bottom: 2 }
+                            },
+                            text: 'World Class Std (85%)'
+                        }
+                    }
+                ]
+            };
+        }
+
         const options = {
-            chart: { type: 'area', height: '100%', background: 'transparent', toolbar: { show: false } },
-            theme: { mode: isLight ? 'light' : 'dark' },
-            colors: ['#0284c7', '#10b981', '#f59e0b', '#a855f7'],
-            series: [
-                { name: 'OEE', data: data.map(i => i.oee) },
-                { name: 'Availability', data: data.map(i => i.availability) },
-                { name: 'Performance', data: data.map(i => i.performance) },
-                { name: 'Quality', data: data.map(i => i.quality) },
-            ],
-            xaxis: { 
-                categories: data.map(i => i.date), 
-                labels: { style: { colors: isLight ? '#475569' : '#64748b', fontSize: '10px' } },
-                axisBorder: { color: isLight ? '#cbd5e1' : '#334155' }
+            chart: {
+                type: 'area',
+                height: 320,
+                background: 'transparent',
+                toolbar: {
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: false,
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: false,
+                        reset: true
+                    }
+                },
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800,
+                    animateGradually: { enabled: true, delay: 150 },
+                    dynamicAnimation: { enabled: true, speed: 450 }
+                },
+                dropShadow: {
+                    enabled: !isLight,
+                    top: 2,
+                    left: 0,
+                    blur: 6,
+                    color: '#06b6d4',
+                    opacity: 0.25
+                }
             },
-            yaxis: { max: 100, labels: { style: { colors: isLight ? '#475569' : '#64748b' }, formatter: (v) => v + '%' } },
-            stroke: { curve: 'smooth', width: 2 },
-            fill: { type: 'gradient', gradient: { opacityFrom: isLight ? 0.35 : 0.25, opacityTo: 0.05 } },
-            grid: { borderColor: isLight ? '#e2e8f0' : '#1e293b', strokeDashArray: 4 },
-            legend: { labels: { colors: isLight ? '#1e293b' : '#94a3b8' } },
-            tooltip: { theme: isLight ? 'light' : 'dark' }
+            theme: { mode: isLight ? 'light' : 'dark' },
+            colors: colors,
+            series: series,
+            annotations: annotations,
+            stroke: {
+                curve: 'smooth',
+                width: mode === 'dual' ? [3.5, 3, 2] : (mode === 'prod' ? [2.5, 3.5, 2.5, 2] : [3.5, 2.5, 2.5, 2.5]),
+                dashArray: mode === 'prod' ? [5, 0, 0, 0] : [0, 0, 0, 0]
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: isLight ? 'light' : 'dark',
+                    type: 'vertical',
+                    shadeIntensity: 0.5,
+                    opacityFrom: isLight ? 0.35 : 0.45,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100]
+                }
+            },
+            markers: {
+                size: 5,
+                strokeColors: isLight ? '#ffffff' : '#0f172a',
+                strokeWidth: 2,
+                strokeOpacity: 0.9,
+                fillOpacity: 1,
+                shape: 'circle',
+                hover: {
+                    size: 8,
+                    strokeWidth: 3
+                }
+            },
+            grid: {
+                borderColor: isLight ? '#e2e8f0' : '#1e293b',
+                strokeDashArray: 4,
+                xaxis: { lines: { show: true } },
+                yaxis: { lines: { show: true } },
+                padding: { top: 10, right: 20, bottom: 0, left: 15 }
+            },
+            xaxis: {
+                categories: categories,
+                labels: {
+                    style: {
+                        colors: isLight ? '#475569' : '#94a3b8',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        fontFamily: 'monospace'
+                    }
+                },
+                axisBorder: { color: isLight ? '#cbd5e1' : '#334155' },
+                axisTicks: { color: isLight ? '#cbd5e1' : '#334155' }
+            },
+            yaxis: yaxisConfig,
+            legend: {
+                position: 'top',
+                horizontalAlign: 'right',
+                labels: { colors: isLight ? '#1e293b' : '#cbd5e1' },
+                fontSize: '11px',
+                fontFamily: 'inherit',
+                fontWeight: 600,
+                markers: { radius: 12 }
+            },
+            tooltip: {
+                shared: true,
+                intersect: false,
+                theme: isLight ? 'light' : 'dark',
+                custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                    const point = safeTrends[dataPointIndex] || {};
+                    const label = categories[dataPointIndex] || 'Data Point';
+                    const oee = Number(point.oee || 0).toFixed(2);
+                    const avail = Number(point.availability || 0).toFixed(2);
+                    const perf = Number(point.performance || 0).toFixed(2);
+                    const qual = Number(point.quality || 0).toFixed(2);
+                    const target = (point.target_qty || 0).toLocaleString();
+                    const actual = (point.actual_qty || 0).toLocaleString();
+                    const good = (point.good_qty || 0).toLocaleString();
+                    const reject = (point.reject_qty || 0).toLocaleString();
+                    const defectRate = (point.actual_qty ? ((point.reject_qty || 0) / point.actual_qty * 100).toFixed(2) : '0.00');
+                    const dt = (point.downtime_mins || 0);
+
+                    return `
+                        <div class="p-3 bg-slate-950/95 border border-slate-700/80 backdrop-blur-md rounded-xl shadow-2xl text-slate-200 text-xs font-sans min-w-[240px]">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                                <span class="font-bold text-cyan-400 flex items-center gap-1.5 font-mono">
+                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i> ${label}
+                                </span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${Number(oee) >= 85 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}">
+                                    OEE: ${oee}%
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-1.5 py-1 text-[10.5px] font-mono border-b border-slate-800/80 mb-2">
+                                <div class="text-sky-400">A: <strong>${avail}%</strong></div>
+                                <div class="text-emerald-400">P: <strong>${perf}%</strong></div>
+                                <div class="text-amber-400">Q: <strong>${qual}%</strong></div>
+                            </div>
+
+                            <div class="space-y-1 text-[11px]">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-400">Target Plan:</span>
+                                    <span class="font-mono font-bold text-slate-200">${target} pcs</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-400">Aktual Output:</span>
+                                    <span class="font-mono font-bold text-emerald-400">${actual} pcs</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-400">Good Output (OK):</span>
+                                    <span class="font-mono font-bold text-cyan-300">${good} pcs</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-400">Defect NG:</span>
+                                    <span class="font-mono font-bold text-rose-400">${reject} pcs (${defectRate}%)</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[10.5px]">
+                                    <span class="text-slate-400">Total Downtime:</span>
+                                    <span class="font-mono font-bold text-amber-400">${dt} min</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
         };
 
-        if (this.charts['oeeTrend']) this.charts['oeeTrend'].destroy();
-        this.charts['oeeTrend'] = new window.ApexCharts(el, options);
-        this.charts['oeeTrend'].render();
+        if (this.charts['globalOeeTrend']) this.charts['globalOeeTrend'].destroy();
+        this.charts['globalOeeTrend'] = new window.ApexCharts(el, options);
+        this.charts['globalOeeTrend'].render();
+    }
+
+    renderOeeTrendChart(data) {
+        return this.renderGlobalOeeAndProductionTrendChart(data, this.kpi || {}, 'oee');
     }
 
     renderSixLossesChart(data, targetContainerId = 'chart-six-losses', targetBadgeId = 'six-losses-total-badge') {

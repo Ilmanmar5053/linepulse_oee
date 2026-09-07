@@ -208,34 +208,99 @@ class DashboardController extends Controller
     }
 
     /**
-     * OEE Trend Line Chart Data
+     * OEE & Production Trend Line Chart Data
      */
     public function oeeTrend(Request $request): JsonResponse
     {
-        $query = OeeRecord::select(
-            'record_date',
-            DB::raw('AVG(availability) as avg_availability'),
-            DB::raw('AVG(performance) as avg_performance'),
-            DB::raw('AVG(quality) as avg_quality')
-        )->groupBy('record_date')->orderBy('record_date', 'asc');
+        $isSingleDate = (bool) $request->input('date');
 
+        if ($isSingleDate) {
+            // Group by Shift for the single date
+            $query = OeeRecord::with(['shift', 'productionRecord']);
+            $this->applyFilters($query, $request, 'record_date');
+            $records = $query->get();
+
+            $grouped = $records->groupBy('shift_id');
+            $trends = $grouped->map(function ($shiftRecords, $shiftId) {
+                $shiftName = $shiftRecords->first()->shift->name ?? ('Shift ' . $shiftId);
+                $avail = round($shiftRecords->avg('availability'), 2);
+                $perf = round($shiftRecords->avg('performance'), 2);
+                $qual = round($shiftRecords->avg('quality'), 2);
+                $oee = round(($avail / 100.0) * ($perf / 100.0) * ($qual / 100.0) * 100.0, 2);
+
+                $targetQty = (int) $shiftRecords->sum(fn($r) => $r->productionRecord->target_quantity ?? 0);
+                $actualQty = (int) $shiftRecords->sum(fn($r) => $r->productionRecord->total_quantity ?? 0);
+                $goodQty = (int) $shiftRecords->sum(fn($r) => $r->productionRecord->good_quantity ?? 0);
+                $rejectQty = (int) $shiftRecords->sum(fn($r) => $r->productionRecord->reject_quantity ?? 0);
+                $downtimeMins = (int) $shiftRecords->sum(fn($r) => $r->productionRecord->downtime ?? 0);
+                $defectRate = ($actualQty > 0) ? round(($rejectQty / $actualQty) * 100, 2) : 0.0;
+                $achievementRate = ($targetQty > 0) ? round(($actualQty / $targetQty) * 100, 2) : 0.0;
+
+                return [
+                    'label' => $shiftName,
+                    'date' => $shiftName,
+                    'raw_date' => $shiftRecords->first()->record_date,
+                    'availability' => $avail,
+                    'performance' => $perf,
+                    'quality' => $qual,
+                    'oee' => $oee,
+                    'target_qty' => $targetQty,
+                    'actual_qty' => $actualQty,
+                    'good_qty' => $goodQty,
+                    'reject_qty' => $rejectQty,
+                    'downtime_mins' => $downtimeMins,
+                    'defect_rate' => $defectRate,
+                    'achievement_rate' => $achievementRate,
+                ];
+            })->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $trends,
+            ]);
+        }
+
+        // Multi-date query: Group by record_date
+        $query = OeeRecord::with(['productionRecord']);
         $this->applyFilters($query, $request, 'record_date');
+        $records = $query->orderBy('record_date', 'asc')->get();
 
-        $trends = $query->get()->map(function ($row) {
-            $avail = round($row->avg_availability, 2);
-            $perf = round($row->avg_performance, 2);
-            $qual = round($row->avg_quality, 2);
+        $grouped = $records->groupBy(function ($r) {
+            return Carbon::parse($r->record_date)->format('Y-m-d');
+        });
+
+        $trends = $grouped->map(function ($dateRecords, $dateKey) {
+            $formattedDate = Carbon::parse($dateKey)->format('d M');
+            $avail = round($dateRecords->avg('availability'), 2);
+            $perf = round($dateRecords->avg('performance'), 2);
+            $qual = round($dateRecords->avg('quality'), 2);
             $oee = round(($avail / 100.0) * ($perf / 100.0) * ($qual / 100.0) * 100.0, 2);
 
+            $targetQty = (int) $dateRecords->sum(fn($r) => $r->productionRecord->target_quantity ?? 0);
+            $actualQty = (int) $dateRecords->sum(fn($r) => $r->productionRecord->total_quantity ?? 0);
+            $goodQty = (int) $dateRecords->sum(fn($r) => $r->productionRecord->good_quantity ?? 0);
+            $rejectQty = (int) $dateRecords->sum(fn($r) => $r->productionRecord->reject_quantity ?? 0);
+            $downtimeMins = (int) $dateRecords->sum(fn($r) => $r->productionRecord->downtime ?? 0);
+            $defectRate = ($actualQty > 0) ? round(($rejectQty / $actualQty) * 100, 2) : 0.0;
+            $achievementRate = ($targetQty > 0) ? round(($actualQty / $targetQty) * 100, 2) : 0.0;
+
             return [
-                'date' => Carbon::parse($row->record_date)->format('d M'),
-                'raw_date' => $row->record_date,
+                'label' => $formattedDate,
+                'date' => $formattedDate,
+                'raw_date' => $dateKey,
                 'availability' => $avail,
                 'performance' => $perf,
                 'quality' => $qual,
                 'oee' => $oee,
+                'target_qty' => $targetQty,
+                'actual_qty' => $actualQty,
+                'good_qty' => $goodQty,
+                'reject_qty' => $rejectQty,
+                'downtime_mins' => $downtimeMins,
+                'defect_rate' => $defectRate,
+                'achievement_rate' => $achievementRate,
             ];
-        });
+        })->values();
 
         return response()->json([
             'success' => true,
