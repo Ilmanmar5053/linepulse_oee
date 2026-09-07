@@ -1031,18 +1031,18 @@ class OeeApp {
 
                         <!-- NAVIGATION MENU WITH CATEGORIZED MODULE DIVIDERS -->
                         <nav class="p-2 space-y-0.5 overflow-y-auto flex-1 custom-scrollbar" id="nav-menu">
-                            <!-- MODUL 1: OPERASIONAL & INPUT -->
+                            <!-- MODUL 1: OPERASIONAL & INPUT DATA -->
                             ${(this.hasAccessToTab('dashboard') || this.hasAccessToTab('daily-report') || this.hasAccessToTab('ng-report') || this.hasAccessToTab('monitoring')) ? `
                                 <div class="px-2.5 pt-1.5 pb-1 flex items-center justify-between">
                                     <span class="sidebar-section-title text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
                                         <i data-lucide="layers" class="w-3 h-3 text-cyan-400"></i>
-                                        <span>${this.t('nav.section_operations', 'Operasional & Input')}</span>
+                                        <span>${this.t('nav.section_operations', 'OPERASIONAL & INPUT DATA')}</span>
                                     </span>
                                 </div>
-                                ${this.navItem('dashboard', 'layout-dashboard', this.t('nav.dashboard', 'Dashboard'))}
+                                ${this.navItem('dashboard', 'layout-dashboard', this.t('nav.dashboard', 'Dasbor'))}
                                 ${this.navItem('daily-report', 'clipboard-edit', this.t('nav.daily_input', 'Input Laporan Harian'))}
                                 ${this.navItem('ng-report', 'shield-alert', this.t('nav.ng_input', 'Input Laporan NG'), this.t('nav.new_badge', 'NEW'))}
-                                ${this.navItem('monitoring', 'monitor', this.t('nav.monitoring', 'Production Monitoring'))}
+                                ${this.navItem('monitoring', 'monitor', this.t('nav.monitoring', 'Monitoring Produksi'))}
                             ` : ''}
 
                             <!-- MODUL 2: ANALISIS & PERFORMANCE -->
@@ -1051,14 +1051,14 @@ class OeeApp {
                                 <div class="px-2.5 pt-1.5 pb-1 flex items-center justify-between">
                                     <span class="sidebar-section-title text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
                                         <i data-lucide="bar-chart-2" class="w-3 h-3 text-sky-400"></i>
-                                        <span>${this.t('nav.section_analytics', 'Analisis & SPC')}</span>
+                                        <span>${this.t('nav.section_analytics', 'ANALISIS & SPC')}</span>
                                     </span>
                                 </div>
-                                ${this.navItem('machines', 'cpu', this.t('nav.machine_perf', 'Machine Performance'))}
-                                ${this.navItem('lines', 'git-fork', this.t('nav.line_perf', 'Production Lines'))}
-                                ${this.navItem('shifts', 'clock', this.t('nav.shift_team_perf', 'Shift & Team Perform'))}
-                                ${this.navItem('downtime', 'alert-triangle', this.t('nav.downtime_analysis', 'Downtime Analysis'))}
-                                ${this.navItem('quality', 'pie-chart', this.t('nav.quality_perf', 'Quality Performance'), 'PARETO')}
+                                ${this.navItem('machines', 'cpu', this.t('nav.machine_perf', 'Kinerja Mesin'))}
+                                ${this.navItem('lines', 'git-fork', this.t('nav.line_perf', 'Lini Produksi'))}
+                                ${this.navItem('shifts', 'clock', this.t('nav.shift_team_perf', 'Kinerja Shift & Tim'))}
+                                ${this.navItem('downtime', 'alert-triangle', this.t('nav.downtime_analysis', 'Analisis Downtime'))}
+                                ${this.navItem('quality', 'pie-chart', this.t('nav.quality_perf', 'Kinerja Kualitas'), 'PARETO')}
                             ` : ''}
 
                             <!-- MODUL 3: REPORT & DATA MASTER -->
@@ -1067,10 +1067,10 @@ class OeeApp {
                                 <div class="px-2.5 pt-1.5 pb-1 flex items-center justify-between">
                                     <span class="sidebar-section-title text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
                                         <i data-lucide="file-text" class="w-3 h-3 text-emerald-400"></i>
-                                        <span>${this.t('nav.section_reports', 'Master & Laporan')}</span>
+                                        <span>${this.t('nav.section_reports', 'MASTER DATA & LAPORAN')}</span>
                                     </span>
                                 </div>
-                                ${this.navItem('reports', 'file-bar-chart', this.t('nav.reports', 'Reports & Export'))}
+                                ${this.navItem('reports', 'file-bar-chart', this.t('nav.reports', 'Laporan & Ekspor Data'))}
                                 ${this.navItem('master', 'database', this.t('nav.master_data', 'Master Data'))}
                             ` : ''}
 
@@ -1080,12 +1080,12 @@ class OeeApp {
                                 <div class="px-2.5 pt-1.5 pb-1 flex items-center justify-between">
                                     <span class="sidebar-section-title text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
                                         <i data-lucide="shield" class="w-3 h-3 text-indigo-400"></i>
-                                        <span>${this.t('nav.section_system', 'Sistem & Akses')}</span>
+                                        <span>${this.t('nav.section_system', 'SISTEM & AKSES')}</span>
                                     </span>
                                 </div>
-                                ${this.navItem('users', 'users', this.t('nav.users', 'User Management'))}
-                                ${this.navItem('settings', 'settings', this.t('nav.settings', 'System Settings'))}
-                                ${this.navItem('database', 'hard-drive', this.t('nav.database', 'Manajemen Database'), 'GO-LIVE')}
+                                ${this.navItem('users', 'users', this.t('nav.users', 'Manajemen Pengguna'))}
+                                ${this.navItem('settings', 'settings', this.t('nav.settings', 'Pengaturan Sistem'))}
+                                ${this.navItem('database', 'hard-drive', this.t('nav.database', 'Manajemen Basis Data'), 'GO-LIVE')}
                             ` : ''}
                         </nav>
                     </div>
