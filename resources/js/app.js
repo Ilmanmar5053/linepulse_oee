@@ -2192,10 +2192,8 @@ tbody.innerHTML = '';
                             </div>
                             <div>
                                 <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
-                                    <span>Resume Semua Hasil Produksi</span>
-                                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">LIVE RESUME</span>
+                                    <span>Resume Hasil Produksi Global</span>
                                 </h3>
-                                <p class="text-xs text-slate-400">Ringkasan total kuantitas rencana target, aktual output, good product, reject defect, serta waktu loss periode ini</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
@@ -2275,13 +2273,8 @@ tbody.innerHTML = '';
                     <div>
                         <h3 class="text-base font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
                             <i data-lucide="line-chart" class="w-5 h-5 text-cyan-400"></i>
-                            <span>Grafik Performa OEE & Hasil Produksi (Semua Line FX-1 s/d FX-11)</span>
-                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-800/60 flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-                                FX-1 ~ FX-11
-                            </span>
+                            <span>Grafik Performa OEE - Semua Line</span>
                         </h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Visualisasi kurva mulus performa Lini Produksi FX-1 sampai FX-11 secara komparatif dengan breakpoint interaktif</p>
                     </div>
 
                     <!-- MODE TOGGLE PILLS -->
