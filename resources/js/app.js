@@ -9340,16 +9340,15 @@ tbody.innerHTML = '';
                                             </td>
                                         </tr>
                                         ${group.items.map((it, idx) => {
-                                            const isPln = it.is_planned;
-                                            const catBadgeClass = isPln 
-                                                ? 'bg-cyan-950 text-cyan-300 border-cyan-800' 
-                                                : (it.problem_type === 'Mesin' 
-                                                    ? 'bg-rose-950 text-rose-300 border-rose-800' 
-                                                    : (it.problem_type === 'Dies' 
-                                                        ? 'bg-purple-950 text-purple-300 border-purple-800' 
-                                                        : (it.problem_type === 'Listrik' 
-                                                            ? 'bg-amber-950 text-amber-300 border-amber-800' 
-                                                            : 'bg-slate-800 text-slate-300 border-slate-700')));
+                                            const catBadgeClass = 
+                                                it.problem_type === 'Problem Mesin Mekanik' ? 'bg-rose-950 text-rose-300 border-rose-800' :
+                                                it.problem_type === 'Problem Mesin Elektrik' ? 'bg-amber-950 text-amber-300 border-amber-800' :
+                                                it.problem_type === 'Problem Tool' ? 'bg-orange-950 text-orange-300 border-orange-800' :
+                                                it.problem_type === 'Planning Downtime' ? 'bg-blue-950 text-blue-300 border-blue-800' :
+                                                it.problem_type === 'Inventory' ? 'bg-purple-950 text-purple-300 border-purple-800' :
+                                                'bg-slate-800 text-slate-300 border border-slate-700';
+
+                                            const isClosed = String(it.status || '').toUpperCase() === 'CLOSED' || String(it.status || '').toUpperCase() === 'RESOLVED';
                                             return `
                                                 <tr class="hover:bg-slate-800/40 transition-colors">
                                                     <td class="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400">${idx + 1}</td>
@@ -9366,15 +9365,16 @@ tbody.innerHTML = '';
                                                     </td>
                                                     <td class="py-2.5 px-3 whitespace-nowrap">
                                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 font-mono">${it.shift_name}</span>
+                                                        ${it.team ? `<div class="text-[10px] text-amber-400 font-bold mt-1">👥 ${it.team}</div>` : ''}
                                                     </td>
                                                     <td class="py-2.5 px-3 whitespace-nowrap">
                                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${catBadgeClass}">
-                                                            ${it.problem_type || 'Mesin'}
+                                                            ${it.problem_type || 'Problem Mesin Mekanik'}
                                                         </span>
                                                     </td>
-                                                    <td class="py-2.5 px-3 max-w-[220px]">
-                                                        <div class="text-rose-300 font-semibold text-xs leading-snug">${this.escapeHtml(it.root_cause || '-')}</div>
-                                                        ${it.reason_name && it.reason_name !== it.root_cause ? `<div class="text-[10px] text-slate-400 truncate mt-0.5">${this.escapeHtml(it.reason_name)}</div>` : ''}
+                                                    <td class="py-2.5 px-3 max-w-[240px]">
+                                                        <div class="text-rose-300 font-bold text-xs leading-snug">${this.escapeHtml(it.description || it.root_cause || '-')}</div>
+                                                        ${it.cause && it.cause !== '-' ? `<div class="text-[11px] text-amber-300 font-medium mt-1 flex items-start gap-1"><span class="text-slate-400 text-[9px] uppercase font-mono px-1 py-0.2 rounded bg-slate-800 border border-slate-700">Penyebab</span> <span>${this.escapeHtml(it.cause)}</span></div>` : ''}
                                                     </td>
                                                     <td class="py-2.5 px-3 text-right font-mono whitespace-nowrap">
                                                         <div class="font-bold text-amber-400 text-sm">${it.duration_minutes}<span class="text-[10px] font-normal text-slate-400 ml-0.5">m</span></div>
@@ -9384,11 +9384,11 @@ tbody.innerHTML = '';
                                                         <div class="text-emerald-300 text-xs leading-snug">${this.escapeHtml(it.action_plan || 'Penyetelan & perbaikan oleh teknisi.')}</div>
                                                     </td>
                                                     <td class="py-2.5 px-3 whitespace-nowrap">
-                                                        <div class="text-xs text-slate-300 font-medium">${this.escapeHtml(it.pic || 'Maintenance')}</div>
+                                                        <div class="text-xs text-cyan-300 font-medium">${this.escapeHtml(it.pic || 'Maintenance')}</div>
                                                     </td>
                                                     <td class="py-2.5 px-3 text-center whitespace-nowrap">
-                                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${it.status === 'RESOLVED' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-amber-950 text-amber-400 border-amber-800'}">
-                                                            ${it.status === 'RESOLVED' ? '✓ SELESAI' : '⏳ ONGOING'}
+                                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${isClosed ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-rose-950 text-rose-400 border-rose-800 animate-pulse'}">
+                                                            ${isClosed ? '✓ CLOSED' : '⏳ OPEN'}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -11189,11 +11189,11 @@ tbody.innerHTML = '';
                             <td>${it.product_name}</td>
                             <td>${it.shift_name}</td>
                             <td><strong>${it.problem_type}</strong></td>
-                            <td style="color: #991B1B; font-weight: 600;">${it.root_cause || '-'}<br><span style="color: #64748b; font-size: 7px;">${it.reason_name || ''}</span></td>
+                            <td style="color: #991B1B; font-weight: 600;">${it.description || it.root_cause || '-'}${it.cause && it.cause !== '-' ? `<br><span style="color: #475569; font-size: 7.5px;">Penyebab: ${it.cause}</span>` : ''}</td>
                             <td class="text-right font-bold" style="color: #B45309;">${it.duration_minutes}m<br><span style="color: #64748b; font-size: 7px; font-weight: normal;">${it.duration_hours}h</span></td>
                             <td style="color: #065F46;">${it.action_plan || 'Penyetelan dan perbaikan teknisi.'}</td>
                             <td>${it.pic || 'Maintenance'}</td>
-                            <td class="text-center font-bold" style="color: ${it.status === 'RESOLVED' ? '#047857' : '#D97706'};">${it.status === 'RESOLVED' ? 'OK' : 'ONGOING'}</td>
+                            <td class="text-center font-bold" style="color: ${String(it.status).toUpperCase() === 'CLOSED' || it.status === 'RESOLVED' ? '#047857' : '#D97706'};">${String(it.status).toUpperCase() === 'CLOSED' || it.status === 'RESOLVED' ? 'CLOSED' : 'OPEN'}</td>
                         </tr>
                     `).join('')}
                 `;

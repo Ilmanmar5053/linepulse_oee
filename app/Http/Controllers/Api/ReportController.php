@@ -565,9 +565,9 @@ class ReportController extends Controller
             $dateFmt = $dateObj->format('d M Y');
             $timeWindow = ($dt->start_time ? $dt->start_time->format('H:i') : '00:00') . ' - ' . ($dt->end_time ? $dt->end_time->format('H:i') : 'ONGOING');
 
-            $probType = !empty($dt->problem_type) ? trim($dt->problem_type) : ($isPlanned ? 'Planned Maintenance' : 'Mesin');
-            $reason = !empty($dt->downtimeReason->name) ? $dt->downtimeReason->name : ($dt->downtimeCategory->name ?? 'Gangguan Operasional Mesin');
-            $rca = !empty($dt->description) ? $dt->description : $reason;
+            $probType = !empty($dt->problem_type) ? trim($dt->problem_type) : ($isPlanned ? 'Planned Downtime' : 'Problem Mesin Mekanik');
+            $problem = !empty($dt->description) ? $dt->description : '-';
+            $cause = !empty($dt->cause) ? $dt->cause : '-';
             $capa = !empty($dt->action_taken) ? $dt->action_taken : 'Penyetelan & perbaikan teknisi.';
 
             $mCode = $dt->machine->code ?? ($dt->machine->name ?? "MC-{$dt->machine_id}");
@@ -575,7 +575,8 @@ class ReportController extends Controller
             $lName = $dt->productionLine->name ?? ($dt->machine->workCenter->productionLine->name ?? 'Production Line');
             $pName = $dt->product ? "{$dt->product->name} - {$dt->product->sku}" : ($dt->productionRecord->product ? "{$dt->productionRecord->product->name} - {$dt->productionRecord->product->sku}" : 'Standard Product');
             $sName = $dt->shift->name ?? ($dt->productionRecord->shift->name ?? 'Shift 1');
-            $pic = !empty($dt->team) ? "{$dt->team} Team" : ($dt->creator->name ?? 'Maintenance');
+            $pic = !empty($dt->pic) ? $dt->pic : (!empty($dt->team) ? "{$dt->team} Team" : ($dt->creator->name ?? 'Maintenance'));
+            $status = !empty($dt->status) ? strtoupper($dt->status) : ($dt->end_time ? 'CLOSED' : 'OPEN');
 
             // Category aggregator
             if (!isset($categoryBreakdown[$probType])) {
@@ -609,16 +610,19 @@ class ReportController extends Controller
                 'product_name' => $pName,
                 'shift_id' => $dt->shift_id,
                 'shift_name' => $sName,
+                'team' => $dt->team,
                 'problem_type' => $probType,
-                'reason_name' => $reason,
-                'root_cause' => $rca,
+                'description' => $problem,
+                'cause' => $cause,
+                'reason_name' => $cause !== '-' ? $cause : '',
+                'root_cause' => $cause !== '-' ? $cause : ($problem !== '-' ? $problem : '-'),
                 'action_plan' => $capa,
                 'duration_minutes' => $dur,
                 'duration_hours' => round($dur / 60.0, 2),
                 'is_planned' => $isPlanned,
-                'type_label' => $isPlanned ? 'Planned Maintenance' : 'Unplanned Breakdown',
+                'type_label' => $isPlanned ? 'Planned Downtime' : 'Unplanned Breakdown',
                 'pic' => $pic,
-                'status' => $dt->end_time ? 'RESOLVED' : 'ONGOING',
+                'status' => $status,
             ];
         }
 
