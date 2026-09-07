@@ -202,11 +202,31 @@ class NgReportController extends Controller
                 ];
             });
 
+        // Bank Data Master OP Mesin dari Database
+        $machinesList = \App\Models\Machine::with('workCenter.productionLine')
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $opMachinesBank = $machinesList->map(function ($m) {
+            $lineName = $m->workCenter?->productionLine?->name ?? $m->workCenter?->productionLine?->code ?? '';
+            $displayName = $m->name ? ($lineName ? "{$m->name} ({$m->code} - {$lineName})" : "{$m->name} ({$m->code})") : $m->code;
+            return [
+                'id' => $m->id,
+                'code' => $m->code,
+                'name' => $m->name,
+                'line_id' => $m->workCenter?->production_line_id,
+                'line_name' => $lineName,
+                'display' => $displayName,
+            ];
+        })->values()->toArray();
+
         return response()->json([
             'success' => true,
             'bank_data' => [
                 'sections' => $ngSectionsBank,
                 'reasons' => $defectReasonsBank,
+                'op_machines' => $opMachinesBank,
             ],
             'summary' => [
                 'total_reports_with_ng' => $totalReportsWithNg,
@@ -283,16 +303,42 @@ class NgReportController extends Controller
                 ];
             });
 
+        $lineId = $record->production_line_id;
+        $machinesList = \App\Models\Machine::with('workCenter.productionLine')
+            ->where('is_active', true)
+            ->when($lineId, function ($q) use ($lineId) {
+                $q->whereHas('workCenter', function ($wc) use ($lineId) {
+                    $wc->where('production_line_id', $lineId);
+                });
+            })
+            ->orderBy('code')
+            ->get();
+
+        $opMachinesBank = $machinesList->map(function ($m) {
+            $lineName = $m->workCenter?->productionLine?->name ?? $m->workCenter?->productionLine?->code ?? '';
+            $displayName = $m->name ? ($lineName ? "{$m->name} ({$m->code} - {$lineName})" : "{$m->name} ({$m->code})") : $m->code;
+            return [
+                'id' => $m->id,
+                'code' => $m->code,
+                'name' => $m->name,
+                'line_id' => $m->workCenter?->production_line_id,
+                'line_name' => $lineName,
+                'display' => $displayName,
+            ];
+        })->values()->toArray();
+
         return response()->json([
             'success' => true,
             'bank_data' => [
                 'sections' => $ngSectionsBank,
                 'reasons' => $defectReasonsBank,
+                'op_machines' => $opMachinesBank,
             ],
             'data' => [
                 'production_record_id' => $record->id,
                 'production_date' => $record->production_date ? Carbon::parse($record->production_date)->format('Y-m-d') : '-',
                 'formatted_date' => $record->production_date ? Carbon::parse($record->production_date)->format('d M Y') : '-',
+                'line_id' => $record->production_line_id,
                 'line_name' => $record->productionLine->name ?? 'Production Line',
                 'machine_name' => $record->machine->name ?? 'Machine',
                 'machine_code' => $record->machine->code ?? '-',
@@ -344,6 +390,7 @@ class NgReportController extends Controller
             'items' => 'nullable|array',
             'items.*.component_type' => 'required_with:items|in:ASSY,ROD,CAP',
             'items.*.quantity' => 'required_with:items|integer|min:0',
+            'items.*.op_machine' => 'nullable|string|max:100',
             'items.*.section' => 'nullable|string|max:100',
             'items.*.reason' => 'nullable|string|max:255',
             'ng_assy' => 'nullable|integer|min:0',
@@ -390,6 +437,7 @@ class NgReportController extends Controller
                 if ($qty <= 0) continue;
 
                 $type = strtoupper(trim($it['component_type'] ?? 'ASSY'));
+                $opMachine = trim($it['op_machine'] ?? '');
                 $sec = trim($it['section'] ?? '');
                 $rsn = trim($it['reason'] ?? '');
 
@@ -410,6 +458,7 @@ class NgReportController extends Controller
                 $cleanedItems[] = [
                     'component_type' => $type,
                     'quantity' => $qty,
+                    'op_machine' => $opMachine ?: null,
                     'section' => $sec ?: null,
                     'reason' => $rsn ?: null,
                 ];

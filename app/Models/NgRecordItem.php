@@ -14,6 +14,7 @@ class NgRecordItem extends Model
         'ng_record_id',
         'component_type',
         'quantity',
+        'op_machine',
         'section',
         'reason',
     ];

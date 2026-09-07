@@ -6681,6 +6681,7 @@ tbody.innerHTML = '';
                                                                     ${((ng.items && ng.items.length > 0) ? ng.items : (ng.items_breakdown || [])).map(it => `
                                                                         <div class="text-[10px] ${isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-950/60 border-slate-800/80 text-slate-300'} border px-1.5 py-0.5 rounded flex items-center gap-1.5 truncate">
                                                                             <span class="font-mono font-bold ${isLight ? 'text-sky-700' : 'text-cyan-400'} shrink-0">${it.component_type || 'ASSY'}: ${it.quantity}x</span>
+                                                                            ${it.op_machine ? `<span class="px-1 py-0.2 rounded text-[9px] font-mono font-semibold ${isLight ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-purple-950 text-purple-300 border border-purple-800'} shrink-0">${it.op_machine}</span>` : ''}
                                                                             <span class="${isLight ? 'text-slate-700' : 'text-slate-400'} truncate">${it.section || '-'}</span>
                                                                             <span class="text-slate-400 shrink-0">•</span>
                                                                             <span class="${isLight ? 'text-amber-800 font-semibold' : 'text-amber-400'} truncate">${it.reason || '-'}</span>
@@ -6925,6 +6926,13 @@ tbody.innerHTML = '';
             ];
 
             const reasonsBank = detailRes.data.bank_data?.reasons || [];
+            const opMachinesBank = detailRes.data.bank_data?.op_machines || this.masterData?.machines?.map(m => ({
+                id: m.id,
+                name: m.name,
+                code: m.code,
+                line_id: m.line_id,
+                label: m.name + (m.code ? ` (${m.code})` : '')
+            })) || [];
 
             // Initialize Dynamic NG Breakdown Items State
             let ngItemsState = [];
@@ -6932,6 +6940,7 @@ tbody.innerHTML = '';
                 ngItemsState = ng.items.map(it => ({
                     component_type: it.component_type || 'ASSY',
                     quantity: parseInt(it.quantity || 1),
+                    op_machine: it.op_machine || '',
                     section: it.section || '',
                     reason: it.reason || ''
                 }));
@@ -6939,6 +6948,7 @@ tbody.innerHTML = '';
                 ngItemsState = ng.items_breakdown.map(it => ({
                     component_type: it.component_type || 'ASSY',
                     quantity: parseInt(it.quantity || 1),
+                    op_machine: it.op_machine || '',
                     section: it.section || '',
                     reason: it.reason || ''
                 }));
@@ -6947,6 +6957,7 @@ tbody.innerHTML = '';
                     ngItemsState.push({
                         component_type: 'ASSY',
                         quantity: parseInt(ng.ng_assy),
+                        op_machine: ng.op_machine || '',
                         section: ng.assy_section || '',
                         reason: ng.assy_reason || ''
                     });
@@ -6955,6 +6966,7 @@ tbody.innerHTML = '';
                     ngItemsState.push({
                         component_type: 'ROD',
                         quantity: parseInt(ng.ng_rod),
+                        op_machine: ng.op_machine || '',
                         section: ng.rod_section || '',
                         reason: ng.rod_reason || ''
                     });
@@ -6963,6 +6975,7 @@ tbody.innerHTML = '';
                     ngItemsState.push({
                         component_type: 'CAP',
                         quantity: parseInt(ng.ng_cap),
+                        op_machine: ng.op_machine || '',
                         section: ng.cap_section || '',
                         reason: ng.cap_reason || ''
                     });
@@ -6974,6 +6987,7 @@ tbody.innerHTML = '';
                 ngItemsState.push({
                     component_type: 'ASSY',
                     quantity: targetNg > 0 ? targetNg : 1,
+                    op_machine: '',
                     section: '',
                     reason: ''
                 });
@@ -7074,6 +7088,13 @@ tbody.innerHTML = '';
                                     </div>
 
                                     <!-- DATALISTS FOR INSTANT SEARCH-AS-YOU-TYPE AUTOCOMPLETE -->
+                                    <datalist id="ng-op-machines-datalist">
+                                        ${opMachinesBank.map(m => {
+                                            const val = typeof m === 'object' ? (m.name || m.label) : m;
+                                            const label = typeof m === 'object' ? (m.label || m.name) : m;
+                                            return `<option value="${val}">${label !== val ? label : ''}</option>`;
+                                        }).join('')}
+                                    </datalist>
                                     <datalist id="ng-sections-datalist">
                                         ${sectionsBank.map(s => `<option value="${s}">${s}</option>`).join('')}
                                     </datalist>
@@ -7087,10 +7108,11 @@ tbody.innerHTML = '';
                                             <thead class="sticky top-0 z-10 ${isLightModal ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-900 text-slate-300 border-slate-700'} uppercase font-semibold text-[10px] border-b shadow-xs">
                                                 <tr>
                                                     <th class="p-2.5 text-center w-8 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">#</th>
-                                                    <th class="p-2.5 w-32 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Komponen OEE <span class="text-rose-500">*</span></th>
-                                                    <th class="p-2.5 w-28 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Jumlah (Pcs) <span class="text-rose-500">*</span></th>
-                                                    <th class="p-2.5 min-w-[160px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Bagian NG (Ketik / Cari)</th>
-                                                    <th class="p-2.5 min-w-[240px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Penyebab / Remark (Ketik / Cari)</th>
+                                                    <th class="p-2.5 w-28 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Komponen OEE <span class="text-rose-500">*</span></th>
+                                                    <th class="p-2.5 w-24 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Jumlah (Pcs) <span class="text-rose-500">*</span></th>
+                                                    <th class="p-2.5 min-w-[140px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">OP Mesin (Ketik / Cari)</th>
+                                                    <th class="p-2.5 min-w-[140px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Bagian NG (Ketik / Cari)</th>
+                                                    <th class="p-2.5 min-w-[180px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Penyebab / Remark (Ketik / Cari)</th>
                                                     <th class="p-2.5 text-center w-10 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Aksi</th>
                                                 </tr>
                                             </thead>
@@ -7220,6 +7242,23 @@ tbody.innerHTML = '';
                             </td>
                             <td class="p-2">
                                 <input type="number" min="1" value="${row.quantity}" data-row-idx="${idx}" data-field="quantity" required class="w-full ${isLightModal ? 'bg-slate-50 border-slate-200 text-cyan-900' : 'bg-slate-950 border-slate-800 text-cyan-400'} border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-cyan-500" />
+                            </td>
+                            <td class="p-2 font-sans">
+                                <div class="relative flex items-center">
+                                    <input 
+                                        type="text" 
+                                        list="ng-op-machines-datalist" 
+                                        data-row-idx="${idx}" 
+                                        data-field="op_machine" 
+                                        value="${row.op_machine || ''}" 
+                                        placeholder="Ketik / pilih OP Mesin..." 
+                                        autocomplete="off"
+                                        class="w-full ${isLightModal ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:bg-cyan-50/20' : 'bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:bg-slate-900'} border rounded-lg pl-2.5 pr-6 py-1.5 text-xs font-sans focus:outline-none focus:border-cyan-500 shadow-xs transition-colors" 
+                                    />
+                                    <span class="absolute right-2 text-slate-400 pointer-events-none">
+                                        <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                                    </span>
+                                </div>
                             </td>
                             <td class="p-2 font-sans">
                                 <div class="relative flex items-center">
@@ -7358,6 +7397,7 @@ tbody.innerHTML = '';
                     ngItemsState.push({
                         component_type: 'ASSY',
                         quantity: 1,
+                        op_machine: '',
                         section: '',
                         reason: ''
                     });
@@ -11929,6 +11969,13 @@ tbody.innerHTML = '';
                 ${group.items.map((it, i) => {
                     const dRate = it.total_output > 0 ? ((it.total_ng_target / it.total_output) * 100).toFixed(2) : '0.00';
                     const ng = it.ng_detail || {};
+                    const itemsBreakdown = (ng.items && ng.items.length > 0) ? ng.items : (ng.items_breakdown || []);
+                    let defectText = '';
+                    if (itemsBreakdown.length > 0) {
+                        defectText = itemsBreakdown.map(b => `<strong>${b.component_type || 'ASSY'}${b.op_machine ? ` [${b.op_machine}]` : ''}:</strong> ${b.quantity}x ${b.section ? `(${b.section})` : ''} - ${b.reason || ''}`).join('<br>');
+                    } else {
+                        defectText = `<strong>${ng.defect_category_name || (ng.defect_symptom ? ng.defect_symptom : 'Defect Proses')}</strong><br><span style="font-size: 7.5px;">${ng.defect_reason_name || ng.notes || '-'}</span>`;
+                    }
                     return `
                         <tr>
                             <td class="text-center">${i + 1}</td>
@@ -11941,7 +11988,7 @@ tbody.innerHTML = '';
                             <td class="text-right">${dRate}%</td>
                             <td class="text-center font-bold">A:${ng.ng_assy || 0} | R:${ng.ng_rod || 0} | C:${ng.ng_cap || 0}</td>
                             <td class="text-center">B:${ng.ng_bolt || 0} | Bs:${ng.ng_bush || 0} | N:${ng.ng_nut || 0} | P:${ng.ng_pin || 0}</td>
-                            <td><strong>${ng.defect_category_name || (ng.defect_symptom ? ng.defect_symptom : 'Defect Proses')}</strong><br><span style="font-size: 7.5px;">${ng.defect_reason_name || ng.notes || '-'}</span></td>
+                            <td>${defectText}</td>
                             <td>${ng.action_taken || '-'}</td>
                         </tr>
                     `;
@@ -12160,6 +12207,13 @@ tbody.innerHTML = '';
             ${group.items.map((it, idx) => {
                 const dRate = it.total_output > 0 ? ((it.total_ng_target / it.total_output) * 100).toFixed(2) : '0.00';
                 const ng = it.ng_detail || {};
+                const itemsBreakdown = (ng.items && ng.items.length > 0) ? ng.items : (ng.items_breakdown || []);
+                let defectText = '';
+                if (itemsBreakdown.length > 0) {
+                    defectText = itemsBreakdown.map(b => `${b.component_type || 'ASSY'}${b.op_machine ? ` [${b.op_machine}]` : ''}: ${b.quantity}x ${b.section || ''} - ${b.reason || ''}`).join('; ');
+                } else {
+                    defectText = ng.defect_category_name || ng.defect_symptom || '-';
+                }
                 return `
                     <tr>
                         <td class="td-cell-center">${idx + 1}</td>
@@ -12174,7 +12228,7 @@ tbody.innerHTML = '';
                         <td class="td-cell-pct">${dRate}%</td>
                         <td class="td-cell-center">A:${ng.ng_assy || 0} | R:${ng.ng_rod || 0} | C:${ng.ng_cap || 0}</td>
                         <td class="td-cell-center">B:${ng.ng_bolt || 0} | Bs:${ng.ng_bush || 0} | N:${ng.ng_nut || 0} | P:${ng.ng_pin || 0}</td>
-                        <td class="td-cell">${ng.defect_category_name || ng.defect_symptom || '-'}</td>
+                        <td class="td-cell">${defectText}</td>
                         <td class="td-cell">${ng.action_taken || '-'}</td>
                         <td class="td-cell">${ng.inspector_name || it.operator_name || 'QC'}</td>
                     </tr>
