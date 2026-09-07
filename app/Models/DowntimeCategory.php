@@ -10,7 +10,7 @@ class DowntimeCategory extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['code', 'name', 'is_planned'];
+    protected $fillable = ['code', 'name', 'is_planned', 'description'];
 
     protected $casts = [
         'is_planned' => 'boolean',

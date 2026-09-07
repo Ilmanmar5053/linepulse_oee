@@ -91,6 +91,12 @@ Route::prefix('api/v1')->group(function () {
         Route::put('/products/{id}', [MasterDataController::class, 'updateProduct']);
         Route::delete('/products/{id}', [MasterDataController::class, 'destroyProduct']);
 
+        Route::get('/downtime-categories', [MasterDataController::class, 'downtimeCategories']);
+        Route::post('/downtime-categories', [MasterDataController::class, 'storeDowntimeCategory']);
+        Route::post('/downtime-categories/import', [MasterDataController::class, 'importDowntimeCategories']);
+        Route::put('/downtime-categories/{id}', [MasterDataController::class, 'updateDowntimeCategory']);
+        Route::delete('/downtime-categories/{id}', [MasterDataController::class, 'destroyDowntimeCategory']);
+
         Route::get('/downtime-reasons', [MasterDataController::class, 'downtimeReasons']);
         Route::post('/downtime-reasons', [MasterDataController::class, 'storeDowntimeReason']);
         Route::put('/downtime-reasons/{id}', [MasterDataController::class, 'updateDowntimeReason']);

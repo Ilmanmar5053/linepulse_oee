@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\DefectCategory;
 use App\Models\DefectReason;
+use App\Models\DowntimeCategory;
 use App\Models\DowntimeReason;
 use App\Models\Machine;
 use App\Models\NgSection;
@@ -348,54 +349,126 @@ class MasterDataController extends Controller
         return response()->json(['success' => true, 'message' => 'Product deleted']);
     }
 
-    // DOWNTIME REASONS
-    public function downtimeReasons(): JsonResponse
+    // DOWNTIME CATEGORIES (KATEGORI PROBLEM)
+    public function downtimeCategories(): JsonResponse
     {
         return response()->json([
             'success' => true,
-            'data' => DowntimeReason::with('downtimeCategory')->get(),
+            'data' => DowntimeCategory::orderBy('id')->get(),
         ]);
+    }
+
+    public function storeDowntimeCategory(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|unique:downtime_categories,code',
+            'name' => 'required|string|max:255',
+            'is_planned' => 'nullable',
+            'description' => 'nullable|string',
+        ]);
+
+        $validated['is_planned'] = $request->boolean('is_planned', false);
+        $category = DowntimeCategory::create($validated);
+
+        return response()->json(['success' => true, 'message' => 'Kategori Problem berhasil ditambahkan', 'data' => $category], 201);
+    }
+
+    public function updateDowntimeCategory(Request $request, $id): JsonResponse
+    {
+        $category = DowntimeCategory::findOrFail($id);
+        $validated = $request->validate([
+            'code' => 'required|string|unique:downtime_categories,code,' . $id,
+            'name' => 'required|string|max:255',
+            'is_planned' => 'nullable',
+            'description' => 'nullable|string',
+        ]);
+
+        if ($request->has('is_planned')) {
+            $validated['is_planned'] = $request->boolean('is_planned');
+        }
+
+        $category->update($validated);
+        return response()->json(['success' => true, 'message' => 'Kategori Problem berhasil diperbarui', 'data' => $category]);
+    }
+
+    public function destroyDowntimeCategory($id): JsonResponse
+    {
+        $category = DowntimeCategory::findOrFail($id);
+        $category->delete();
+        return response()->json(['success' => true, 'message' => 'Kategori Problem berhasil dihapus']);
+    }
+
+    public function importDowntimeCategories(Request $request): JsonResponse
+    {
+        $items = $request->input('items', []);
+        if (empty($items) || !is_array($items)) {
+            return response()->json(['success' => false, 'message' => 'Tidak ada data kategori problem untuk diimpor.'], 422);
+        }
+
+        $imported = 0;
+        $updated = 0;
+        $errors = [];
+
+        foreach ($items as $idx => $row) {
+            $code = trim($row['code'] ?? $row['Kode Kategori'] ?? $row['KODE'] ?? '');
+            $name = trim($row['name'] ?? $row['Nama Kategori'] ?? $row['Kategori Problem'] ?? $row['CATEGORY'] ?? '');
+            $typeStr = strtoupper(trim((string) ($row['type'] ?? $row['is_planned'] ?? $row['Tipe'] ?? $row['TYPE'] ?? 'UNPLANNED')));
+            $isPlanned = ($typeStr === 'PLANNED' || $typeStr === '1' || $typeStr === 'TRUE');
+            $desc = trim($row['description'] ?? $row['Keterangan'] ?? $row['DESCRIPTION'] ?? '');
+
+            if (empty($code) || empty($name)) {
+                $errors[] = "Baris #" . ($idx + 1) . ": Kode dan Nama Kategori Problem wajib diisi.";
+                continue;
+            }
+
+            $cat = DowntimeCategory::where('code', $code)->first();
+            if ($cat) {
+                $cat->update([
+                    'name' => $name,
+                    'is_planned' => $isPlanned,
+                    'description' => $desc ?: $cat->description,
+                ]);
+                $updated++;
+            } else {
+                DowntimeCategory::create([
+                    'code' => $code,
+                    'name' => $name,
+                    'is_planned' => $isPlanned,
+                    'description' => $desc,
+                ]);
+                $imported++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Import Kategori Problem selesai: {$imported} data baru, {$updated} diperbarui.",
+            'imported_count' => $imported,
+            'updated_count' => $updated,
+            'errors' => $errors,
+            'data' => DowntimeCategory::orderBy('id')->get()
+        ]);
+    }
+
+    // DOWNTIME REASONS ALIAS
+    public function downtimeReasons(): JsonResponse
+    {
+        return $this->downtimeCategories();
     }
 
     public function storeDowntimeReason(Request $request): JsonResponse
     {
-        if (!$request->has('downtime_category_id') || empty($request->downtime_category_id)) {
-            $request->merge(['downtime_category_id' => 1]);
-        }
-        if (!$request->has('six_big_loss_category') || empty($request->six_big_loss_category)) {
-            $request->merge(['six_big_loss_category' => 'EQUIPMENT_FAILURE']);
-        }
-        $validated = $request->validate([
-            'downtime_category_id' => 'required|exists:downtime_categories,id',
-            'six_big_loss_category' => 'required|string',
-            'code' => 'required|string|unique:downtime_reasons,code',
-            'name' => 'required|string',
-            'description' => 'nullable|string',
-        ]);
-
-        $reason = DowntimeReason::create($validated);
-
-        return response()->json(['success' => true, 'message' => 'Downtime reason created', 'data' => $reason], 201);
+        return $this->storeDowntimeCategory($request);
     }
 
     public function updateDowntimeReason(Request $request, $id): JsonResponse
     {
-        $reason = DowntimeReason::findOrFail($id);
-        $validated = $request->validate([
-            'code' => 'required|string|unique:downtime_reasons,code,' . $id,
-            'name' => 'required|string',
-            'description' => 'nullable|string',
-        ]);
-
-        $reason->update($validated);
-        return response()->json(['success' => true, 'message' => 'Downtime reason updated', 'data' => $reason]);
+        return $this->updateDowntimeCategory($request, $id);
     }
 
     public function destroyDowntimeReason($id): JsonResponse
     {
-        $reason = DowntimeReason::findOrFail($id);
-        $reason->delete();
-        return response()->json(['success' => true, 'message' => 'Downtime reason deleted']);
+        return $this->destroyDowntimeCategory($id);
     }
 
     // NG SECTIONS (BAGIAN NG)

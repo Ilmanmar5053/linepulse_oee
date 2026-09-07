@@ -70,10 +70,16 @@ export const api = {
     updateProduct: (id, data) => axios.put(`${API_BASE}/master/products/${id}`, data),
     deleteProduct: (id) => axios.delete(`${API_BASE}/master/products/${id}`),
 
-    getDowntimeReasons: () => axios.get(`${API_BASE}/master/downtime-reasons`),
-    createDowntimeReason: (data) => axios.post(`${API_BASE}/master/downtime-reasons`, data),
-    updateDowntimeReason: (id, data) => axios.put(`${API_BASE}/master/downtime-reasons/${id}`, data),
-    deleteDowntimeReason: (id) => axios.delete(`${API_BASE}/master/downtime-reasons/${id}`),
+    getDowntimeReasons: () => axios.get(`${API_BASE}/master/downtime-categories`),
+    createDowntimeReason: (data) => axios.post(`${API_BASE}/master/downtime-categories`, data),
+    updateDowntimeReason: (id, data) => axios.put(`${API_BASE}/master/downtime-categories/${id}`, data),
+    deleteDowntimeReason: (id) => axios.delete(`${API_BASE}/master/downtime-categories/${id}`),
+
+    getDowntimeCategories: () => axios.get(`${API_BASE}/master/downtime-categories`),
+    createDowntimeCategory: (data) => axios.post(`${API_BASE}/master/downtime-categories`, data),
+    importDowntimeCategories: (data) => axios.post(`${API_BASE}/master/downtime-categories/import`, data),
+    updateDowntimeCategory: (id, data) => axios.put(`${API_BASE}/master/downtime-categories/${id}`, data),
+    deleteDowntimeCategory: (id) => axios.delete(`${API_BASE}/master/downtime-categories/${id}`),
 
     getNgSections: () => axios.get(`${API_BASE}/master/ng-sections`),
     createNgSection: (data) => axios.post(`${API_BASE}/master/ng-sections`, data),

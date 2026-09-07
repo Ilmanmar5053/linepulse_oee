@@ -23,6 +23,7 @@ class OeeApp {
             lines: [],
             machines: [],
             products: [],
+            downtimeCategories: [],
             downtimeReasons: [],
             defectReasons: [],
             shifts: [],
@@ -699,6 +700,7 @@ class OeeApp {
             this.masterData.lines = lRes.data.data || [];
             this.masterData.machines = mRes.data.data || [];
             this.masterData.products = prodRes.data.data || [];
+            this.masterData.downtimeCategories = dtRes.data.data || [];
             this.masterData.downtimeReasons = dtRes.data.data || [];
             this.masterData.defectReasons = defRes.data.data || [];
             this.masterData.shifts = sRes.data.data || [];
@@ -727,6 +729,25 @@ class OeeApp {
         } catch (err) {
             console.error('Error loading master data options:', err);
         }
+    }
+
+    getProblemCategoryOptions(selectedValue = '') {
+        const categories = (this.masterData?.downtimeCategories?.length > 0)
+            ? this.masterData.downtimeCategories
+            : (this.masterData?.downtimeReasons?.length > 0 ? this.masterData.downtimeReasons : [
+                { code: 'CAT-MECH', name: 'Problem Mesin Mekanik' },
+                { code: 'CAT-ELEC', name: 'Problem Mesin Elektrik' },
+                { code: 'CAT-TOOL', name: 'Problem Tool' },
+                { code: 'CAT-MAT', name: 'Material' },
+                { code: 'CAT-PLAN', name: 'Planning Downtime' },
+                { code: 'CAT-INV', name: 'Inventory' },
+                { code: 'CAT-OTH', name: 'Others' }
+            ]);
+
+        return categories.map(cat => {
+            const isSelected = (selectedValue && (selectedValue === cat.name || selectedValue === cat.code || (selectedValue === 'Mesin' && cat.name === 'Problem Mesin Mekanik')));
+            return `<option value="${cat.name}" ${isSelected ? 'selected' : ''}>${cat.name}</option>`;
+        }).join('');
     }
 
     getProductsForLine(lineId) {
@@ -12857,7 +12878,7 @@ tbody.innerHTML = '';
             { id: 'shifts', label: `Shift Management (${(this.masterData.shifts || []).length})` },
             { id: 'groups', label: `Group Leader (${(this.masterData.groups || []).length})` },
             { id: 'plants', label: `Plants (${(this.masterData.plants || []).length})` },
-            { id: 'downtime', label: `Downtime Reasons (${(this.masterData.downtimeReasons || []).length})` },
+            { id: 'downtime', label: `Kategori Problem (${(this.masterData.downtimeCategories || this.masterData.downtimeReasons || []).length})` },
             { id: 'ng_sections', label: `Bagian NG (${(this.masterData.ngSections || []).length})` },
             { id: 'defect_reasons', label: `Penyebab / Remark (${(this.masterData.defectReasons || []).length})` },
         ];
@@ -12985,16 +13006,21 @@ tbody.innerHTML = '';
             tableHeaderHtml = `
                 <tr>
                     <th class="p-3 text-center w-12">No</th>
-                    <th class="p-3">Code</th>
-                    <th class="p-3">Reason Name</th>
-                    <th class="p-3">Category</th>
-                    <th class="p-3">Type</th>
+                    <th class="p-3">Kode Kategori</th>
+                    <th class="p-3">Kategori Problem</th>
+                    <th class="p-3">Tipe Downtime</th>
+                    <th class="p-3">Keterangan / Ruang Lingkup</th>
                     <th class="p-3 text-right">Actions</th>
                 </tr>
             `;
-            filteredItems = (this.masterData.downtimeReasons || []).filter(dt => {
+            const catList = (this.masterData.downtimeCategories?.length > 0)
+                ? this.masterData.downtimeCategories
+                : (this.masterData.downtimeReasons || []);
+            filteredItems = catList.filter(dt => {
                 if (!searchQuery) return true;
-                return (dt.code || '').toLowerCase().includes(searchQuery) || (dt.name || '').toLowerCase().includes(searchQuery);
+                return (dt.code || '').toLowerCase().includes(searchQuery) ||
+                       (dt.name || '').toLowerCase().includes(searchQuery) ||
+                       (dt.description || '').toLowerCase().includes(searchQuery);
             });
         } else if (this.activeMasterTab === 'ng_sections') {
             tableHeaderHtml = `
@@ -13170,12 +13196,17 @@ tbody.innerHTML = '';
                 <tr class="hover:bg-slate-800/40 transition-colors">
                     <td class="p-3 text-center font-bold text-slate-500 font-mono text-[11px]">${startIndex + idx + 1}</td>
                     <td class="p-3 text-cyan-400 font-bold font-mono">${dt.code}</td>
-                    <td class="p-3 text-slate-200 font-sans font-semibold">${dt.name}</td>
-                    <td class="p-3 text-slate-400 font-sans">${dt.category || 'General'}</td>
+                    <td class="p-3 text-slate-100 font-sans font-bold flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full ${dt.is_planned ? 'bg-blue-400' : 'bg-rose-400'}"></span>
+                        <span>${dt.name}</span>
+                    </td>
                     <td class="p-3 font-sans">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${dt.is_planned ? 'bg-blue-950/50 text-blue-400 border-blue-800' : 'bg-rose-950/50 text-rose-400 border-rose-800'}">
-                            ${dt.is_planned ? 'PLANNED' : 'UNPLANNED'}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${dt.is_planned ? 'bg-blue-950/80 text-blue-300 border-blue-800/80' : 'bg-rose-950/80 text-rose-300 border-rose-800/80'}">
+                            ${dt.is_planned ? 'PLANNED DOWNTIME' : 'UNPLANNED BREAKDOWN'}
                         </span>
+                    </td>
+                    <td class="p-3 font-sans text-xs text-slate-300 max-w-xs truncate" title="${dt.description || '-'}">
+                        ${dt.description || '<span class="text-slate-500 italic">-</span>'}
                     </td>
                     <td class="p-3 text-right font-sans">
                         ${actionButtons('downtime', dt.id, dt.name || dt.code)}
@@ -13530,6 +13561,53 @@ tbody.innerHTML = '';
                 }
             ];
             colWidths = [{ wch: 35 }, { wch: 45 }];
+        } else if (type === 'downtime') {
+            filename = 'Template_Master_Kategori_Problem.xlsx';
+            dataRows = [
+                {
+                    "Kode Kategori": "CAT-MECH",
+                    "Kategori Problem": "Problem Mesin Mekanik",
+                    "Tipe (PLANNED / UNPLANNED)": "UNPLANNED",
+                    "Keterangan": "Trouble mekanikal, jam, komponen aus, spindle, pneumatik, hidrolik"
+                },
+                {
+                    "Kode Kategori": "CAT-ELEC",
+                    "Kategori Problem": "Problem Mesin Elektrik",
+                    "Tipe (PLANNED / UNPLANNED)": "UNPLANNED",
+                    "Keterangan": "Trouble elektrikal, PLC, sensor error, wiring, motor drive, inverter"
+                },
+                {
+                    "Kode Kategori": "CAT-TOOL",
+                    "Kategori Problem": "Problem Tool",
+                    "Tipe (PLANNED / UNPLANNED)": "UNPLANNED",
+                    "Keterangan": "Kerusakan tooling, die, jig, insert patah/aus, reset mold/cutter"
+                },
+                {
+                    "Kode Kategori": "CAT-MAT",
+                    "Kategori Problem": "Material",
+                    "Tipe (PLANNED / UNPLANNED)": "UNPLANNED",
+                    "Keterangan": "Keterlambatan pasokan raw material, material kosong, part NG incoming"
+                },
+                {
+                    "Kode Kategori": "CAT-PLAN",
+                    "Kategori Problem": "Planning Downtime",
+                    "Tipe (PLANNED / UNPLANNED)": "PLANNED",
+                    "Keterangan": "Perawatan berkala terjadwal, TPM, 5S, dandori / setup terjadwal"
+                },
+                {
+                    "Kode Kategori": "CAT-INV",
+                    "Kategori Problem": "Inventory",
+                    "Tipe (PLANNED / UNPLANNED)": "UNPLANNED",
+                    "Keterangan": "Kendala stok, transfer WIP antar proses, buffer line penuh/kosong"
+                },
+                {
+                    "Kode Kategori": "CAT-OTH",
+                    "Kategori Problem": "Others",
+                    "Tipe (PLANNED / UNPLANNED)": "UNPLANNED",
+                    "Keterangan": "Trouble lain-lain di luar kategori utama, utilitas, briefing"
+                }
+            ];
+            colWidths = [{ wch: 18 }, { wch: 32 }, { wch: 28 }, { wch: 45 }];
         } else {
             filename = `Template_Master_${type}.xlsx`;
             dataRows = [
@@ -13554,16 +13632,20 @@ tbody.innerHTML = '';
 
     showImportMasterModal(defaultType) {
         const modalContainer = document.getElementById('modal-container');
-        let currentType = (defaultType === 'defect_reasons' || defaultType === 'ng_sections') ? defaultType : 'ng_sections';
+        let currentType = (defaultType === 'defect_reasons' || defaultType === 'ng_sections' || defaultType === 'downtime') ? defaultType : 'downtime';
 
         const renderModalContent = (type) => {
-            const sampleRowsExample = type === 'ng_sections'
-                ? `SEC-PIN-BORE\tSmall End (Pin Bore)\t1\nSEC-CRANK-BORE\tBig End (Crank Bore)\t1\nSEC-ROD-BODY\tRod Body / Shank\t1`
-                : `Dimensi & Geometri\tDiameter Out of Spec\nKualitas Permukaan & Visual\tSurface Scratch & Dent\nCacat Material & Cor\tBlow Hole / Porosity`;
+            const sampleRowsExample = type === 'downtime'
+                ? `CAT-MECH\tProblem Mesin Mekanik\tUNPLANNED\tTrouble mekanikal, jam, komponen aus\nCAT-ELEC\tProblem Mesin Elektrik\tUNPLANNED\tTrouble elektrikal, PLC, sensor error\nCAT-PLAN\tPlanning Downtime\tPLANNED\tPerawatan terjadwal / TPM`
+                : (type === 'ng_sections'
+                    ? `SEC-PIN-BORE\tSmall End (Pin Bore)\t1\nSEC-CRANK-BORE\tBig End (Crank Bore)\t1\nSEC-ROD-BODY\tRod Body / Shank\t1`
+                    : `Dimensi & Geometri\tDiameter Out of Spec\nKualitas Permukaan & Visual\tSurface Scratch & Dent\nCacat Material & Cor\tBlow Hole / Porosity`);
 
-            const columnsHelper = type === 'ng_sections'
-                ? `<strong>Kolom Excel (.xlsx) [3 Kolom]:</strong> <code>Kode Bagian NG</code>, <code>Nama Bagian NG</code>, <code>Status Aktif</code> (1 = Aktif, 0 = Nonaktif)`
-                : `<strong>Kolom Excel (.xlsx) [2 Kolom]:</strong> <code>Kategori Defect</code>, <code>Nama Penyebab / Remark</code>`;
+            const columnsHelper = type === 'downtime'
+                ? `<strong>Kolom Excel (.xlsx) [4 Kolom]:</strong> <code>Kode Kategori</code>, <code>Kategori Problem</code>, <code>Tipe</code> (UNPLANNED / PLANNED), <code>Keterangan</code>`
+                : (type === 'ng_sections'
+                    ? `<strong>Kolom Excel (.xlsx) [3 Kolom]:</strong> <code>Kode Bagian NG</code>, <code>Nama Bagian NG</code>, <code>Status Aktif</code> (1 = Aktif, 0 = Nonaktif)`
+                    : `<strong>Kolom Excel (.xlsx) [2 Kolom]:</strong> <code>Kategori Defect</code>, <code>Nama Penyebab / Remark</code>`);
 
             return `
                 <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -13587,6 +13669,7 @@ tbody.innerHTML = '';
                             <div class="flex items-center gap-2">
                                 <label class="text-xs font-semibold text-slate-300">Pilih Data Master Target:</label>
                                 <select id="select-import-target-type" class="bg-slate-900 border border-cyan-800/80 text-cyan-300 font-bold rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-cyan-400 cursor-pointer">
+                                    <option value="downtime" ${type === 'downtime' ? 'selected' : ''}>Kategori Problem (4 Kolom: Kode, Nama, Tipe, Keterangan)</option>
                                     <option value="ng_sections" ${type === 'ng_sections' ? 'selected' : ''}>Bagian NG (3 Kolom: Kode, Nama, Status)</option>
                                     <option value="defect_reasons" ${type === 'defect_reasons' ? 'selected' : ''}>Penyebab / Remark (2 Kolom: Kategori, Nama)</option>
                                 </select>
@@ -13710,7 +13793,16 @@ tbody.innerHTML = '';
             // Load Sample data
             if (btnLoadSample) {
                 btnLoadSample.addEventListener('click', () => {
-                    if (currentType === 'ng_sections') {
+                    if (currentType === 'downtime') {
+                        textarea.value = `code\tname\ttype\tdescription\n` +
+                            `CAT-MECH\tProblem Mesin Mekanik\tUNPLANNED\tTrouble mekanikal, jam, komponen aus, spindle\n` +
+                            `CAT-ELEC\tProblem Mesin Elektrik\tUNPLANNED\tTrouble elektrikal, PLC, sensor error, wiring\n` +
+                            `CAT-TOOL\tProblem Tool\tUNPLANNED\tKerusakan tooling, die, jig, insert patah/aus\n` +
+                            `CAT-MAT\tMaterial\tUNPLANNED\tKeterlambatan pasokan raw material, material kosong\n` +
+                            `CAT-PLAN\tPlanning Downtime\tPLANNED\tPerawatan berkala terjadwal, TPM, 5S\n` +
+                            `CAT-INV\tInventory\tUNPLANNED\tKendala stok, transfer WIP antar proses\n` +
+                            `CAT-OTH\tOthers\tUNPLANNED\tTrouble lain-lain di luar kategori utama`;
+                    } else if (currentType === 'ng_sections') {
                         textarea.value = `code\tname\tis_active\n` +
                             `SEC-PIN-BORE\tSmall End (Pin Bore)\t1\n` +
                             `SEC-CRANK-BORE\tBig End (Crank Bore)\t1\n` +
@@ -13874,16 +13966,19 @@ tbody.innerHTML = '';
 
                     try {
                         let res;
-                        if (currentType === 'ng_sections') {
+                        if (currentType === 'downtime') {
+                            res = await api.importDowntimeCategories({ items: parsedRowsCache });
+                        } else if (currentType === 'ng_sections') {
                             res = await api.importNgSections({ rows: parsedRowsCache });
                         } else {
                             res = await api.importDefectReasons({ rows: parsedRowsCache });
                         }
 
                         if (res.data?.success) {
+                            const targetName = currentType === 'downtime' ? 'Kategori Problem' : (currentType === 'ng_sections' ? 'Bagian NG' : 'Penyebab Defect');
                             this.showNotification(
                                 'Import Excel Berhasil!',
-                                res.data.message || `${parsedRowsCache.length} data berhasil diimport ke master ${currentType === 'ng_sections' ? 'Bagian NG' : 'Penyebab Defect'}.`,
+                                res.data.message || `${parsedRowsCache.length} data berhasil diimport ke master ${targetName}.`,
                                 'success'
                             );
                             modalContainer.innerHTML = '';
@@ -14002,31 +14097,26 @@ tbody.innerHTML = '';
                 </div>
             `;
         } else if (type === 'downtime') {
+            title = 'Tambah Master Kategori Problem';
             fieldsHtml = `
                 <div>
-                    <label class="block text-slate-400 mb-1">Reason Code</label>
-                    <input type="text" name="code" placeholder="e.g. DT-MCH-01" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                    <label class="block text-slate-400 mb-1">Kode Kategori Problem <span class="text-rose-400">*</span></label>
+                    <input type="text" name="code" placeholder="e.g. CAT-MECH" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono font-bold" />
                 </div>
                 <div>
-                    <label class="block text-slate-400 mb-1">Reason Name</label>
-                    <input type="text" name="name" placeholder="e.g. Tool Broken / Replace" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                    <label class="block text-slate-400 mb-1">Nama Kategori Problem <span class="text-rose-400">*</span></label>
+                    <input type="text" name="name" placeholder="e.g. Problem Mesin Mekanik" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
                 </div>
                 <div>
-                    <label class="block text-slate-400 mb-1">Category</label>
-                    <select name="category" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200">
-                        <option value="Mechanical">Mechanical</option>
-                        <option value="Electrical">Electrical</option>
-                        <option value="Operational">Operational</option>
-                        <option value="Quality">Quality</option>
-                        <option value="Planned">Planned</option>
+                    <label class="block text-slate-400 mb-1">Tipe Downtime</label>
+                    <select name="is_planned" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-semibold">
+                        <option value="0">UNPLANNED (Kerusakan / Gangguan Tidak Terencana)</option>
+                        <option value="1">PLANNED (Perawatan Terjadwal / TPM / Dandori)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-slate-400 mb-1">Downtime Type</label>
-                    <select name="is_planned" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200">
-                        <option value="0">Unplanned Downtime</option>
-                        <option value="1">Planned Downtime</option>
-                    </select>
+                    <label class="block text-slate-400 mb-1">Keterangan / Ruang Lingkup Masalah</label>
+                    <textarea name="description" rows="2" placeholder="Penjelasan detail cakupan problem kategori ini..." class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 text-xs"></textarea>
                 </div>
             `;
         } else if (type === 'shifts') {
@@ -14164,7 +14254,7 @@ tbody.innerHTML = '';
                 else if (type === 'lines') await api.createProductionLine(data);
                 else if (type === 'products') await api.createProduct(data);
                 else if (type === 'plants') await api.createPlant(data);
-                else if (type === 'downtime') await api.createDowntimeReason(data);
+                else if (type === 'downtime') await (api.createDowntimeCategory ? api.createDowntimeCategory(data) : api.createDowntimeReason(data));
                 else if (type === 'shifts') await api.createShift(data);
                 else if (type === 'groups') await api.createGroup(data);
                 else if (type === 'ng_sections') await api.createNgSection(data);
@@ -14191,7 +14281,7 @@ tbody.innerHTML = '';
         else if (type === 'lines') item = this.masterData.lines?.find(l => l.id == id);
         else if (type === 'products') item = this.masterData.products?.find(p => p.id == id);
         else if (type === 'plants') item = this.masterData.plants?.find(p => p.id == id);
-        else if (type === 'downtime') item = this.masterData.downtimeReasons?.find(d => d.id == id);
+        else if (type === 'downtime') item = (this.masterData.downtimeCategories || []).find(d => d.id == id) || (this.masterData.downtimeReasons || []).find(d => d.id == id);
         else if (type === 'shifts') item = this.masterData.shifts?.find(s => s.id == id);
         else if (type === 'groups') item = this.masterData.groups?.find(g => g.id == id);
         else if (type === 'ng_sections') item = this.masterData.ngSections?.find(s => s.id == id);
@@ -14278,6 +14368,45 @@ tbody.innerHTML = '';
                 <div>
                     <label class="block text-slate-400 mb-1">Ideal Cycle Time (Detik per Piece) <span class="text-rose-400">*</span></label>
                     <input type="number" step="0.1" name="ideal_cycle_time" value="${item.ideal_cycle_time || ''}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                </div>
+            `;
+        } else if (type === 'plants') {
+            title = 'Edit Master Plant';
+            fieldsHtml = `
+                <div>
+                    <label class="block text-slate-400 mb-1">Plant Code</label>
+                    <input type="text" name="code" value="${item.code || ''}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Plant Name</label>
+                    <input type="text" name="name" value="${item.name || ''}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Location / Address</label>
+                    <input type="text" name="location" value="${item.location || item.address || ''}" placeholder="e.g. Kawasan Industri MM2100" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                </div>
+            `;
+        } else if (type === 'downtime') {
+            title = 'Edit Master Kategori Problem';
+            fieldsHtml = `
+                <div>
+                    <label class="block text-slate-400 mb-1">Kode Kategori Problem <span class="text-rose-400">*</span></label>
+                    <input type="text" name="code" value="${item.code || ''}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono font-bold" />
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Nama Kategori Problem <span class="text-rose-400">*</span></label>
+                    <input type="text" name="name" value="${item.name || ''}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Tipe Downtime</label>
+                    <select name="is_planned" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-semibold">
+                        <option value="0" ${!item.is_planned ? 'selected' : ''}>UNPLANNED (Kerusakan / Gangguan Tidak Terencana)</option>
+                        <option value="1" ${item.is_planned ? 'selected' : ''}>PLANNED (Perawatan Terjadwal / TPM / Dandori)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Keterangan / Ruang Lingkup Masalah</label>
+                    <textarea name="description" rows="2" placeholder="Penjelasan detail cakupan problem kategori ini..." class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 text-xs">${item.description || ''}</textarea>
                 </div>
             `;
         } else if (type === 'shifts') {
@@ -14419,7 +14548,7 @@ tbody.innerHTML = '';
                 else if (type === 'lines') await api.updateProductionLine(id, data);
                 else if (type === 'products') await api.updateProduct(id, data);
                 else if (type === 'plants') await api.updatePlant(id, data);
-                else if (type === 'downtime') await api.updateDowntimeReason(id, data);
+                else if (type === 'downtime') await (api.updateDowntimeCategory ? api.updateDowntimeCategory(id, data) : api.updateDowntimeReason(id, data));
                 else if (type === 'shifts') await api.updateShift(id, data);
                 else if (type === 'groups') await api.updateGroup(id, data);
                 else if (type === 'ng_sections') await api.updateNgSection(id, data);
@@ -14477,7 +14606,7 @@ tbody.innerHTML = '';
                 else if (type === 'lines') await api.deleteProductionLine(id);
                 else if (type === 'products') await api.deleteProduct(id);
                 else if (type === 'plants') await api.deletePlant(id);
-                else if (type === 'downtime') await api.deleteDowntimeReason(id);
+                else if (type === 'downtime') await (api.deleteDowntimeCategory ? api.deleteDowntimeCategory(id) : api.deleteDowntimeReason(id));
                 else if (type === 'shifts') await api.deleteShift(id);
                 else if (type === 'groups') await api.deleteGroup(id);
                 else if (type === 'ng_sections') await api.deleteNgSection(id);
