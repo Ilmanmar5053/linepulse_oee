@@ -310,6 +310,48 @@ class OeeApp {
         return tab === 'dashboard' || tab === 'monitoring';
     }
 
+    /**
+     * Dynamic Line Badge & Accent Style Generator
+     * Provides 12 distinct harmonious color themes per production line (FX-1, FX-2, ..., FX-10+)
+     */
+    getLineBadgeStyle(identifier, isLight = false) {
+        const palettes = [
+            { light: 'bg-sky-100 text-sky-800 border-sky-300', dark: 'bg-sky-950/90 text-sky-300 border-sky-800' },          // 1: Sky
+            { light: 'bg-emerald-100 text-emerald-800 border-emerald-300', dark: 'bg-emerald-950/90 text-emerald-300 border-emerald-800' }, // 2: Emerald
+            { light: 'bg-amber-100 text-amber-900 border-amber-300', dark: 'bg-amber-950/90 text-amber-300 border-amber-800' },       // 3: Amber
+            { light: 'bg-purple-100 text-purple-800 border-purple-300', dark: 'bg-purple-950/90 text-purple-300 border-purple-800' },    // 4: Purple
+            { light: 'bg-rose-100 text-rose-800 border-rose-300', dark: 'bg-rose-950/90 text-rose-300 border-rose-800' },          // 5: Rose
+            { light: 'bg-indigo-100 text-indigo-800 border-indigo-300', dark: 'bg-indigo-950/90 text-indigo-300 border-indigo-800' },    // 6: Indigo
+            { light: 'bg-teal-100 text-teal-900 border-teal-300', dark: 'bg-teal-950/90 text-teal-300 border-teal-800' },          // 7: Teal
+            { light: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300', dark: 'bg-fuchsia-950/90 text-fuchsia-300 border-fuchsia-800' }, // 8: Fuchsia
+            { light: 'bg-orange-100 text-orange-900 border-orange-300', dark: 'bg-orange-950/90 text-orange-300 border-orange-800' },    // 9: Orange
+            { light: 'bg-blue-100 text-blue-800 border-blue-300', dark: 'bg-blue-950/90 text-blue-300 border-blue-800' },          // 10: Blue
+            { light: 'bg-lime-100 text-lime-900 border-lime-300', dark: 'bg-lime-950/90 text-lime-300 border-lime-800' },          // 11: Lime
+            { light: 'bg-cyan-100 text-cyan-900 border-cyan-300', dark: 'bg-cyan-950/90 text-cyan-300 border-cyan-800' }           // 12: Cyan
+        ];
+
+        let index = 0;
+        if (typeof identifier === 'number') {
+            index = Math.max(0, identifier - 1) % palettes.length;
+        } else if (typeof identifier === 'string') {
+            const numMatch = identifier.match(/\d+/);
+            if (numMatch) {
+                const num = parseInt(numMatch[0], 10);
+                index = Math.max(0, num - 1) % palettes.length;
+            } else {
+                let hash = 0;
+                for (let i = 0; i < identifier.length; i++) {
+                    hash = ((hash << 5) - hash) + identifier.charCodeAt(i);
+                    hash |= 0;
+                }
+                index = Math.abs(hash) % palettes.length;
+            }
+        }
+
+        const selected = palettes[index];
+        return isLight ? selected.light : selected.dark;
+    }
+
     async init() {
         console.log('Initializing OEE Performance System UI...');
         this.applyTheme();
@@ -4758,7 +4800,7 @@ tbody.innerHTML = '';
                                             </td>
                                             <td class="p-3 font-sans">
                                                 <div class="flex items-center gap-2">
-                                                    <span class="px-2.5 py-1 rounded-md ${isLight ? 'bg-cyan-100 text-cyan-800 border-cyan-300' : 'bg-cyan-950 text-cyan-300 border-cyan-800'} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
+                                                    <span class="px-2.5 py-1 rounded-md ${this.getLineBadgeStyle(grp.lineName || grp.lineId, isLight)} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
                                                         🏭 ${grp.lineName}
                                                     </span>
                                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-slate-300'} font-sans">
@@ -4808,10 +4850,12 @@ tbody.innerHTML = '';
                                                     <span class="inline-block pl-2 text-[11px] text-slate-400 font-mono">${gIdx + 1}.${rIdx + 1}</span>
                                                 </td>
                                                 <td class="p-3 font-semibold font-sans">
-                                                    <div class="flex items-center gap-1.5 pl-3 border-l-2 ${isLight ? 'border-cyan-400' : 'border-cyan-500/70'}">
-                                                        <span class="${isLight ? 'text-slate-700' : 'text-slate-300'} text-xs font-medium">${r.production_line?.name || 'Line'}</span>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span class="px-2 py-0.5 rounded text-[11px] font-bold ${this.getLineBadgeStyle(r.production_line?.name || r.production_line_id, isLight)} border font-mono">
+                                                            ${r.production_line?.name || 'Line'}
+                                                        </span>
                                                     </div>
-                                                    <div class="text-[10px] text-slate-400 font-mono pl-3">${r.machine ? r.machine.code : ''}</div>
+                                                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">${r.machine ? r.machine.code : ''}</div>
                                                 </td>
                                                 <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
                                                     <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${r.product ? `${r.product.name} - ${r.product.sku}` : 'Product #' + r.product_id}</div>
@@ -4932,7 +4976,7 @@ tbody.innerHTML = '';
                                             </td>
                                             <td class="p-3 font-sans" colspan="2">
                                                 <div class="flex items-center gap-2">
-                                                    <span class="px-2.5 py-1 rounded-md ${isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
+                                                    <span class="px-2.5 py-1 rounded-md ${this.getLineBadgeStyle(grp.lineName || grp.lineId, isLight)} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
                                                         🏭 ${grp.lineName}
                                                     </span>
                                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-rose-950 text-rose-300 border border-rose-800'} font-sans">
@@ -4977,10 +5021,12 @@ tbody.innerHTML = '';
                                                     <div class="text-[10px] text-slate-500">${dt.start_time?.slice(0, 10) || ''}</div>
                                                 </td>
                                                 <td class="p-3 font-sans">
-                                                    <div class="flex items-center gap-1.5 pl-2 border-l-2 border-amber-500/70">
-                                                        <span class="font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs">${dt.production_line?.name || dt.line_name || 'Line'}</span>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span class="px-2 py-0.5 rounded text-[11px] font-bold ${this.getLineBadgeStyle(dt.production_line?.name || dt.line_name || dt.production_line_id, isLight)} border font-mono">
+                                                            ${dt.production_line?.name || dt.line_name || 'Line'}
+                                                        </span>
                                                     </div>
-                                                    <div class="text-[10px] text-slate-400 font-mono pl-2">${dt.machine ? `${dt.machine.code} (${dt.machine.name})` : '-'}</div>
+                                                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">${dt.machine ? `${dt.machine.code} (${dt.machine.name})` : '-'}</div>
                                                 </td>
                                                 <td class="p-3 font-sans">
                                                     <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-200 border-slate-700'} border">
@@ -6511,7 +6557,7 @@ tbody.innerHTML = '';
                                         </td>
                                         <td class="p-3 font-sans">
                                             <div class="flex items-center gap-2">
-                                                <span class="px-2.5 py-1 rounded-md ${isLight ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-rose-950 text-rose-300 border-rose-800'} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
+                                                <span class="px-2.5 py-1 rounded-md ${this.getLineBadgeStyle(grp.lineName || grp.lineId, isLight)} border font-bold text-xs flex items-center gap-1 font-mono shadow-xs">
                                                     🏭 ${grp.lineName}
                                                 </span>
                                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-slate-200 text-slate-800' : 'bg-slate-800 text-slate-300'} font-sans">
@@ -6568,8 +6614,12 @@ tbody.innerHTML = '';
                                                     <div class="text-[10px] ${isLight ? 'text-cyan-700' : 'text-cyan-400'} font-mono">${item.shift_name}</div>
                                                 </td>
                                                 <td class="p-3 font-sans">
-                                                    <div class="font-bold ${isLight ? 'text-slate-900' : 'text-cyan-300'}">${item.line_name} (${item.line_code})</div>
-                                                    <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">${item.machine_name}</div>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span class="px-2 py-0.5 rounded text-[11px] font-bold ${this.getLineBadgeStyle(item.line_name || item.line_id, isLight)} border font-mono">
+                                                            ${item.line_name || item.line_code}
+                                                        </span>
+                                                    </div>
+                                                    <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono mt-0.5">${item.machine_name}</div>
                                                 </td>
                                                 <td class="p-3 font-sans">
                                                     <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'} truncate max-w-xs">${item.product_name} - <span class="${isLight ? 'text-amber-700 font-bold' : 'text-amber-400'} font-mono">${item.product_sku}</span></div>
