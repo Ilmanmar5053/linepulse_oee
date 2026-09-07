@@ -11712,21 +11712,23 @@ tbody.innerHTML = '';
      */
     prepareAndPrintNgReport(ngData, header, filters) {
         const items = ngData.items || [];
-        const summary = ngData.summary || {};
-        const totalOutput = summary.total_output || 0;
-        const totalGood = summary.total_good || 0;
-        const totalNg = summary.total_ng || 0;
-        const defectRate = summary.defect_rate || '0.00';
-        const yieldRate = summary.yield_rate || '100.00';
-        const totalAssy = summary.total_assy || 0;
-        const totalRod = summary.total_rod || 0;
-        const totalCap = summary.total_cap || 0;
-        const totalBolt = summary.total_bolt || 0;
-        const totalBush = summary.total_bush || 0;
-        const totalNut = summary.total_nut || 0;
-        const totalPin = summary.total_pin || 0;
-        const totalOeeNg = summary.total_oee_ng || 0;
-        const totalNonOeeNg = summary.total_non_oee_ng || 0;
+        const totalOutput = items.reduce((acc, it) => acc + (it.total_output || 0), 0);
+        const totalGood = items.reduce((acc, it) => acc + (it.good_quantity || 0), 0);
+        const totalNg = items.reduce((acc, it) => acc + (it.total_ng_target || 0), 0);
+        const totalOeeNg = items.reduce((acc, it) => acc + (it.ng_detail?.total_ng_oee || 0), 0);
+        const totalNonOeeNg = items.reduce((acc, it) => acc + (it.ng_detail?.total_ng_non_oee || 0), 0);
+
+        const totalAssy = items.reduce((acc, it) => acc + (it.ng_detail?.ng_assy || 0), 0);
+        const totalRod = items.reduce((acc, it) => acc + (it.ng_detail?.ng_rod || 0), 0);
+        const totalCap = items.reduce((acc, it) => acc + (it.ng_detail?.ng_cap || 0), 0);
+
+        const totalBolt = items.reduce((acc, it) => acc + (it.ng_detail?.ng_bolt || 0), 0);
+        const totalBush = items.reduce((acc, it) => acc + (it.ng_detail?.ng_bush || 0), 0);
+        const totalNut = items.reduce((acc, it) => acc + (it.ng_detail?.ng_nut || 0), 0);
+        const totalPin = items.reduce((acc, it) => acc + (it.ng_detail?.ng_pin || 0), 0);
+
+        const defectRate = totalOutput > 0 ? ((totalNg / totalOutput) * 100).toFixed(2) : '0.00';
+        const yieldRate = totalOutput > 0 ? ((totalGood / totalOutput) * 100).toFixed(2) : '100.00';
 
         // Group items by production_date
         const groupedNgItems = items.reduce((acc, it) => {
