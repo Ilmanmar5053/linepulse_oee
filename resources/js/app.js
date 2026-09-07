@@ -1029,8 +1029,7 @@ class OeeApp {
                                 </div>
                                 ${this.navItem('machines', 'cpu', this.t('nav.machine_perf', 'Machine Performance'))}
                                 ${this.navItem('lines', 'git-fork', this.t('nav.line_perf', 'Production Lines'))}
-                                ${this.navItem('shifts', 'clock', this.t('nav.shift_perf', 'Shift Performance'))}
-                                ${this.navItem('teams', 'users', this.t('nav.team_perf', 'Team Performance'))}
+                                ${this.navItem('shifts', 'clock', this.t('nav.shift_team_perf', 'Shift & Team Perform'))}
                                 ${this.navItem('downtime', 'alert-triangle', this.t('nav.downtime_analysis', 'Downtime Analysis'))}
                                 ${this.navItem('quality', 'pie-chart', this.t('nav.quality_perf', 'Quality Performance'), 'PARETO')}
                             ` : ''}
@@ -1188,7 +1187,7 @@ class OeeApp {
     }
 
     navItem(id, icon, label, badge = null) {
-        const isActive = this.currentTab === id;
+        const isActive = this.currentTab === id || (id === 'shifts' && this.currentTab === 'teams');
         const activeClass = isActive
             ? 'active'
             : 'text-slate-400';
@@ -7743,7 +7742,7 @@ tbody.innerHTML = '';
                 <div class="flex flex-wrap items-center gap-3">
                     <h2 class="text-xl font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                         <i data-lucide="clock" class="w-5 h-5 text-cyan-500"></i>
-                        <span>Shift Performance</span>
+                        <span>Shift & Team Perform</span>
                     </h2>
 
                     <!-- 2-TAB SEGMENTED CONTROLLER (SHIFT & TEAM PERFORMANCES) -->
@@ -8147,7 +8146,7 @@ tbody.innerHTML = '';
                 <div class="flex flex-wrap items-center gap-3">
                     <h2 class="text-xl font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                         <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
-                        <span>Team Performance</span>
+                        <span>Shift & Team Perform</span>
                     </h2>
 
                     <!-- 2-TAB SEGMENTED CONTROLLER (SHIFT & TEAM PERFORMANCES) -->
