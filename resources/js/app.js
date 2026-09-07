@@ -4886,23 +4886,46 @@ tbody.innerHTML = '';
 
     getMachinesForLine(lineId) {
         if (!lineId) return this.masterData.machines || [];
-        const lineObj = (this.masterData.lines || []).find(l => l.id == lineId);
-        const lineCode = lineObj ? lineObj.code : '';
-        const lineNum = lineCode ? lineCode.replace('FX-', '') : '';
+        const lineObj = (this.masterData.lines || []).find(l => String(l.id) === String(lineId));
+        const lineCode = lineObj ? (lineObj.code || lineObj.name || '') : '';
+        const lineNum = lineCode ? lineCode.replace(/^FX-?/i, '').trim() : '';
 
         const matched = (this.masterData.machines || []).filter(m => {
-            const mLineId = m.work_center?.production_line_id || m.work_center?.production_line?.id || m.production_line_id;
-            if (mLineId && mLineId == lineId) return true;
-            if (lineNum && (
-                (m.code && (m.code.startsWith(`MC-FX-${lineNum}`) || m.code.includes(`MEASURING-FX${lineNum}`))) ||
-                (m.name && m.name.includes(`FX-${lineNum}`))
-            )) {
-                return true;
+            const mLineId = m.work_center?.production_line_id || m.work_center?.production_line?.id || m.production_line_id || m.workCenter?.production_line_id;
+            if (mLineId && String(mLineId) === String(lineId)) return true;
+
+            if (lineNum) {
+                const code = m.code || '';
+                const name = m.name || '';
+                if (lineNum === '1') {
+                    if (/^MC-MEASURING-FX-?1$/i.test(code)) return true;
+                    if (/^MC-FX-1[0-9]{2}(\.[0-9]+|,.*)?$/i.test(code)) return true;
+                } else if (lineNum === '11') {
+                    if (/^MC-MEASURING-FX-?11$/i.test(code)) return true;
+                    if (/^MC-FX-11[0-9]{2,3}(\.[0-9]+|,.*)?$/i.test(code)) return true;
+                } else {
+                    const measuringRegex = new RegExp(`^MC-MEASURING-FX-?0*${lineNum}$`, 'i');
+                    const opRegex = new RegExp(`^MC-FX-0*${lineNum}[0-9]+`, 'i');
+                    if (measuringRegex.test(code)) return true;
+                    if (opRegex.test(code)) return true;
+                }
+                if (new RegExp(`\\bFX-?0*${lineNum}\\b`, 'i').test(name)) return true;
             }
             return false;
         });
 
-        return matched.length > 0 ? matched : (this.masterData.machines || []);
+        const result = matched.length > 0 ? [...matched] : [];
+
+        // Sort: Measuring Machine always at index 0 (top), then OP machines alphabetically/numerically
+        result.sort((a, b) => {
+            const isAMeasuring = (a.name && a.name.toLowerCase().includes('measuring')) || (a.code && a.code.toLowerCase().includes('measuring'));
+            const isBMeasuring = (b.name && b.name.toLowerCase().includes('measuring')) || (b.code && b.code.toLowerCase().includes('measuring'));
+            if (isAMeasuring && !isBMeasuring) return -1;
+            if (!isAMeasuring && isBMeasuring) return 1;
+            return (a.name || a.code || '').localeCompare(b.name || b.code || '', undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+        return result;
     }
 
     // ==========================================
@@ -5182,12 +5205,22 @@ tbody.innerHTML = '';
                 `).join('');
             }
 
-            // Update machine select
+            // Update machine select strictly for the selected line & auto-select Measuring Machine
             if (machineSelect) {
                 const lineMachines = this.getMachinesForLine(selectedLineId);
                 machineSelect.innerHTML = lineMachines.map(m => 
                     `<option value="${m.id}">${m.name} (${m.code})</option>`
                 ).join('');
+
+                const measuringMC = lineMachines.find(m => 
+                    (m.name && m.name.toLowerCase().includes('measuring')) || 
+                    (m.code && m.code.toLowerCase().includes('measuring'))
+                );
+                if (measuringMC) {
+                    machineSelect.value = measuringMC.id;
+                } else if (lineMachines.length > 0) {
+                    machineSelect.value = lineMachines[0].id;
+                }
             }
 
             calcTargetQty();
@@ -5676,6 +5709,16 @@ tbody.innerHTML = '';
                 machineSelect.innerHTML = lineMachines.map(m => 
                     `<option value="${m.id}">${m.name} (${m.code})</option>`
                 ).join('');
+
+                const measuringMC = lineMachines.find(m => 
+                    (m.name && m.name.toLowerCase().includes('measuring')) || 
+                    (m.code && m.code.toLowerCase().includes('measuring'))
+                );
+                if (measuringMC) {
+                    machineSelect.value = measuringMC.id;
+                } else if (lineMachines.length > 0) {
+                    machineSelect.value = lineMachines[0].id;
+                }
             }
 
             // Products
@@ -14070,6 +14113,32 @@ tbody.innerHTML = '';
         const editIdealCycle = modalContainer.querySelector('input[name="ideal_cycle_time"]');
         const editShiftSelect = modalContainer.querySelector('select[name="shift_id"]');
 
+        const editMachineSelect = modalContainer.querySelector('select[name="machine_id"]');
+
+        const populateMachines = (preferredMachineId = null) => {
+            if (!editLineSelect || !editMachineSelect) return;
+            const lineId = editLineSelect.value;
+            const lineMachines = this.getMachinesForLine(lineId);
+
+            editMachineSelect.innerHTML = lineMachines.map(m => 
+                `<option value="${m.id}">${m.name} (${m.code})</option>`
+            ).join('');
+
+            if (preferredMachineId && lineMachines.some(m => m.id == preferredMachineId)) {
+                editMachineSelect.value = preferredMachineId;
+            } else {
+                const measuringMC = lineMachines.find(m => 
+                    (m.name && m.name.toLowerCase().includes('measuring')) || 
+                    (m.code && m.code.toLowerCase().includes('measuring'))
+                );
+                if (measuringMC) {
+                    editMachineSelect.value = measuringMC.id;
+                } else if (lineMachines.length > 0) {
+                    editMachineSelect.value = lineMachines[0].id;
+                }
+            }
+        };
+
         const populateProducts = () => {
             if (!editLineSelect || !editProductSelect) return;
             const lineId = editLineSelect.value;
@@ -14099,8 +14168,12 @@ tbody.innerHTML = '';
         };
 
         if (editLineSelect) {
-            editLineSelect.addEventListener('change', populateProducts);
+            editLineSelect.addEventListener('change', () => {
+                populateProducts();
+                populateMachines();
+            });
             populateProducts();
+            populateMachines(item.machine_id);
         }
         if (editProductSelect) {
             editProductSelect.addEventListener('change', updateTargetCalc);
@@ -14357,6 +14430,32 @@ tbody.innerHTML = '';
             dtLeaderInp.value = match ? match.leader_name : 'Belum Didaftar';
         };
 
+        const dtMachineSelect = modalContainer.querySelector('select[name="machine_id"]');
+
+        const populateDtMachines = (preferredMachineId = null) => {
+            if (!dtLineSelect || !dtMachineSelect) return;
+            const lineId = dtLineSelect.value;
+            const lineMachines = this.getMachinesForLine(lineId);
+
+            dtMachineSelect.innerHTML = lineMachines.map(m => 
+                `<option value="${m.id}">${m.name} (${m.code})</option>`
+            ).join('');
+
+            if (preferredMachineId && lineMachines.some(m => m.id == preferredMachineId)) {
+                dtMachineSelect.value = preferredMachineId;
+            } else {
+                const measuringMC = lineMachines.find(m => 
+                    (m.name && m.name.toLowerCase().includes('measuring')) || 
+                    (m.code && m.code.toLowerCase().includes('measuring'))
+                );
+                if (measuringMC) {
+                    dtMachineSelect.value = measuringMC.id;
+                } else if (lineMachines.length > 0) {
+                    dtMachineSelect.value = lineMachines[0].id;
+                }
+            }
+        };
+
         const populateDtProducts = () => {
             if (!dtLineSelect || !dtProductSelect) return;
             const lineId = dtLineSelect.value;
@@ -14374,8 +14473,12 @@ tbody.innerHTML = '';
         };
 
         if (dtLineSelect) {
-            dtLineSelect.addEventListener('change', populateDtProducts);
+            dtLineSelect.addEventListener('change', () => {
+                populateDtProducts();
+                populateDtMachines();
+            });
             populateDtProducts();
+            populateDtMachines(item.machine_id);
         }
         if (dtTeamSelect) {
             dtTeamSelect.addEventListener('change', updateDtLeaderName);
@@ -16327,11 +16430,7 @@ tbody.innerHTML = '';
                                 <div>
                                     <label class="block text-slate-400 mb-1 font-medium">Mesin Input</label>
                                     <select name="machine_id" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-slate-100 font-sans">
-                                        ${this.masterData.machines.map(m => `
-                                            <option value="${m.id}" ${m.code === 'MC-MEASURING' || (m.name || '').includes('Measuring') ? 'selected' : ''}>
-                                                ${m.name} (${m.code}) ${m.code === 'MC-MEASURING' ? '⭐ [Global]' : ''}
-                                            </option>
-                                        `).join('')}
+                                        <!-- Populated dynamically based on line -->
                                     </select>
                                 </div>
                             </div>
@@ -16679,6 +16778,29 @@ tbody.innerHTML = '';
             }
         };
 
+        const modalMachineSelect = document.querySelector('#form-production-entry select[name="machine_id"]');
+
+        // Cascading Line -> Machines Filter (strictly for chosen Line, auto-select Measuring Machine)
+        const filterMachinesByLine = () => {
+            if (!lineSelect || !modalMachineSelect) return;
+            const selectedLineId = lineSelect.value;
+            const lineMachines = this.getMachinesForLine(selectedLineId);
+
+            modalMachineSelect.innerHTML = lineMachines.map(m => 
+                `<option value="${m.id}">${m.name} (${m.code})</option>`
+            ).join('');
+
+            const measuringMC = lineMachines.find(m => 
+                (m.name && m.name.toLowerCase().includes('measuring')) || 
+                (m.code && m.code.toLowerCase().includes('measuring'))
+            );
+            if (measuringMC) {
+                modalMachineSelect.value = measuringMC.id;
+            } else if (lineMachines.length > 0) {
+                modalMachineSelect.value = lineMachines[0].id;
+            }
+        };
+
         // Cascading Line -> Product Filter
         const filterProductsByLine = () => {
             if (!lineSelect || !productSelect) return;
@@ -16699,6 +16821,7 @@ tbody.innerHTML = '';
         if (lineSelect) {
             lineSelect.addEventListener('change', () => {
                 filterProductsByLine();
+                filterMachinesByLine();
                 // Update trouble log leader names if any
                 modalTroubleLogsState.forEach(r => {
                     r.leader_name = getModalLeaderName(r.team);
@@ -16706,6 +16829,7 @@ tbody.innerHTML = '';
                 renderModalTroubleRows();
             });
             filterProductsByLine();
+            filterMachinesByLine();
         }
 
         if (productSelect) {
