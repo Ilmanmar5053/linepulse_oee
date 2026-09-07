@@ -183,6 +183,84 @@ aside#sidebar {
     background: linear-gradient(180deg, #091224 0%, #0d1a36 40%, #0a142c 80%, #060e20 100%) !important;
     border-right: 1px solid rgba(21, 35, 71, 0.9) !important;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35) !important;
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease !important;
+}
+
+/* Sidebar Pinned Mode (Fixed 240px) */
+aside#sidebar.sidebar-pinned {
+    width: 15rem !important;
+}
+
+/* Sidebar Auto-Hide Mode - Mini Rail (68px) */
+aside#sidebar.sidebar-unpinned.sidebar-mini {
+    width: 4.25rem !important;
+}
+
+aside#sidebar.sidebar-unpinned.sidebar-mini #sidebar-brand-header {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    justify-content: center !important;
+}
+
+aside#sidebar.sidebar-unpinned.sidebar-mini #sidebar-brand-text-container,
+aside#sidebar.sidebar-unpinned.sidebar-mini .sidebar-section-title,
+aside#sidebar.sidebar-unpinned.sidebar-mini .nav-label,
+aside#sidebar.sidebar-unpinned.sidebar-mini .nav-item-right,
+aside#sidebar.sidebar-unpinned.sidebar-mini .sidebar-profile-card .truncate,
+aside#sidebar.sidebar-unpinned.sidebar-mini #btn-logout,
+aside#sidebar.sidebar-unpinned.sidebar-mini .sidebar-tv-btn span,
+aside#sidebar.sidebar-unpinned.sidebar-mini #btn-toggle-sidebar-pin {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    display: none !important;
+}
+
+aside#sidebar.sidebar-unpinned.sidebar-mini .sidebar-nav-item {
+    justify-content: center !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+}
+
+aside#sidebar.sidebar-unpinned.sidebar-mini .sidebar-nav-item .nav-item-left {
+    justify-content: center !important;
+    width: 100% !important;
+}
+
+aside#sidebar.sidebar-unpinned.sidebar-mini .sidebar-nav-item .nav-icon {
+    margin: 0 auto !important;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+aside#sidebar.sidebar-unpinned.sidebar-mini .sidebar-tv-btn {
+    justify-content: center !important;
+    padding: 0.5rem !important;
+}
+
+aside#sidebar.sidebar-unpinned.sidebar-mini .sidebar-profile-card {
+    justify-content: center !important;
+    padding: 0.35rem !important;
+}
+
+/* Sidebar Auto-Hide Mode - Hover Expanded (Smooth Overlay) */
+aside#sidebar.sidebar-unpinned.sidebar-hover-expanded {
+    width: 15rem !important;
+    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.65) !important;
+    z-index: 50 !important;
+}
+
+html.light aside#sidebar.sidebar-unpinned.sidebar-hover-expanded {
+    box-shadow: 10px 0 30px rgba(13, 148, 136, 0.2) !important;
+}
+
+#sidebar-brand-text-container,
+.sidebar-section-title,
+.nav-label,
+.nav-item-right,
+.sidebar-profile-card .truncate,
+#btn-logout,
+.sidebar-tv-btn span {
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #sidebar-brand-header {

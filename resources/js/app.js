@@ -50,6 +50,8 @@ class OeeApp {
         this.charts = {};
         this.audioCtx = null;
         this.notifCount = 0;
+        this.isSidebarPinned = localStorage.getItem('oee_sidebar_pinned') !== 'false';
+        this.isSidebarHovered = false;
     }
 
     /**
@@ -1001,26 +1003,30 @@ class OeeApp {
     renderLayout() {
         const app = document.getElementById('app');
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const sidebarClass = this.isSidebarPinned ? 'sidebar-pinned w-60' : 'sidebar-unpinned sidebar-mini w-16';
 
         app.innerHTML = `
             <div class="flex h-screen bg-[#070D1E] text-slate-100 overflow-hidden font-sans" id="main-container">
                 <!-- LEFT SIDEBAR (DYNAMIC PASTEL & NAVY INDUSTRIAL DESIGN) -->
-                <aside id="sidebar" class="w-60 flex flex-col justify-between flex-shrink-0 transition-all duration-300 shadow-2xl z-20 select-none">
+                <aside id="sidebar" class="${sidebarClass} flex flex-col justify-between flex-shrink-0 transition-all duration-300 shadow-2xl z-20 select-none">
                     <div class="flex flex-col min-h-0 flex-1">
                         <!-- BRAND LOGO -->
                         <div id="sidebar-brand-header" class="h-14 px-4 flex items-center justify-between border-b border-[#152347] flex-shrink-0 box-border">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div id="sidebar-brand-logo-container" class="flex-shrink-0 flex items-center justify-center">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <div id="sidebar-brand-logo-container" class="flex-shrink-0 flex items-center justify-center cursor-pointer" title="LinePulse OEE System">
                                     ${this.companyProfile?.company_logo 
                                         ? `<img src="${this.escapeHtml(this.companyProfile.company_logo)}" class="w-8 h-8 object-contain drop-shadow-sm" alt="Logo" />` 
                                         : `<i data-lucide="activity" class="w-6 h-6 text-cyan-400"></i>`
                                     }
                                 </div>
-                                <div class="min-w-0 flex-1">
+                                <div id="sidebar-brand-text-container" class="min-w-0 flex-1">
                                     <h1 id="sidebar-brand-name" class="font-extrabold text-white tracking-wide leading-tight truncate text-xs">${this.companyProfile?.plant_name || 'OEE Sys'}</h1>
                                     <span id="sidebar-brand-tagline" class="text-[9.5px] text-cyan-400 font-medium tracking-wider uppercase truncate block">${this.companyProfile?.plant_code ? `${this.companyProfile.plant_code} • MES Standard` : 'Enterprise MES'}</span>
                                 </div>
                             </div>
+                            <button id="btn-toggle-sidebar-pin" class="p-1 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800/60 transition-colors cursor-pointer flex-shrink-0" title="${this.isSidebarPinned ? 'Kunci Sidebar (Fixed) - Klik untuk Mode Auto Hide' : 'Buka Kunci Sidebar - Klik untuk Kunci Sidebar Tetap'}">
+                                <i data-lucide="${this.isSidebarPinned ? 'pin' : 'pin-off'}" class="w-3.5 h-3.5 ${this.isSidebarPinned ? 'text-cyan-400' : 'text-slate-500'}"></i>
+                            </button>
                         </div>
 
                         <!-- NAVIGATION MENU WITH CATEGORIZED MODULE DIVIDERS -->
@@ -1218,17 +1224,103 @@ class OeeApp {
             : 'text-slate-400 group-hover:text-cyan-300';
 
         return `
-            <a href="#" data-tab="${id}" class="nav-link sidebar-nav-item group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs cursor-pointer ${activeClass}">
-                <div class="flex items-center gap-2.5 min-w-0">
+            <a href="#" data-tab="${id}" class="nav-link sidebar-nav-item group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs cursor-pointer ${activeClass}" title="${label}">
+                <div class="nav-item-left flex items-center gap-2.5 min-w-0">
                     <i data-lucide="${icon}" class="w-4 h-4 nav-icon flex-shrink-0 ${iconColor} transition-all duration-200"></i>
-                    <span class="truncate tracking-wide text-[11.5px] font-medium ${isActive ? 'text-white font-semibold' : 'text-slate-300 group-hover:text-white'}">${label}</span>
+                    <span class="nav-label truncate tracking-wide text-[11.5px] font-medium ${isActive ? 'text-white font-semibold' : 'text-slate-300 group-hover:text-white'}">${label}</span>
                 </div>
-                <div class="flex items-center gap-1 flex-shrink-0">
+                <div class="nav-item-right flex items-center gap-1 flex-shrink-0">
                     ${badge ? `<span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${badge === 'PARETO' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'}">${badge}</span>` : ''}
                     ${isActive ? '<span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse"></span>' : ''}
                 </div>
             </a>
         `;
+    }
+
+    initSidebarBehavior() {
+        const sidebar = document.getElementById('sidebar');
+        const contentBody = document.getElementById('content-body');
+        const header = document.querySelector('header');
+        const btnPin = document.getElementById('btn-toggle-sidebar-pin');
+
+        if (!sidebar) return;
+
+        const updateSidebarClasses = () => {
+            if (this.isSidebarPinned) {
+                sidebar.classList.remove('sidebar-unpinned', 'sidebar-mini', 'sidebar-hover-expanded', 'w-16');
+                sidebar.classList.add('sidebar-pinned', 'w-60');
+            } else {
+                sidebar.classList.remove('sidebar-pinned');
+                sidebar.classList.add('sidebar-unpinned');
+                if (this.isSidebarHovered) {
+                    sidebar.classList.remove('sidebar-mini', 'w-16');
+                    sidebar.classList.add('sidebar-hover-expanded', 'w-60');
+                } else {
+                    sidebar.classList.remove('sidebar-hover-expanded', 'w-60');
+                    sidebar.classList.add('sidebar-mini', 'w-16');
+                }
+            }
+            if (btnPin) {
+                btnPin.innerHTML = `<i data-lucide="${this.isSidebarPinned ? 'pin' : 'pin-off'}" class="w-3.5 h-3.5 ${this.isSidebarPinned ? 'text-cyan-400' : 'text-slate-500'}"></i>`;
+                btnPin.title = this.isSidebarPinned 
+                    ? 'Kunci Sidebar (Fixed) - Klik untuk Mode Auto Hide' 
+                    : 'Buka Kunci Sidebar - Klik untuk Kunci Sidebar Tetap';
+                if (window.lucide) window.lucide.createIcons();
+            }
+        };
+
+        // Hover expand on sidebar
+        sidebar.addEventListener('mouseenter', () => {
+            if (!this.isSidebarPinned) {
+                this.isSidebarHovered = true;
+                updateSidebarClasses();
+            }
+        });
+
+        // Hover collapse when mouse leaves sidebar
+        sidebar.addEventListener('mouseleave', () => {
+            if (!this.isSidebarPinned) {
+                this.isSidebarHovered = false;
+                updateSidebarClasses();
+            }
+        });
+
+        // Hover collapse when mouse enters main dashboard content or top header
+        if (contentBody) {
+            contentBody.addEventListener('mouseenter', () => {
+                if (!this.isSidebarPinned && this.isSidebarHovered) {
+                    this.isSidebarHovered = false;
+                    updateSidebarClasses();
+                }
+            });
+        }
+        if (header) {
+            header.addEventListener('mouseenter', () => {
+                if (!this.isSidebarPinned && this.isSidebarHovered) {
+                    this.isSidebarHovered = false;
+                    updateSidebarClasses();
+                }
+            });
+        }
+
+        // Toggle Pin Lock Button
+        if (btnPin) {
+            btnPin.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.isSidebarPinned = !this.isSidebarPinned;
+                localStorage.setItem('oee_sidebar_pinned', this.isSidebarPinned ? 'true' : 'false');
+                this.isSidebarHovered = false;
+                updateSidebarClasses();
+                this.showNotification(
+                    this.isSidebarPinned ? 'Sidebar Dikunci (Pinned)' : 'Sidebar Auto Hide',
+                    this.isSidebarPinned ? 'Sidebar akan tetap terbuka secara permanen.' : 'Sidebar akan otomatis mengecil saat mouse diarahkan ke dashboard.',
+                    'info'
+                );
+            });
+        }
+
+        // Initialize state
+        updateSidebarClasses();
     }
 
     bindGlobalEvents() {
@@ -1406,6 +1498,8 @@ class OeeApp {
                 this.renderNotificationList();
             });
         }
+
+        this.initSidebarBehavior();
 
         if (window.lucide) window.lucide.createIcons();
     }
