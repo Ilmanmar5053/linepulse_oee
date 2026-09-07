@@ -4755,7 +4755,6 @@ tbody.innerHTML = '';
                                             <span class="px-2 py-0.5 rounded text-[10px] font-bold ${dt.problem_type === 'Mesin' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
                                                 ${dt.problem_type || 'Mesin'}
                                             </span>
-                                            ${dt.downtime_reason ? `<div class="text-[10px] text-slate-400 truncate max-w-[120px] mt-0.5">${dt.downtime_reason.name}</div>` : ''}
                                         </td>
                                         <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
                                             <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dt.description || 'Problem Operasional'}</div>
@@ -5308,26 +5307,18 @@ tbody.innerHTML = '';
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Kategori Problem & Alasan Downtime*</label>
-                                <div class="grid grid-cols-2 gap-1.5">
-                                    <select data-trouble-field="problem_type" data-row="${idx}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold">
-                                        <option value="Mesin" ${row.problem_type === 'Mesin' ? 'selected' : ''}>Mesin</option>
-                                        <option value="Dies / Tooling" ${row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Dies / Tooling</option>
-                                        <option value="Jig / Fixture" ${row.problem_type === 'Jig / Fixture' ? 'selected' : ''}>Jig / Fixture</option>
-                                        <option value="Material" ${row.problem_type === 'Material' ? 'selected' : ''}>Material</option>
-                                        <option value="Operator" ${row.problem_type === 'Operator' ? 'selected' : ''}>Operator</option>
-                                        <option value="Quality" ${row.problem_type === 'Quality' ? 'selected' : ''}>Quality</option>
-                                        <option value="Method" ${row.problem_type === 'Method' ? 'selected' : ''}>Method</option>
-                                        <option value="Utility" ${row.problem_type === 'Utility' ? 'selected' : ''}>Utility</option>
-                                        <option value="Other" ${row.problem_type === 'Other' ? 'selected' : ''}>Other</option>
-                                    </select>
-                                    <select data-trouble-field="downtime_reason_id" data-row="${idx}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs">
-                                        <option value="">-- Master Reason --</option>
-                                        ${this.masterData.downtimeReasons.map(dr => `
-                                            <option value="${dr.id}" ${row.downtime_reason_id == dr.id ? 'selected' : ''}>${dr.name} (${dr.category || 'Breakdown'})</option>
-                                        `).join('')}
-                                    </select>
-                                </div>
+                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Kategori Problem*</label>
+                                <select data-trouble-field="problem_type" data-row="${idx}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold">
+                                    <option value="Mesin" ${row.problem_type === 'Mesin' ? 'selected' : ''}>Mesin</option>
+                                    <option value="Dies / Tooling" ${row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Dies / Tooling</option>
+                                    <option value="Jig / Fixture" ${row.problem_type === 'Jig / Fixture' ? 'selected' : ''}>Jig / Fixture</option>
+                                    <option value="Material" ${row.problem_type === 'Material' ? 'selected' : ''}>Material</option>
+                                    <option value="Operator" ${row.problem_type === 'Operator' ? 'selected' : ''}>Operator</option>
+                                    <option value="Quality" ${row.problem_type === 'Quality' ? 'selected' : ''}>Quality</option>
+                                    <option value="Method" ${row.problem_type === 'Method' ? 'selected' : ''}>Method</option>
+                                    <option value="Utility" ${row.problem_type === 'Utility' ? 'selected' : ''}>Utility</option>
+                                    <option value="Other" ${row.problem_type === 'Other' ? 'selected' : ''}>Other</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Jam Mulai, Selesai & Losstime (Menit)*</label>
@@ -5608,26 +5599,26 @@ tbody.innerHTML = '';
                             ${uniquePicOptions.map(p => `<option value="${p}"></option>`).join('')}
                         </datalist>
 
-                        <!-- ROW 1: TANGGAL, LINE*, SHIFT*, TEAM* -->
+                        <!-- ROW 1: Tanggal*, Line*, Shift*, Team* -->
                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TANGGAL*</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Tanggal*</label>
                                 <input type="date" name="production_date" value="${curDate}" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">LINE*</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Line*</label>
                                 <select name="production_line_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold text-cyan-600 dark:text-cyan-400 outline-none focus:border-amber-500">
                                     ${this.masterData.lines.map(l => `<option value="${l.id}" ${l.id == defaultLineId ? 'selected' : ''}>${l.name}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">SHIFT*</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Shift*</label>
                                 <select name="shift_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-semibold outline-none focus:border-amber-500">
                                     ${this.masterData.shifts.map(s => `<option value="${s.id}" ${s.id == defaultShiftId ? 'selected' : ''}>${s.name}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TEAM*</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Team*</label>
                                 <select name="team" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold text-amber-500 outline-none focus:border-amber-500">
                                     <option value="Team A">Team A</option>
                                     <option value="Team B">Team B</option>
@@ -5637,26 +5628,22 @@ tbody.innerHTML = '';
                             </div>
                         </div>
 
-                        <!-- ROW 2: TYPE PRODUK / SKU* & OP MESIN* -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- ROW 2: Type Produk / SKU*, OP Mesin*, Kategori Problem* -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TYPE PRODUK / SKU*</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Type Produk / SKU*</label>
                                 <select name="product_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-amber-500">
                                     <!-- Populated dynamically per line -->
                                 </select>
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">OP MESIN*</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">OP Mesin*</label>
                                 <select name="machine_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500">
                                     <!-- Populated dynamically per line (Measuring MC first) -->
                                 </select>
                             </div>
-                        </div>
-
-                        <!-- ROW 3: KATEGORI PROBLEM* & ALASAN MASTER DOWNTIME -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">KATEGORI PROBLEM*</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Kategori Problem*</label>
                                 <select name="problem_type" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
                                     <option value="Mesin">Mesin (Breakdown Mechanical / Electrical)</option>
                                     <option value="Dies / Tooling">Dies / Tooling (Patah / Aus / Setting)</option>
@@ -5669,33 +5656,27 @@ tbody.innerHTML = '';
                                     <option value="Other">Other (Choke / Minor Stoppage)</option>
                                 </select>
                             </div>
-                            <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">ALASAN MASTER DOWNTIME*</label>
-                                <select name="downtime_reason_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500">
-                                    ${this.masterData.downtimeReasons.map(dr => `<option value="${dr.id}">${dr.name} (${dr.category || 'Breakdown'})</option>`).join('')}
-                                </select>
-                            </div>
                         </div>
 
-                        <!-- ROW 4: PROBLEM* -->
+                        <!-- ROW 3: Problem* -->
                         <div>
-                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PROBLEM* (Deskripsi Masalah / Kerusakan)</label>
+                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Problem* (Deskripsi Masalah / Kerusakan)</label>
                             <input type="text" name="description" placeholder="Jelaskan kendala mesin / tooling / kerusakan yang terjadi..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500 font-sans" />
                         </div>
 
-                        <!-- ROW 5: PENYEBAB* -->
+                        <!-- ROW 4: Penyebab* -->
                         <div>
-                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PENYEBAB* (Akar Masalah / Root Cause)</label>
+                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Penyebab* (Akar Masalah / Root Cause)</label>
                             <input type="text" name="cause" placeholder="Jelaskan akar penyebab terjadinya problem..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500 font-sans" />
                         </div>
 
-                        <!-- ROW 6: PERBAIKAN* -->
+                        <!-- ROW 5: Perbaikan* -->
                         <div>
-                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PERBAIKAN* (Tindakan Penanganan / CAPA)</label>
+                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Perbaikan* (Tindakan Penanganan / CAPA)</label>
                             <input type="text" name="action_taken" placeholder="Tindakan perbaikan dan countermeasure yang dilakukan..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-emerald-700' : 'bg-slate-950 border-slate-800 text-emerald-300'} border rounded-lg px-2.5 py-2 outline-none focus:border-emerald-500 font-sans" />
                         </div>
 
-                        <!-- ROW 7: WAKTU & LOSSTIME (Wajib Angka)* -->
+                        <!-- ROW 6: Jam Mulai, Jam Selesai & Losstime (Wajib Angka)* -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div>
                                 <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Mulai</label>
@@ -5707,21 +5688,21 @@ tbody.innerHTML = '';
                             </div>
                             <div>
                                 <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold flex items-center justify-between">
-                                    <span>LOSSTIME (Menit)*</span>
+                                    <span>Losstime (Menit)*</span>
                                     <span class="text-[10px] text-amber-400 font-mono font-bold">(Wajib Angka)</span>
                                 </label>
                                 <input type="number" name="duration_minutes" min="1" step="1" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-rose-600' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-amber-500" />
                             </div>
                         </div>
 
-                        <!-- ROW 8: PIC (Daftar Nama PIC Departemen)* & STATUS (dropdown : CLOSED, OPEN)* -->
+                        <!-- ROW 7: PIC (Daftar Nama PIC Departemen)* & Status (Closed / Open)* -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PIC (Daftar Nama PIC Departemen)*</label>
                                 <input type="text" name="pic" list="standalone-problem-pic-list" placeholder="Pilih atau ketik PIC Departemen..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-cyan-800' : 'bg-slate-950 border-slate-800 text-cyan-300'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-cyan-500" />
                             </div>
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">STATUS (CLOSED / OPEN)*</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Status (Closed / Open)*</label>
                                 <select name="status" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
                                     <option value="CLOSED">CLOSED</option>
                                     <option value="OPEN">OPEN</option>
@@ -13562,7 +13543,7 @@ tbody.innerHTML = '';
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Detail Log Problem & Downtime #${item.id}</h3>
+                                    <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Detail Log Problem #${item.id}</h3>
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${problemType === 'Mesin' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">${problemType}</span>
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusVal === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${statusVal}</span>
                                 </div>
@@ -13580,19 +13561,19 @@ tbody.innerHTML = '';
                         <!-- TIME, DURATION & STATUS TILES -->
                         <div class="grid grid-cols-4 gap-2.5 font-mono text-center">
                             <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
-                                <div class="text-[10px] uppercase font-bold text-slate-400 font-sans">Waktu Mulai</div>
+                                <div class="text-[10px] font-bold text-slate-400 font-sans">Waktu Mulai</div>
                                 <div class="text-lg font-bold text-cyan-400 mt-1">${startTimeVal}</div>
                             </div>
                             <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
-                                <div class="text-[10px] uppercase font-bold text-slate-400 font-sans">Waktu Selesai</div>
+                                <div class="text-[10px] font-bold text-slate-400 font-sans">Waktu Selesai</div>
                                 <div class="text-lg font-bold ${item.end_time ? 'text-cyan-400' : 'text-rose-400 animate-pulse'} mt-1">${endTimeVal}</div>
                             </div>
                             <div class="${isLight ? 'bg-rose-50/50 border-rose-200' : 'bg-slate-950/70 border-rose-900/40'} border rounded-xl p-2.5">
-                                <div class="text-[10px] uppercase font-bold text-rose-400 font-sans">Losstime</div>
+                                <div class="text-[10px] font-bold text-rose-400 font-sans">Losstime</div>
                                 <div class="text-lg font-extrabold text-rose-400 mt-1">${durationMins} mins</div>
                             </div>
                             <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
-                                <div class="text-[10px] uppercase font-bold text-slate-400 font-sans">Status</div>
+                                <div class="text-[10px] font-bold text-slate-400 font-sans">Status</div>
                                 <div class="text-sm font-bold ${statusVal === 'OPEN' ? 'text-rose-400' : 'text-emerald-400'} mt-1.5">${statusVal}</div>
                             </div>
                         </div>
@@ -13609,7 +13590,7 @@ tbody.innerHTML = '';
                                     <span class="font-mono font-bold text-cyan-400">${troubleDateVal}</span>
                                 </div>
                                 <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Production Line:</span>
+                                    <span class="text-slate-400">Line:</span>
                                     <span class="font-bold text-cyan-400">${lineName}</span>
                                 </div>
                                 <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
@@ -13621,7 +13602,7 @@ tbody.innerHTML = '';
                                     <span class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${shiftName}</span>
                                 </div>
                                 <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Regu / Team:</span>
+                                    <span class="text-slate-400">Team:</span>
                                     <span class="font-bold text-amber-400 font-mono">${item.team || 'Team A'}</span>
                                 </div>
                                 <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
@@ -13633,8 +13614,8 @@ tbody.innerHTML = '';
                                     <span class="font-bold text-emerald-400">${productName}</span>
                                 </div>
                                 <div class="col-span-1 sm:col-span-2 flex justify-between py-1">
-                                    <span class="text-slate-400">Kategori & Master Alasan:</span>
-                                    <span class="font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${problemType} &mdash; ${reasonName}</span>
+                                    <span class="text-slate-400">Kategori Problem:</span>
+                                    <span class="font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${problemType}</span>
                                 </div>
                             </div>
                         </div>
@@ -14404,10 +14385,6 @@ tbody.innerHTML = '';
             `<option value="${m.id}" ${item.machine_id == m.id ? 'selected' : ''}>${m.code} - ${m.name}</option>`
         ).join('');
 
-        const downtimeReasonsOptions = (this.masterData.downtimeReasons || []).map(dr => 
-            `<option value="${dr.id}" ${item.downtime_reason_id == dr.id ? 'selected' : ''}>${dr.name} (${dr.category || 'Breakdown'})</option>`
-        ).join('');
-
         modalContainer.innerHTML = `
             <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto font-sans">
                 <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-2xl w-full my-auto overflow-hidden">
@@ -14418,8 +14395,8 @@ tbody.innerHTML = '';
                                 <i data-lucide="wrench" class="w-4 h-4"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Edit Log Problem & Downtime #${item.id}</h3>
-                                <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Ubah data master problem, parameter lini, waktu, PIC, dan status penanganan</p>
+                                <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Edit Log Problem #${item.id}</h3>
+                                <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Ubah data problem, parameter lini, waktu, PIC, dan status penanganan</p>
                             </div>
                         </div>
                         <button id="btn-close-edit-dt-modal" class="p-1 rounded-lg ${isLight ? 'text-slate-400 hover:text-slate-800 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} cursor-pointer transition-colors">
@@ -14432,7 +14409,7 @@ tbody.innerHTML = '';
                             ${uniquePicOptions.map(p => `<option value="${p}"></option>`).join('')}
                         </datalist>
 
-                        <!-- SEKSI 1: PARAMETER OPERASIONAL (TANGGAL, LINE*, SHIFT*, TEAM*, PRODUK, OP MESIN) -->
+                        <!-- SEKSI 1: Parameter Operasional (Tanggal, Line, Shift, Team, Type Produk, OP Mesin, Kategori Problem) -->
                         <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-3">
                             <div class="font-bold text-[11px] ${isLight ? 'text-amber-800' : 'text-amber-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
                                 <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
@@ -14441,23 +14418,23 @@ tbody.innerHTML = '';
 
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TANGGAL*</label>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Tanggal*</label>
                                     <input type="date" name="trouble_date" value="${troubleDateVal}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">LINE*</label>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Line*</label>
                                     <select name="production_line_id" id="edit-dt-line-select" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-bold text-cyan-600 dark:text-cyan-400 outline-none focus:border-amber-500">
                                         ${linesOptions}
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">SHIFT*</label>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Shift*</label>
                                     <select name="shift_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-semibold outline-none focus:border-amber-500">
                                         ${shiftsOptions}
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TEAM*</label>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Team*</label>
                                     <select name="team" id="edit-dt-team-select" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold text-amber-500 outline-none focus:border-amber-500">
                                         <option value="Team A" ${item.team === 'Team A' ? 'selected' : ''}>Team A</option>
                                         <option value="Team B" ${item.team === 'Team B' ? 'selected' : ''}>Team B</option>
@@ -14467,32 +14444,21 @@ tbody.innerHTML = '';
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">TYPE PRODUK / SKU*</label>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Type Produk / SKU*</label>
                                     <select name="product_id" id="edit-dt-product-select" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-amber-500">
                                         <!-- Populated dynamically based on line -->
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">OP MESIN*</label>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">OP Mesin*</label>
                                     <select name="machine_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500">
                                         ${machinesOptions}
                                     </select>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- SEKSI 2: KATEGORI, PROBLEM, PENYEBAB, PERBAIKAN, LOSSTIME, PIC & STATUS -->
-                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-3">
-                            <div class="font-bold text-[11px] ${isLight ? 'text-rose-800' : 'text-rose-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
-                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-                                Detail Problem, Penyebab, Perbaikan & PIC
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">KATEGORI PROBLEM*</label>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Kategori Problem*</label>
                                     <select name="problem_type" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
                                         <option value="Mesin" ${item.problem_type === 'Mesin' ? 'selected' : ''}>Mesin</option>
                                         <option value="Dies / Tooling" ${item.problem_type === 'Dies / Tooling' || item.problem_type === 'Tool' ? 'selected' : ''}>Dies / Tooling</option>
@@ -14505,26 +14471,28 @@ tbody.innerHTML = '';
                                         <option value="Other" ${item.problem_type === 'Other' ? 'selected' : ''}>Other</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">ALASAN MASTER DOWNTIME*</label>
-                                    <select name="downtime_reason_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-amber-500">
-                                        ${downtimeReasonsOptions}
-                                    </select>
-                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SEKSI 2: Problem, Penyebab, Perbaikan, Losstime, PIC & Status -->
+                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-3">
+                            <div class="font-bold text-[11px] ${isLight ? 'text-rose-800' : 'text-rose-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
+                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                                Detail Problem, Penyebab, Perbaikan & PIC
                             </div>
 
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PROBLEM* (Deskripsi Masalah / Kerusakan)</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Problem* (Deskripsi Masalah / Kerusakan)</label>
                                 <input type="text" name="description" value="${item.description || ''}" placeholder="Jelaskan detail kendala problem yang terjadi..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500" />
                             </div>
 
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PENYEBAB* (Akar Masalah / Root Cause)</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Penyebab* (Akar Masalah / Root Cause)</label>
                                 <input type="text" name="cause" value="${item.cause || ''}" placeholder="Jelaskan akar penyebab terjadinya problem..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-amber-500" />
                             </div>
 
                             <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PERBAIKAN* (Tindakan Penanganan / CAPA)</label>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Perbaikan* (Tindakan Penanganan / CAPA)</label>
                                 <input type="text" name="action_taken" value="${item.action_taken || ''}" placeholder="Langkah perbaikan / countermeasure yang telah dilakukan..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-emerald-800' : 'bg-slate-900 border-slate-800 text-emerald-300'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-emerald-500" />
                             </div>
 
@@ -14539,7 +14507,7 @@ tbody.innerHTML = '';
                                 </div>
                                 <div>
                                     <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold flex items-center justify-between">
-                                        <span>LOSSTIME (Min)*</span>
+                                        <span>Losstime (Menit)*</span>
                                         <span class="text-[10px] text-amber-400 font-mono font-bold">(Wajib Angka)</span>
                                     </label>
                                     <input type="number" name="duration_minutes" value="${durVal}" min="1" step="1" required class="w-full ${isLight ? 'bg-white border-slate-200 text-rose-700' : 'bg-slate-900 border-slate-800 text-rose-400'} border rounded-lg px-2 py-2 font-mono font-bold outline-none focus:border-amber-500" />
@@ -14552,7 +14520,7 @@ tbody.innerHTML = '';
                                     <input type="text" name="pic" list="edit-problem-pic-list" value="${item.pic || ''}" placeholder="Pilih atau ketik PIC..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-cyan-800' : 'bg-slate-900 border-slate-800 text-cyan-300'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-cyan-500" />
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">STATUS (CLOSED / OPEN)*</label>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Status (Closed / Open)*</label>
                                     <select name="status" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold outline-none focus:border-amber-500">
                                         <option value="CLOSED" ${String(item.status || '').toUpperCase() !== 'OPEN' ? 'selected' : ''}>CLOSED</option>
                                         <option value="OPEN" ${String(item.status || '').toUpperCase() === 'OPEN' ? 'selected' : ''}>OPEN</option>
