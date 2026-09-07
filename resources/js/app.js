@@ -1502,6 +1502,10 @@ class OeeApp {
         this.initSidebarBehavior();
 
         if (window.lucide) window.lucide.createIcons();
+
+        if (this.currentLang === 'ja') {
+            i18n.localizeDom(document.body);
+        }
     }
 
     async switchTab(tab) {
