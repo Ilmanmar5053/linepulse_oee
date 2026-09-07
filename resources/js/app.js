@@ -4839,13 +4839,13 @@ tbody.innerHTML = '';
                                                 </td>
                                                 <td class="p-3 text-center font-sans">
                                                     <div class="flex items-center justify-center gap-1.5">
-                                                        <button data-action="view-prod-record" data-id="${r.id}" title="Preview Detail Laporan Produksi" class="w-7 h-7 rounded-lg bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-blue-900/30 hover:scale-110 active:scale-95">
+                                                        <button data-action="view-prod-record" data-id="${r.id}" title="Lihat Detail Laporan Produksi" class="w-7 h-7 rounded-lg ${isLight ? 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700' : 'bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95">
                                                             <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                                         </button>
-                                                        <button data-action="edit-prod-record" data-id="${r.id}" title="Edit Record Produksi" class="w-7 h-7 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-cyan-900/30 hover:scale-110 active:scale-95">
+                                                        <button data-action="edit-prod-record" data-id="${r.id}" title="Edit Data Produksi" class="w-7 h-7 rounded-lg ${isLight ? 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200 text-cyan-700' : 'bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95">
                                                             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                                         </button>
-                                                        <button data-action="delete-prod-record" data-id="${r.id}" title="Hapus Record Produksi" class="w-7 h-7 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-rose-900/30 hover:scale-110 active:scale-95">
+                                                        <button data-action="delete-prod-record" data-id="${r.id}" title="Hapus Data Produksi" class="w-7 h-7 rounded-lg ${isLight ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700' : 'bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95">
                                                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                                         </button>
                                                     </div>
@@ -4902,7 +4902,7 @@ tbody.innerHTML = '';
                                     <th class="p-3 text-center">Losstime</th>
                                     <th class="p-3">PIC</th>
                                     <th class="p-3 text-center">Status</th>
-                                    <th class="p-3 text-center">Aksi / Rincian</th>
+                                    <th class="p-3 text-center w-28">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
@@ -4958,45 +4958,33 @@ tbody.innerHTML = '';
                                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">${closedCount} CLOSED</span>
                                                 </div>
                                             </td>
-                                            <td class="p-3 font-mono font-bold text-center text-amber-400 text-sm">
+                                            <td class="p-3 text-center font-bold font-mono text-amber-400">
                                                 ${grpTotalMins} m
-                                                <div class="text-[9px] text-slate-400 font-normal">${(grpTotalMins/60).toFixed(1)} jam</div>
                                             </td>
-                                            <td class="p-3 font-sans text-xs">
-                                                <div class="text-slate-400 text-[10px]">Total Losstime Line</div>
-                                            </td>
-                                            <td class="p-3 text-center font-sans">
-                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${openCount > 0 ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
-                                                    ${openCount > 0 ? 'PERLU TINDAKAN' : 'RESOLVED'}
-                                                </span>
-                                            </td>
-                                            <td class="p-3 text-center font-sans">
-                                                <span class="text-[10px] font-semibold text-slate-400 flex items-center justify-center gap-1">
-                                                    <span>Toggle Detail</span>
-                                                    <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                                                </span>
+                                            <td class="p-3 text-center font-sans text-xs" colspan="2">
+                                                <span class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">Klik baris</span>
                                             </td>
                                         </tr>
 
-                                        <!-- EXPANDABLE CHILD ROWS FOR THIS LINE'S PROBLEMS -->
-                                        ${grp.items.map((dt, dtIdx) => `
+                                        <!-- EXPANDABLE CHILD ROWS FOR PROBLEM TABLE -->
+                                        ${grp.items.map((dt, dIdx) => `
                                             <tr class="dt-line-row-${grp.lineId} ${isLight ? 'bg-white hover:bg-slate-50' : 'bg-slate-900/70 hover:bg-slate-800/60'} transition-colors border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/50'}">
-                                                <td class="p-3 text-center text-xs font-mono ${isLight ? 'text-slate-400' : 'text-slate-500'}">
-                                                    <span class="inline-block pl-2 text-[11px] text-slate-400 font-mono">${gIdx + 1}.${dtIdx + 1}</span>
+                                                <td class="p-3 text-center text-xs font-mono text-slate-400">
+                                                    ${gIdx + 1}.${dIdx + 1}
                                                 </td>
-                                                <td class="p-3 text-slate-300 text-[11px] font-sans">
-                                                    <div class="font-mono font-bold text-slate-200">${dt.start_time ? dt.start_time.slice(0, 10) : this.selectedDailyDate}</div>
-                                                    <div class="text-cyan-400 font-mono text-[10px]">${dt.start_time ? dt.start_time.slice(11,16) : '-'} s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-400 font-bold">ONGOING</span>'}</div>
+                                                <td class="p-3 font-mono text-xs ${isLight ? 'text-slate-800' : 'text-slate-300'}">
+                                                    <div class="font-bold">${dt.formatted_start_time || dt.start_time?.slice(11, 16) || '-'}</div>
+                                                    <div class="text-[10px] text-slate-500">${dt.start_time?.slice(0, 10) || ''}</div>
                                                 </td>
                                                 <td class="p-3 font-sans">
-                                                    <div class="flex items-center gap-1.5 pl-2 border-l-2 ${isLight ? 'border-amber-400' : 'border-amber-500/70'}">
-                                                        <span class="font-bold text-cyan-400 text-xs">${dt.production_line ? dt.production_line.name : 'FX Line'}</span>
+                                                    <div class="flex items-center gap-1.5 pl-2 border-l-2 border-amber-500/70">
+                                                        <span class="font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs">${dt.production_line?.name || dt.line_name || 'Line'}</span>
                                                     </div>
-                                                    <div class="text-[10px] text-slate-400 font-mono pl-2">${dt.machine ? dt.machine.name : (dt.machine_id ? 'Machine #' + dt.machine_id : 'MC-MEASURING')}</div>
+                                                    <div class="text-[10px] text-slate-400 font-mono pl-2">${dt.machine ? `${dt.machine.code} (${dt.machine.name})` : '-'}</div>
                                                 </td>
                                                 <td class="p-3 font-sans">
                                                     <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-200 border-slate-700'} border">
-                                                        ${dt.shift ? dt.shift.name : 'Shift 1'}
+                                                        ${dt.shift ? dt.shift.name : 'Shift #' + dt.shift_id}
                                                     </span>
                                                     ${dt.team ? `<div class="text-[10px] text-amber-400 font-bold mt-1">👥 ${dt.team}</div>` : ''}
                                                 </td>
@@ -5036,13 +5024,13 @@ tbody.innerHTML = '';
                                                 </td>
                                                 <td class="p-3 text-center font-sans">
                                                     <div class="flex items-center justify-center gap-1.5">
-                                                        <button data-action="view-dt-record" data-id="${dt.id}" title="Preview Detail Log Problem" class="w-7 h-7 rounded-lg bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-blue-900/30 hover:scale-110 active:scale-95">
+                                                        <button data-action="view-dt-record" data-id="${dt.id}" title="Lihat Detail Log Problem" class="w-7 h-7 rounded-lg ${isLight ? 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700' : 'bg-blue-950/70 hover:bg-blue-900 border border-blue-800/80 text-blue-400 hover:text-blue-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95">
                                                             <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                                         </button>
-                                                        <button data-action="edit-dt-record" data-id="${dt.id}" title="Edit Log Problem" class="w-7 h-7 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-cyan-900/30 hover:scale-110 active:scale-95">
+                                                        <button data-action="edit-dt-record" data-id="${dt.id}" title="Edit Log Problem" class="w-7 h-7 rounded-lg ${isLight ? 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200 text-cyan-700' : 'bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95">
                                                             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                                         </button>
-                                                        <button data-action="delete-dt-record" data-id="${dt.id}" title="Hapus Log Problem" class="w-7 h-7 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200 flex items-center justify-center cursor-pointer transition-all shadow-sm shadow-rose-900/30 hover:scale-110 active:scale-95">
+                                                        <button data-action="delete-dt-record" data-id="${dt.id}" title="Hapus Log Problem" class="w-7 h-7 rounded-lg ${isLight ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700' : 'bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95">
                                                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                                         </button>
                                                     </div>
@@ -6667,12 +6655,18 @@ tbody.innerHTML = '';
                                                         </span>
                                                     `}
                                                 </td>
-                                                <td class="p-3 text-center">
-                                                    <!-- TOMBOL AKSI INPUT DETAIL / EDIT DETAIL (SOFT PALETTE) -->
-                                                    <button type="button" class="btn-open-ng-modal px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 mx-auto cursor-pointer ${item.has_ng_detail ? (isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700') : (isLight ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-black' : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30')}" data-record-id="${item.production_record_id}">
-                                                        <i data-lucide="${item.has_ng_detail ? 'edit-3' : 'plus-circle'}" class="w-3.5 h-3.5"></i>
-                                                        <span>${item.has_ng_detail ? 'Edit Detail' : 'Input Detail'}</span>
-                                                    </button>
+                                                <td class="p-3 text-center font-sans">
+                                                    <!-- TOMBOL AKSI ICON-ONLY (EDIT & HAPUS DETAIL NG) -->
+                                                    <div class="flex items-center justify-center gap-1.5">
+                                                        <button type="button" class="btn-open-ng-modal w-7 h-7 rounded-lg ${item.has_ng_detail ? (isLight ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200' : 'bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200') : (isLight ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300' : 'bg-amber-950/70 hover:bg-amber-900 border border-amber-800/80 text-amber-400 hover:text-amber-200')} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95" data-record-id="${item.production_record_id}" title="${item.has_ng_detail ? 'Edit Detail NG' : 'Input Detail NG'}">
+                                                            <i data-lucide="${item.has_ng_detail ? 'pencil' : 'plus'}" class="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                        ${item.has_ng_detail ? `
+                                                            <button type="button" class="btn-delete-ng-row w-7 h-7 rounded-lg ${isLight ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' : 'bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95" data-record-id="${item.production_record_id}" data-ng-id="${item.ng_detail?.id || ''}" title="Hapus / Reset Detail NG">
+                                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                            </button>
+                                                        ` : ''}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         `;
@@ -6738,6 +6732,33 @@ tbody.innerHTML = '';
                 const recordId = e.currentTarget.getAttribute('data-record-id');
                 if (recordId) {
                     this.showNgDetailModal(recordId);
+                }
+            });
+        });
+
+        // 3. Bind Delete NG Detail Buttons
+        document.querySelectorAll('.btn-delete-ng-row').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const ngId = e.currentTarget.getAttribute('data-ng-id');
+                if (!ngId) {
+                    this.showNotification('Info', 'Belum ada rincian NG tersimpan untuk dihapus.', 'info');
+                    return;
+                }
+                const confirmed = await this.showConfirmModal({
+                    title: 'Reset & Hapus Detail NG',
+                    subtitle: 'Apakah Anda yakin ingin menghapus / mereset rincian detail NG untuk shift ini?',
+                    confirmText: 'Ya, Hapus Data',
+                    cancelText: 'Batal',
+                    type: 'danger'
+                });
+                if (confirmed) {
+                    try {
+                        await api.deleteNgDetail(ngId);
+                        this.showNotification('Data Dihapus', 'Detail NG berhasil direset.', 'delete');
+                        this.renderNgReport();
+                    } catch (err) {
+                        this.showNotification('Gagal Menghapus', err.response?.data?.message || err.message, 'delete');
+                    }
                 }
             });
         });
