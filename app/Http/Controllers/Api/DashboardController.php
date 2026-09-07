@@ -749,9 +749,13 @@ class DashboardController extends Controller
             $prodQ = ProductionRecord::where('production_line_id', $line->id);
             $this->applyFilters($prodQ, $request, 'production_date');
 
-            $target = $prodQ->sum('target_quantity');
-            $actual = $prodQ->sum('total_quantity');
+            $target = (int) $prodQ->sum('target_quantity');
+            $actual = (int) $prodQ->sum('total_quantity');
+            $good = (int) $prodQ->sum('good_quantity');
+            $reject = (int) $prodQ->sum('reject_quantity');
+            $downtimeMins = (int) $prodQ->sum('downtime');
             $achievement = ($target > 0) ? round(($actual / $target) * 100, 2) : 0.0;
+            $defectRate = ($actual > 0) ? round(($reject / $actual) * 100, 2) : 0.0;
 
             // 1. Get products actually produced on this line in production_records
             $producedProductIds = ProductionRecord::where('production_line_id', $line->id)
@@ -775,12 +779,17 @@ class DashboardController extends Controller
                 'id' => $line->id,
                 'code' => $line->code,
                 'name' => $line->name,
+                'label' => $line->name ?: $line->code,
                 'area_name' => $line->area->name ?? 'N/A',
                 'products_produced' => $producedNames,
                 'products_assigned' => $assignedNames,
                 'product_summary' => $productSummary,
-                'target_quantity' => (int) $target,
-                'actual_quantity' => (int) $actual,
+                'target_quantity' => $target,
+                'actual_quantity' => $actual,
+                'good_quantity' => $good,
+                'reject_quantity' => $reject,
+                'downtime_mins' => $downtimeMins,
+                'defect_rate' => $defectRate,
                 'achievement' => $achievement,
                 'availability' => $avail,
                 'performance' => $perf,
@@ -789,7 +798,9 @@ class DashboardController extends Controller
                 'target_oee' => (float) $line->target_oee,
                 'oee_status' => $this->oeeService->evaluateStatus($oee),
             ];
-        })->sortByDesc('oee')->values();
+        })->sort(function ($a, $b) {
+            return strnatcasecmp($a['code'], $b['code']);
+        })->values();
 
         return response()->json([
             'success' => true,
