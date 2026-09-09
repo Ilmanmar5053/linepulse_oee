@@ -1103,4 +1103,173 @@ class MasterDataController extends Controller
         $group->delete();
         return response()->json(['success' => true, 'message' => 'Team Leader Group deleted successfully']);
     }
+
+    // =========================================================================
+    // LOGIN PAGE DYNAMIC SLIDESHOW SETTINGS
+    // =========================================================================
+    public function getLoginSlideshow(): JsonResponse
+    {
+        $raw = SystemSetting::get('login_slideshow');
+        $defaultSlideshow = [
+            'enabled' => true,
+            'interval' => 5000, // ms
+            'transition_speed' => 1200, // ms
+            'effect' => 'ken-burns', // 'ken-burns' | 'zoom-in-out' | 'smooth-fade' | 'pan-zoom'
+            'overlay_style' => 'gradient-dark', // 'gradient-dark' | 'gradient-subtle' | 'vignette'
+            'show_indicators' => true,
+            'show_caption' => true,
+            'show_badges' => true,
+            'auto_play' => true,
+            'slides' => [
+                [
+                    'id' => 'slide-1',
+                    'image' => '/images/slideshow/slide-1-plant.webp',
+                    'title' => 'PT Yasunaga Indonesia',
+                    'subtitle' => 'Overall Equipment Effectiveness System',
+                    'tag' => 'PLANT-01 • SERANG BANTEN',
+                    'active' => true,
+                ],
+                [
+                    'id' => 'slide-2',
+                    'image' => '/images/slideshow/slide-2-machining.webp',
+                    'title' => 'Precision CNC Machining Line',
+                    'subtitle' => 'High-Speed Automated Connecting Rod Line',
+                    'tag' => 'TELEMETRY 24/7 • HIGH ACCURACY',
+                    'active' => true,
+                ],
+                [
+                    'id' => 'slide-3',
+                    'image' => '/images/slideshow/slide-3-measuring.webp',
+                    'title' => 'Measuring & QC Inspection Station',
+                    'subtitle' => 'Realtime SPC Quality & Tolerance Verification',
+                    'tag' => 'WORLD CLASS QUALITY • ZERO DEFECT',
+                    'active' => true,
+                ],
+                [
+                    'id' => 'slide-4',
+                    'image' => '/images/slideshow/slide-4-assembly.webp',
+                    'title' => 'Automotive Air Pump Assembly',
+                    'subtitle' => 'Lean Flow Production & Poka-Yoke Assembly',
+                    'tag' => 'POKA YOKE • MONOZUKURI STANDARD',
+                    'active' => true,
+                ],
+                [
+                    'id' => 'slide-5',
+                    'image' => '/images/slideshow/slide-5-andon.webp',
+                    'title' => 'Digital Andon & Floor Telemetry',
+                    'subtitle' => 'LinePulse Plant Control & Real-time OEE Stream',
+                    'tag' => 'DIGITAL FACTORY • MES STANDARD',
+                    'active' => true,
+                ],
+            ],
+        ];
+
+        if ($raw) {
+            $parsed = is_array($raw) ? $raw : json_decode($raw, true);
+            $slideshow = array_merge($defaultSlideshow, is_array($parsed) ? $parsed : []);
+        } else {
+            $slideshow = $defaultSlideshow;
+        }
+
+        if (empty($slideshow['slides']) || !is_array($slideshow['slides'])) {
+            $slideshow['slides'] = $defaultSlideshow['slides'];
+        }
+
+        // Ensure both image and image_url are set for backward/forward compatibility
+        foreach ($slideshow['slides'] as &$slide) {
+            $img = $slide['image'] ?? $slide['image_url'] ?? '/images/slideshow/slide-1-plant.webp';
+            $slide['image'] = $img;
+            $slide['image_url'] = $img;
+        }
+        unset($slide);
+
+        return response()->json([
+            'success' => true,
+            'data' => $slideshow,
+        ]);
+    }
+
+    public function saveLoginSlideshow(Request $request): JsonResponse
+    {
+        $input = $request->all();
+
+        // Normalize slides input
+        if (isset($input['slides']) && is_array($input['slides'])) {
+            foreach ($input['slides'] as $k => $slide) {
+                if (isset($slide['image_url']) && !isset($slide['image'])) {
+                    $input['slides'][$k]['image'] = $slide['image_url'];
+                } elseif (isset($slide['image']) && !isset($slide['image_url'])) {
+                    $input['slides'][$k]['image_url'] = $slide['image'];
+                }
+            }
+            $request->merge(['slides' => $input['slides']]);
+        }
+
+        $validated = $request->validate([
+            'enabled' => 'nullable|boolean',
+            'interval' => 'required|integer|min:2000|max:30000',
+            'transition_speed' => 'nullable|integer|min:500|max:5000',
+            'effect' => 'required|string|in:ken-burns,zoom-in-out,smooth-fade,pan-zoom,zoom-in,zoom-out,fade-scale',
+            'overlay_style' => 'nullable|string',
+            'show_indicators' => 'nullable|boolean',
+            'show_captions' => 'nullable|boolean',
+            'show_caption' => 'nullable|boolean',
+            'show_badges' => 'nullable|boolean',
+            'auto_play' => 'nullable|boolean',
+            'slides' => 'required|array|min:3|max:5',
+            'slides.*.id' => 'nullable|string',
+            'slides.*.image' => 'nullable|string',
+            'slides.*.image_url' => 'nullable|string',
+            'slides.*.title' => 'nullable|string|max:255',
+            'slides.*.subtitle' => 'nullable|string|max:255',
+            'slides.*.tag' => 'nullable|string|max:100',
+            'slides.*.active' => 'nullable|boolean',
+        ]);
+
+        // Normalize slide images
+        foreach ($validated['slides'] as &$slide) {
+            $img = $slide['image'] ?? $slide['image_url'] ?? '';
+            $slide['image'] = $img;
+            $slide['image_url'] = $img;
+        }
+        unset($slide);
+
+        SystemSetting::set('login_slideshow', $validated, 'system', 'Konfigurasi Dynamic Slideshow Gambar Halaman Login');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Konfigurasi Slideshow Halaman Login berhasil disimpan.',
+            'data' => $validated,
+        ]);
+    }
+
+    public function uploadSlideshowImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp,svg|max:5120',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = 'slide_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $destPath = public_path('images/slideshow');
+            if (!file_exists($destPath)) {
+                mkdir($destPath, 0755, true);
+            }
+            $file->move($destPath, $filename);
+            $url = '/images/slideshow/' . $filename;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Foto slide berhasil diunggah.',
+                'url' => $url,
+                'data' => ['url' => $url],
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengunggah file gambar.',
+        ], 400);
+    }
 }

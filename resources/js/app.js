@@ -400,7 +400,15 @@ class OeeApp {
         }
     }
 
+    // ==========================================
+    // 0. AUTHENTICATION & LOGIN WORKFLOW WITH DYNAMIC SLIDESHOW
+    // ==========================================
     renderLogin() {
+        if (this.loginSlideIntervalId) {
+            clearInterval(this.loginSlideIntervalId);
+            this.loginSlideIntervalId = null;
+        }
+
         const app = document.getElementById('app');
         const isLight = this.theme === 'light';
 
@@ -418,25 +426,52 @@ class OeeApp {
                 <!-- MAIN SLIM LOGIN CARD -->
                 <div class="max-w-3xl w-full ${isLight ? 'bg-white/95 border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] backdrop-blur-xl' : 'bg-[#091124]/95 border-[#1B2C56] shadow-[0_20px_60px_rgba(0,0,0,0.7)] backdrop-blur-xl'} border rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10">
                     
-                    <!-- SISI KIRI (PT YASUNAGA INDONESIA FACTORY BG - KEN BURNS DYNAMIC & CLEAN) -->
-                    <div class="md:col-span-5 relative overflow-hidden min-h-[320px] md:min-h-[440px] flex flex-col justify-end p-6 sm:p-7 border-b md:border-b-0 md:border-r ${isLight ? 'border-slate-200' : 'border-[#152347]'} bg-slate-950">
-                        <!-- VIBRANT FACTORY PHOTO BACKGROUND (SMOOTH KEN BURNS SLOW ZOOM IN / ZOOM OUT) -->
-                        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat animate-ken-burns" style="background-image: url('/images/yasunaga-factory.jpg');"></div>
+                    <!-- SISI KIRI (DYNAMIC DUAL/MULTI-IMAGE SLIDESHOW WITH SMOOTH KEN BURNS MOTION) -->
+                    <div class="md:col-span-5 relative overflow-hidden min-h-[340px] md:min-h-[460px] flex flex-col justify-between p-6 sm:p-7 border-b md:border-b-0 md:border-r ${isLight ? 'border-slate-200' : 'border-[#152347]'} bg-slate-950 group/slide">
                         
-                        <!-- SMOOTH BOTTOM GRADIENT SHADOW (HIGH CONTRAST TRANSPARENT) -->
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none"></div>
-
-                        <!-- BAWAH: TRANSPARENT CLEAN TYPOGRAPHY -->
-                        <div class="relative z-10 space-y-1 pb-1">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[11px] sm:text-xs font-black text-amber-400 font-mono tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
-                                    PT Yasunaga Indonesia
-                                </span>
+                        <!-- SLIDES CONTAINER (DYNAMIC IMAGES WITH SMOOTH CROSSFADE & KEN BURNS ZOOM) -->
+                        <div id="login-slides-container" class="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div class="login-slide-item active">
+                                <div class="absolute inset-0 bg-cover bg-center bg-no-repeat animate-kb-zoom-in" style="background-image: url('/images/slideshow/slide-1-plant.webp');"></div>
                             </div>
-                            
-                            <h1 class="text-xl sm:text-2xl font-black text-white leading-snug tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
-                                Overall Equipment Effectiveness
-                            </h1>
+                        </div>
+                        
+                        <!-- HIGH CONTRAST TRANSPARENT GRADIENT OVERLAYS -->
+                        <div class="absolute inset-0 bg-gradient-to-b from-black/65 via-black/20 to-black/95 pointer-events-none z-[2]"></div>
+
+                        <!-- TOP BAR: BRAND BADGE & SLIDE COUNTER -->
+                        <div class="relative z-10 flex items-center justify-between">
+                            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/15 text-[10px] font-mono text-cyan-300 font-bold shadow-lg">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>SMART MONOZUKURI</span>
+                            </div>
+                            <div id="login-slide-counter" class="text-[10px] font-mono text-white/70 bg-black/50 px-2 py-0.5 rounded-full backdrop-blur-md border border-white/15 shadow">
+                                1 / 5
+                            </div>
+                        </div>
+
+                        <!-- BOTTOM: DYNAMIC CAPTIONS & SLIDE INDICATORS -->
+                        <div class="relative z-10 space-y-2.5 pb-0.5">
+                            <div id="login-slide-caption-box" class="transition-all duration-500 transform">
+                                <div class="flex items-center gap-2">
+                                    <span id="login-slide-tag" class="text-[10.5px] sm:text-xs font-black text-amber-400 font-mono tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
+                                        PT YASUNAGA INDONESIA
+                                    </span>
+                                </div>
+                                
+                                <h1 id="login-slide-title" class="text-xl sm:text-2xl font-black text-white leading-snug tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
+                                    Overall Equipment Effectiveness
+                                </h1>
+
+                                <p id="login-slide-subtitle" class="text-xs text-slate-300 font-medium line-clamp-2 drop-shadow-[0_1px_4px_rgba(0,0,0,1)] mt-0.5">
+                                    Sistem Terintegrasi Monitoring Kinerja Lini Produksi Real-Time
+                                </p>
+                            </div>
+
+                            <!-- INDICATOR PILLS / DOTS -->
+                            <div id="login-slides-indicators" class="flex items-center gap-1.5 pt-1">
+                                <!-- Injected dynamically via initLoginSlideshow -->
+                            </div>
                         </div>
                     </div>
 
@@ -513,6 +548,180 @@ class OeeApp {
 
         if (window.lucide) window.lucide.createIcons();
         this.bindLoginEvents();
+        this.initLoginSlideshow();
+    }
+
+    async initLoginSlideshow() {
+        const container = document.getElementById('login-slides-container');
+        const indicatorsBox = document.getElementById('login-slides-indicators');
+        const tagEl = document.getElementById('login-slide-tag');
+        const titleEl = document.getElementById('login-slide-title');
+        const subEl = document.getElementById('login-slide-subtitle');
+        const counterEl = document.getElementById('login-slide-counter');
+
+        if (!container) return;
+
+        // Default Monozukuri 5 Lightweight WebP Slides Configuration
+        let config = {
+            enabled: true,
+            interval: 5000,
+            effect: 'ken-burns',
+            show_indicators: true,
+            show_captions: true,
+            slides: [
+                {
+                    image_url: '/images/slideshow/slide-1-plant.webp',
+                    title: 'Overall Equipment Effectiveness',
+                    subtitle: 'Sistem Terintegrasi Monitoring Kinerja Lini Produksi Real-Time',
+                    tag: 'PT YASUNAGA INDONESIA'
+                },
+                {
+                    image_url: '/images/slideshow/slide-2-machining.webp',
+                    title: 'High-Precision CNC Machining',
+                    subtitle: 'Monitoring Spindle Speed, Siklus Waktu, & Stabilitas Proses Otomatis',
+                    tag: 'MACHINING LINE'
+                },
+                {
+                    image_url: '/images/slideshow/slide-3-measuring.webp',
+                    title: 'Zero Defect Quality Assurance',
+                    subtitle: 'Inspeksi Dimensi Presisi Tinggi & Verifikasi Kualitas Mutu Monozukuri',
+                    tag: 'QUALITY ASSURANCE'
+                },
+                {
+                    image_url: '/images/slideshow/slide-4-assembly.webp',
+                    title: 'Automotive Air Pump Assembly',
+                    subtitle: 'Lini Perakitan Cepat dengan Standar Ergonomi dan Keselamatan Kerja',
+                    tag: 'ASSEMBLY LINE'
+                },
+                {
+                    image_url: '/images/slideshow/slide-5-andon.webp',
+                    title: 'Smart Andon & Floor Visibility',
+                    subtitle: 'Respon Cepat Terhadap Kendala Mesin, Breakdown, dan Deviasi Siklus',
+                    tag: 'SMART FACTORY MES'
+                }
+            ]
+        };
+
+        try {
+            const res = await api.getLoginSlideshow();
+            if (res.data?.data && Array.isArray(res.data.data.slides) && res.data.data.slides.length >= 3) {
+                config = res.data.data;
+            }
+        } catch (e) {
+            console.warn('Using default login slideshow config:', e);
+        }
+
+        this.loginSlideshowConfig = config;
+        const slides = config.slides.filter(s => s && s.image_url);
+        if (slides.length < 3) return;
+
+        this.activeSlideIndex = 0;
+
+        // Render slide items
+        container.innerHTML = slides.map((slide, idx) => {
+            const motionClass = (idx % 2 === 0) ? 'animate-kb-zoom-in' : 'animate-kb-zoom-out';
+            return `
+                <div class="login-slide-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
+                    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat ${motionClass}" style="background-image: url('${this.escapeHtml(slide.image_url)}');"></div>
+                </div>
+            `;
+        }).join('');
+
+        // Render indicator pills/dots
+        if (indicatorsBox) {
+            if (!config.show_indicators) {
+                indicatorsBox.classList.add('hidden');
+            } else {
+                indicatorsBox.classList.remove('hidden');
+                indicatorsBox.innerHTML = slides.map((_, idx) => `
+                    <button type="button" class="login-indicator-dot ${idx === 0 ? 'active' : ''}" data-slide-target="${idx}" aria-label="Slide ${idx + 1}"></button>
+                `).join('');
+
+                indicatorsBox.querySelectorAll('.login-indicator-dot').forEach(dot => {
+                    dot.addEventListener('click', () => {
+                        const targetIdx = parseInt(dot.getAttribute('data-slide-target'), 10);
+                        if (!isNaN(targetIdx)) {
+                            goToSlide(targetIdx);
+                            restartTimer();
+                        }
+                    });
+                });
+            }
+        }
+
+        const updateCaptionAndCounter = (idx) => {
+            const slide = slides[idx];
+            if (!slide) return;
+
+            if (counterEl) {
+                counterEl.textContent = `${idx + 1} / ${slides.length}`;
+            }
+
+            const captionBox = document.getElementById('login-slide-caption-box');
+            if (!config.show_captions) {
+                if (captionBox) captionBox.classList.add('hidden');
+                return;
+            }
+
+            if (captionBox) {
+                captionBox.classList.remove('hidden');
+                captionBox.style.opacity = '0';
+                captionBox.style.transform = 'translateY(6px)';
+                
+                setTimeout(() => {
+                    if (tagEl) tagEl.textContent = slide.tag || 'PT YASUNAGA INDONESIA';
+                    if (titleEl) titleEl.textContent = slide.title || 'Overall Equipment Effectiveness';
+                    if (subEl) subEl.textContent = slide.subtitle || '';
+                    
+                    captionBox.style.opacity = '1';
+                    captionBox.style.transform = 'translateY(0)';
+                }, 250);
+            }
+        };
+
+        const goToSlide = (nextIndex) => {
+            this.activeSlideIndex = (nextIndex + slides.length) % slides.length;
+            
+            const slideElements = container.querySelectorAll('.login-slide-item');
+            slideElements.forEach((el, i) => {
+                if (i === this.activeSlideIndex) {
+                    el.classList.add('active');
+                    // Dynamic alternating Ken Burns effect
+                    const bgEl = el.querySelector('div');
+                    if (bgEl) {
+                        const animClass = (this.activeSlideIndex % 2 === 0) ? 'animate-kb-zoom-in' : 'animate-kb-zoom-out';
+                        bgEl.className = `absolute inset-0 bg-cover bg-center bg-no-repeat ${animClass}`;
+                    }
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+
+            if (indicatorsBox) {
+                const dots = indicatorsBox.querySelectorAll('.login-indicator-dot');
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.activeSlideIndex);
+                });
+            }
+
+            updateCaptionAndCounter(this.activeSlideIndex);
+        };
+
+        const restartTimer = () => {
+            if (this.loginSlideIntervalId) {
+                clearInterval(this.loginSlideIntervalId);
+                this.loginSlideIntervalId = null;
+            }
+            if (config.enabled && slides.length > 1) {
+                const delay = Math.max(2500, parseInt(config.interval, 10) || 5000);
+                this.loginSlideIntervalId = setInterval(() => {
+                    goToSlide(this.activeSlideIndex + 1);
+                }, delay);
+            }
+        };
+
+        updateCaptionAndCounter(0);
+        restartTimer();
     }
 
     bindLoginEvents() {
@@ -588,6 +797,11 @@ class OeeApp {
     }
 
     login(userData) {
+        if (this.loginSlideIntervalId) {
+            clearInterval(this.loginSlideIntervalId);
+            this.loginSlideIntervalId = null;
+        }
+
         this.user = {
             id: userData.id,
             name: userData.name,
@@ -19519,7 +19733,7 @@ tbody.innerHTML = '';
         const content = document.getElementById('content-body');
         if (!content) return;
 
-        // Fetch latest profile
+        // Fetch latest company profile
         let profile = this.companyProfile;
         try {
             const res = await api.getCompanyProfile();
@@ -19530,6 +19744,58 @@ tbody.innerHTML = '';
             }
         } catch (e) {
             console.error('Error fetching company profile:', e);
+        }
+
+        // Default Monozukuri 5 Lightweight WebP Slides
+        const defaultSlides = [
+            {
+                image_url: '/images/slideshow/slide-1-plant.webp',
+                title: 'Overall Equipment Effectiveness',
+                subtitle: 'Sistem Terintegrasi Monitoring Kinerja Lini Produksi Real-Time',
+                tag: 'PT YASUNAGA INDONESIA'
+            },
+            {
+                image_url: '/images/slideshow/slide-2-machining.webp',
+                title: 'High-Precision CNC Machining',
+                subtitle: 'Monitoring Spindle Speed, Siklus Waktu, & Stabilitas Proses Otomatis',
+                tag: 'MACHINING LINE'
+            },
+            {
+                image_url: '/images/slideshow/slide-3-measuring.webp',
+                title: 'Zero Defect Quality Assurance',
+                subtitle: 'Inspeksi Dimensi Presisi Tinggi & Verifikasi Kualitas Mutu Monozukuri',
+                tag: 'QUALITY ASSURANCE'
+            },
+            {
+                image_url: '/images/slideshow/slide-4-assembly.webp',
+                title: 'Automotive Air Pump Assembly',
+                subtitle: 'Lini Perakitan Cepat dengan Standar Ergonomi dan Keselamatan Kerja',
+                tag: 'ASSEMBLY LINE'
+            },
+            {
+                image_url: '/images/slideshow/slide-5-andon.webp',
+                title: 'Smart Andon & Floor Visibility',
+                subtitle: 'Respon Cepat Terhadap Kendala Mesin, Breakdown, dan Deviasi Siklus',
+                tag: 'SMART FACTORY MES'
+            }
+        ];
+
+        let slideshowConfig = {
+            enabled: true,
+            interval: 5000,
+            effect: 'ken-burns',
+            show_indicators: true,
+            show_captions: true,
+            slides: JSON.parse(JSON.stringify(defaultSlides))
+        };
+
+        try {
+            const resSlide = await api.getLoginSlideshow();
+            if (resSlide.data?.data && Array.isArray(resSlide.data.data.slides) && resSlide.data.data.slides.length >= 3) {
+                slideshowConfig = resSlide.data.data;
+            }
+        } catch (e) {
+            console.warn('Error fetching login slideshow config:', e);
         }
 
         content.innerHTML = `
@@ -19548,6 +19814,10 @@ tbody.innerHTML = '';
                         <button id="btn-tab-setting-company" class="tab-setting-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-cyan-600 text-white shadow-md shadow-cyan-600/20 flex items-center gap-1.5 cursor-pointer">
                             <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
                             <span>Profil Perusahaan & Kop</span>
+                        </button>
+                        <button id="btn-tab-setting-slideshow" class="tab-setting-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5 cursor-pointer">
+                            <i data-lucide="images" class="w-3.5 h-3.5"></i>
+                            <span>Slideshow Login</span>
                         </button>
                         <button id="btn-tab-setting-oee" class="tab-setting-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5 cursor-pointer">
                             <i data-lucide="target" class="w-3.5 h-3.5"></i>
@@ -19743,7 +20013,174 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- TAB 2: BASELINE TARGET OEE -->
+                <!-- TAB 2: SLIDESHOW LOGIN CONFIGURATION (MODUL SYSTEM) -->
+                <div id="setting-pane-slideshow" class="setting-pane hidden space-y-6">
+                    <!-- HEADER INFO BANNER -->
+                    <div class="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-800/80 text-cyan-400 flex items-center justify-center">
+                                    <i data-lucide="images" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                        Slideshow Gambar Dinamis Halaman Login
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
+                                            3 - 5 FOTO DINAMIS
+                                        </span>
+                                    </h3>
+                                    <p class="text-xs text-slate-400 mt-0.5">Tampilkan slide bergantian dengan efek zoom in/out Ken Burns halus, teks caption, dan format ringan WebP berkinerja tinggi.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btn-reset-default-slides" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-amber-400"></i>
+                                    <span>Reset Foto Standar</span>
+                                </button>
+                                <button type="button" id="btn-save-slideshow-settings" class="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/30 flex items-center gap-1.5 cursor-pointer transition-all">
+                                    <i data-lucide="save" class="w-4 h-4"></i>
+                                    <span>Simpan Pengaturan Slideshow</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GRID: 4 COLS (LIVE PREVIEW) : 8 COLS (CONTROLS & SLIDE MANAGEMENT) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- LIVE MINI PREVIEW (4 COLS) -->
+                        <div class="lg:col-span-4 space-y-4">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                                    <h4 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                        <i data-lucide="play-circle" class="w-4 h-4 text-cyan-400"></i>
+                                        Live Login Card Preview
+                                    </h4>
+                                    <span id="preview-slide-badge" class="text-[10px] font-mono text-cyan-400 font-bold">Slide 1 / 5</span>
+                                </div>
+
+                                <!-- MINI LOGIN CARD SIMULATION -->
+                                <div class="relative rounded-xl overflow-hidden aspect-[4/5] bg-slate-950 border border-slate-700 shadow-2xl flex flex-col justify-between p-4">
+                                    <!-- SLIDE BG CONTAINER -->
+                                    <div id="settings-mini-slide-container" class="absolute inset-0 overflow-hidden pointer-events-none">
+                                        <!-- Injected via JavaScript -->
+                                    </div>
+                                    <!-- GRADIENTS -->
+                                    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90 pointer-events-none z-[2]"></div>
+
+                                    <!-- TOP BADGE -->
+                                    <div class="relative z-10 flex items-center justify-between">
+                                        <span class="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[9px] font-mono text-cyan-300 font-bold">
+                                            MONOZUKURI
+                                        </span>
+                                        <span id="settings-mini-counter" class="text-[9px] font-mono text-white/70 bg-black/50 px-1.5 py-0.5 rounded backdrop-blur">
+                                            1/5
+                                        </span>
+                                    </div>
+
+                                    <!-- BOTTOM CAPTION & INDICATORS -->
+                                    <div class="relative z-10 space-y-1.5">
+                                        <div id="settings-mini-caption">
+                                            <div id="settings-mini-tag" class="text-[9px] font-mono font-bold text-amber-400 uppercase tracking-wider">PT YASUNAGA INDONESIA</div>
+                                            <div id="settings-mini-title" class="text-xs font-black text-white leading-tight">Overall Equipment Effectiveness</div>
+                                            <div id="settings-mini-sub" class="text-[10px] text-slate-300 line-clamp-2 mt-0.5">Sistem Terintegrasi Monitoring Kinerja Lini Produksi</div>
+                                        </div>
+                                        <div id="settings-mini-dots" class="flex items-center gap-1 pt-1">
+                                            <!-- Dots -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 p-3 bg-slate-950 border border-slate-800 rounded-xl text-[11px] text-slate-400 space-y-1">
+                                    <div class="font-bold text-slate-300 flex items-center gap-1">
+                                        <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Format Ringan WebP
+                                    </div>
+                                    <div>• Kompresi WebP modern membuat ukuran file foto hanya ~100-150KB.</div>
+                                    <div>• Animasi Ken Burns 60 FPS halus tanpa lag pada monitor klien/operator.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CONTROLS & SLIDES LIST (8 COLS) -->
+                        <div class="lg:col-span-8 space-y-5">
+                            <!-- GLOBAL SETTINGS -->
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                                <h4 class="text-xs font-bold text-slate-200 flex items-center gap-2 border-b border-slate-800 pb-2.5">
+                                    <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+                                    Parameter Transisi & Efek Visual
+                                </h4>
+
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                    <div>
+                                        <label class="block text-slate-300 font-medium mb-1">Durasi Berganti Foto (Smooth Delay)</label>
+                                        <select id="select-slideshow-interval" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:border-cyan-500 focus:outline-none">
+                                            <option value="3000" ${slideshowConfig.interval == 3000 ? 'selected' : ''}>3 Detik (Cepat)</option>
+                                            <option value="4000" ${slideshowConfig.interval == 4000 ? 'selected' : ''}>4 Detik</option>
+                                            <option value="5000" ${slideshowConfig.interval == 5000 ? 'selected' : ''}>5 Detik (Rekomendasi Standar)</option>
+                                            <option value="7000" ${slideshowConfig.interval == 7000 ? 'selected' : ''}>7 Detik (Santai)</option>
+                                            <option value="10000" ${slideshowConfig.interval == 10000 ? 'selected' : ''}>10 Detik (Sangat Lambat)</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-slate-300 font-medium mb-1">Gaya Efek Gerak (Motion Effect)</label>
+                                        <select id="select-slideshow-effect" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 text-xs focus:border-cyan-500 focus:outline-none">
+                                            <option value="ken-burns" ${slideshowConfig.effect === 'ken-burns' ? 'selected' : ''}>Ken Burns (Zoom In / Zoom Out Bergantian)</option>
+                                            <option value="zoom-in" ${slideshowConfig.effect === 'zoom-in' ? 'selected' : ''}>Zoom In Saja</option>
+                                            <option value="zoom-out" ${slideshowConfig.effect === 'zoom-out' ? 'selected' : ''}>Zoom Out Saja</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-slate-300 font-medium mb-1">Status Slideshow</label>
+                                        <div class="flex items-center h-[34px] px-3 bg-slate-950 border border-slate-800 rounded-lg">
+                                            <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                                                <input type="checkbox" id="check-slideshow-enabled" ${slideshowConfig.enabled ? 'checked' : ''} class="w-4 h-4 rounded text-cyan-500 bg-slate-900 border-slate-700 cursor-pointer" />
+                                                <span class="text-xs font-semibold">Aktifkan Slideshow</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800 text-xs">
+                                    <label class="flex items-center gap-2 cursor-pointer text-slate-300 p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                                        <input type="checkbox" id="check-slideshow-indicators" ${slideshowConfig.show_indicators ? 'checked' : ''} class="w-4 h-4 rounded text-cyan-500 bg-slate-900 border-slate-700 cursor-pointer" />
+                                        <span>Tampilkan Titik Indikator (Navigasi Bullets)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer text-slate-300 p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                                        <input type="checkbox" id="check-slideshow-captions" ${slideshowConfig.show_captions ? 'checked' : ''} class="w-4 h-4 rounded text-cyan-500 bg-slate-900 border-slate-700 cursor-pointer" />
+                                        <span>Tampilkan Judul, Tag, & Keterangan Teks</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- SLIDES CARDS LIST -->
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                                            <i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i>
+                                            Daftar Foto Slideshow
+                                            <span id="slides-count-label" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                                                ${slideshowConfig.slides.length} / 5 Foto
+                                            </span>
+                                        </h4>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Minimal 3 foto dan maksimal 5 foto. Anda dapat mengunggah file foto baru atau mengubah keterangan.</p>
+                                    </div>
+                                    <button type="button" id="btn-add-slide" ${slideshowConfig.slides.length >= 5 ? 'disabled' : ''} class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                        <span>Tambah Foto (+)</span>
+                                    </button>
+                                </div>
+
+                                <div id="slideshow-cards-container" class="space-y-3">
+                                    <!-- Injected via renderSlideCards() -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: BASELINE TARGET OEE -->
                 <div id="setting-pane-oee" class="setting-pane hidden space-y-6">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
                         <div class="border-b border-slate-800 pb-3 mb-4">
@@ -19788,7 +20225,7 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- TAB 3: SISTEM & TAMPILAN -->
+                <!-- TAB 4: SISTEM & TAMPILAN -->
                 <div id="setting-pane-system" class="setting-pane hidden space-y-6">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
                         <div class="border-b border-slate-800 pb-3 mb-4">
@@ -19839,26 +20276,31 @@ tbody.innerHTML = '';
 
         if (window.lucide) window.lucide.createIcons();
 
-        // 1. Tab Switcher Logic
+        // 1. Tab Switcher Logic (Including Slideshow Login Tab)
         const tabCompany = document.getElementById('btn-tab-setting-company');
+        const tabSlideshow = document.getElementById('btn-tab-setting-slideshow');
         const tabOee = document.getElementById('btn-tab-setting-oee');
         const tabSystem = document.getElementById('btn-tab-setting-system');
 
         const paneCompany = document.getElementById('setting-pane-company');
+        const paneSlideshow = document.getElementById('setting-pane-slideshow');
         const paneOee = document.getElementById('setting-pane-oee');
         const paneSystem = document.getElementById('setting-pane-system');
 
         const switchSettingTab = (activeBtn, activePane) => {
-            [tabCompany, tabOee, tabSystem].forEach(b => {
-                b.className = 'tab-setting-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5 cursor-pointer';
+            [tabCompany, tabSlideshow, tabOee, tabSystem].forEach(b => {
+                if (b) b.className = 'tab-setting-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200 flex items-center gap-1.5 cursor-pointer';
             });
-            [paneCompany, paneOee, paneSystem].forEach(p => p.classList.add('hidden'));
+            [paneCompany, paneSlideshow, paneOee, paneSystem].forEach(p => {
+                if (p) p.classList.add('hidden');
+            });
 
-            activeBtn.className = 'tab-setting-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-cyan-600 text-white shadow-md shadow-cyan-600/20 flex items-center gap-1.5 cursor-pointer';
-            activePane.classList.remove('hidden');
+            if (activeBtn) activeBtn.className = 'tab-setting-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-cyan-600 text-white shadow-md shadow-cyan-600/20 flex items-center gap-1.5 cursor-pointer';
+            if (activePane) activePane.classList.remove('hidden');
         };
 
         if (tabCompany) tabCompany.addEventListener('click', () => switchSettingTab(tabCompany, paneCompany));
+        if (tabSlideshow) tabSlideshow.addEventListener('click', () => switchSettingTab(tabSlideshow, paneSlideshow));
         if (tabOee) tabOee.addEventListener('click', () => switchSettingTab(tabOee, paneOee));
         if (tabSystem) tabSystem.addEventListener('click', () => switchSettingTab(tabSystem, paneSystem));
 
@@ -20032,7 +20474,370 @@ tbody.innerHTML = '';
             });
         }
 
-        // 5. Theme and System Settings Handler
+        // ==========================================
+        // 5. SLIDESHOW SETTINGS CONTROLLER & LIVE PREVIEW
+        // ==========================================
+        let miniSlideTimer = null;
+        let miniSlideIndex = 0;
+
+        const updateMiniPreview = () => {
+            const miniContainer = document.getElementById('settings-mini-slide-container');
+            const miniDots = document.getElementById('settings-mini-dots');
+            const miniTag = document.getElementById('settings-mini-tag');
+            const miniTitle = document.getElementById('settings-mini-title');
+            const miniSub = document.getElementById('settings-mini-sub');
+            const miniCounter = document.getElementById('settings-mini-counter');
+            const previewBadge = document.getElementById('preview-slide-badge');
+
+            if (!miniContainer) return;
+
+            const validSlides = slideshowConfig.slides.filter(s => s && s.image_url);
+            if (validSlides.length === 0) return;
+
+            if (miniSlideIndex >= validSlides.length) miniSlideIndex = 0;
+            const current = validSlides[miniSlideIndex];
+
+            // Render background with Ken Burns
+            const motionClass = (miniSlideIndex % 2 === 0) ? 'animate-kb-zoom-in' : 'animate-kb-zoom-out';
+            miniContainer.innerHTML = `
+                <div class="absolute inset-0 bg-cover bg-center bg-no-repeat ${motionClass}" style="background-image: url('${this.escapeHtml(current.image_url)}');"></div>
+            `;
+
+            if (miniCounter) miniCounter.textContent = `${miniSlideIndex + 1}/${validSlides.length}`;
+            if (previewBadge) previewBadge.textContent = `Slide ${miniSlideIndex + 1} / ${validSlides.length}`;
+
+            if (miniTag) miniTag.textContent = current.tag || 'PT YASUNAGA INDONESIA';
+            if (miniTitle) miniTitle.textContent = current.title || 'Overall Equipment Effectiveness';
+            if (miniSub) miniSub.textContent = current.subtitle || '';
+
+            if (miniDots) {
+                miniDots.innerHTML = validSlides.map((_, i) => `
+                    <div class="h-1 rounded-full transition-all ${i === miniSlideIndex ? 'w-4 bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]' : 'w-2 bg-white/40'}"></div>
+                `).join('');
+            }
+        };
+
+        const restartMiniSlideTimer = () => {
+            if (miniSlideTimer) clearInterval(miniSlideTimer);
+            const interval = Math.max(2500, parseInt(slideshowConfig.interval, 10) || 5000);
+            miniSlideTimer = setInterval(() => {
+                const validSlides = slideshowConfig.slides.filter(s => s && s.image_url);
+                if (validSlides.length > 1) {
+                    miniSlideIndex = (miniSlideIndex + 1) % validSlides.length;
+                    updateMiniPreview();
+                }
+            }, interval);
+        };
+
+        const renderSlideCards = () => {
+            const container = document.getElementById('slideshow-cards-container');
+            const countLabel = document.getElementById('slides-count-label');
+            const btnAdd = document.getElementById('btn-add-slide');
+
+            if (countLabel) {
+                countLabel.textContent = `${slideshowConfig.slides.length} / 5 Foto`;
+                if (slideshowConfig.slides.length < 3) {
+                    countLabel.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950 text-rose-400 border border-rose-800';
+                } else {
+                    countLabel.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
+                }
+            }
+
+            if (btnAdd) {
+                btnAdd.disabled = slideshowConfig.slides.length >= 5;
+            }
+
+            if (!container) return;
+
+            container.innerHTML = slideshowConfig.slides.map((slide, idx) => `
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-3 slide-manage-card" data-index="${idx}">
+                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-cyan-950 border border-cyan-800 text-cyan-400 text-[11px] font-mono font-bold flex items-center justify-center">
+                                #${idx + 1}
+                            </span>
+                            <span class="text-xs font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs">
+                                ${this.escapeHtml(slide.title || 'Slide Foto ' + (idx + 1))}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="btn-move-slide-up p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" data-index="${idx}" ${idx === 0 ? 'disabled' : ''} title="Geser ke Atas">
+                                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" class="btn-move-slide-down p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" data-index="${idx}" ${idx === slideshowConfig.slides.length - 1 ? 'disabled' : ''} title="Geser ke Bawah">
+                                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" class="btn-delete-slide p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" data-index="${idx}" ${slideshowConfig.slides.length <= 3 ? 'disabled title="Minimal harus ada 3 slide"' : 'title="Hapus Slide"'}>
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+                        <!-- THUMBNAIL & UPLOADER (4 COLS) -->
+                        <div class="md:col-span-4 space-y-2">
+                            <div class="relative aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-800 group/thumb">
+                                <img src="${this.escapeHtml(slide.image_url)}" class="w-full h-full object-cover slide-thumb-img" alt="Slide ${idx + 1}" onerror="this.src='/images/yasunaga-factory.jpg'" />
+                                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center p-2">
+                                    <button type="button" class="btn-trigger-slide-upload px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-bold shadow flex items-center gap-1 cursor-pointer" data-index="${idx}">
+                                        <i data-lucide="upload" class="w-3 h-3"></i> Ganti Foto
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="file" class="hidden input-slide-file" data-index="${idx}" accept="image/webp, image/png, image/jpeg, image/jpg" />
+                            <div class="flex items-center gap-1.5">
+                                <input type="text" class="input-slide-url w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-[10px] font-mono text-slate-300 focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.image_url)}" placeholder="/images/slideshow/foto.webp" />
+                            </div>
+                        </div>
+
+                        <!-- CAPTIONS & TAGS (8 COLS) -->
+                        <div class="md:col-span-8 space-y-2 text-xs">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div class="sm:col-span-1">
+                                    <label class="block text-[10px] font-medium text-slate-400 mb-0.5">Tag / Badge</label>
+                                    <input type="text" class="input-slide-tag w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-amber-400 font-mono font-bold focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.tag || '')}" placeholder="PT YASUNAGA INDONESIA" />
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-[10px] font-medium text-slate-400 mb-0.5">Judul Slide (Heading)</label>
+                                    <input type="text" class="input-slide-title w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.title || '')}" placeholder="Overall Equipment Effectiveness" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-medium text-slate-400 mb-0.5">Sub-judul / Penjelasan Monozukuri</label>
+                                <input type="text" class="input-slide-subtitle w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.subtitle || '')}" placeholder="Sistem Terintegrasi Monitoring Kinerja Lini Produksi" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            if (window.lucide) window.lucide.createIcons();
+            bindSlideCardEvents();
+            updateMiniPreview();
+        };
+
+        const bindSlideCardEvents = () => {
+            // Reorder UP
+            document.querySelectorAll('.btn-move-slide-up').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.getAttribute('data-index'), 10);
+                    if (idx > 0) {
+                        const temp = slideshowConfig.slides[idx];
+                        slideshowConfig.slides[idx] = slideshowConfig.slides[idx - 1];
+                        slideshowConfig.slides[idx - 1] = temp;
+                        renderSlideCards();
+                    }
+                });
+            });
+
+            // Reorder DOWN
+            document.querySelectorAll('.btn-move-slide-down').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.getAttribute('data-index'), 10);
+                    if (idx < slideshowConfig.slides.length - 1) {
+                        const temp = slideshowConfig.slides[idx];
+                        slideshowConfig.slides[idx] = slideshowConfig.slides[idx + 1];
+                        slideshowConfig.slides[idx + 1] = temp;
+                        renderSlideCards();
+                    }
+                });
+            });
+
+            // Delete Slide
+            document.querySelectorAll('.btn-delete-slide').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.getAttribute('data-index'), 10);
+                    if (slideshowConfig.slides.length <= 3) {
+                        this.showNotification('Batas Minimum', 'Minimal harus ada 3 foto slide pada halaman login.', 'status');
+                        return;
+                    }
+                    slideshowConfig.slides.splice(idx, 1);
+                    renderSlideCards();
+                });
+            });
+
+            // Upload Button Trigger
+            document.querySelectorAll('.btn-trigger-slide-upload').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = btn.getAttribute('data-index');
+                    const fileInput = document.querySelector(`.input-slide-file[data-index="${idx}"]`);
+                    if (fileInput) fileInput.click();
+                });
+            });
+
+            // File Upload Handler via API
+            document.querySelectorAll('.input-slide-file').forEach(input => {
+                input.addEventListener('change', async (e) => {
+                    const idx = parseInt(input.getAttribute('data-index'), 10);
+                    const file = e.target.files && e.target.files[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append('image', file);
+
+                    try {
+                        this.showNotification('Mengunggah Foto', 'Mengunggah gambar slide...', 'status');
+                        const res = await api.uploadSlideshowImage(formData);
+                        if (res.data?.data?.url) {
+                            slideshowConfig.slides[idx].image_url = res.data.data.url;
+                            renderSlideCards();
+                            this.showNotification('Foto Berhasil Diunggah', 'Gambar slide login berhasil diperbarui.', 'success');
+                        }
+                    } catch (err) {
+                        console.error('Error uploading slide image:', err);
+                        this.showNotification('Gagal Unggah', err.response?.data?.message || 'Gagal mengunggah foto slide.', 'delete');
+                    }
+                });
+            });
+
+            // Input Text Bindings
+            document.querySelectorAll('.input-slide-tag').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(input.getAttribute('data-index'), 10);
+                    if (slideshowConfig.slides[idx]) {
+                        slideshowConfig.slides[idx].tag = e.target.value;
+                        updateMiniPreview();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.input-slide-title').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(input.getAttribute('data-index'), 10);
+                    if (slideshowConfig.slides[idx]) {
+                        slideshowConfig.slides[idx].title = e.target.value;
+                        updateMiniPreview();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.input-slide-subtitle').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(input.getAttribute('data-index'), 10);
+                    if (slideshowConfig.slides[idx]) {
+                        slideshowConfig.slides[idx].subtitle = e.target.value;
+                        updateMiniPreview();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.input-slide-url').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const idx = parseInt(input.getAttribute('data-index'), 10);
+                    if (slideshowConfig.slides[idx]) {
+                        slideshowConfig.slides[idx].image_url = e.target.value;
+                        renderSlideCards();
+                    }
+                });
+            });
+        };
+
+        // Add Slide Button
+        const btnAddSlide = document.getElementById('btn-add-slide');
+        if (btnAddSlide) {
+            btnAddSlide.addEventListener('click', () => {
+                if (slideshowConfig.slides.length >= 5) {
+                    this.showNotification('Batas Maksimal', 'Maksimal 5 foto slide pada halaman login.', 'status');
+                    return;
+                }
+                const newIdx = slideshowConfig.slides.length + 1;
+                slideshowConfig.slides.push({
+                    image_url: '/images/yasunaga-factory.jpg',
+                    title: `Smart Production Line #${newIdx}`,
+                    subtitle: 'Monitoring Kinerja Mesin & Produktivitas Monozukuri',
+                    tag: 'PT YASUNAGA INDONESIA'
+                });
+                renderSlideCards();
+            });
+        }
+
+        // Reset Default Slides
+        const btnResetSlides = document.getElementById('btn-reset-default-slides');
+        if (btnResetSlides) {
+            btnResetSlides.addEventListener('click', () => {
+                slideshowConfig.slides = JSON.parse(JSON.stringify(defaultSlides));
+                renderSlideCards();
+                this.showNotification('Foto Standar Dipulihkan', '5 Foto Monozukuri Yasunaga telah dipulihkan.', 'update');
+            });
+        }
+
+        // Global Form Controls
+        const intervalSelect = document.getElementById('select-slideshow-interval');
+        if (intervalSelect) {
+            intervalSelect.addEventListener('change', (e) => {
+                slideshowConfig.interval = parseInt(e.target.value, 10);
+                restartMiniSlideTimer();
+            });
+        }
+
+        const effectSelect = document.getElementById('select-slideshow-effect');
+        if (effectSelect) {
+            effectSelect.addEventListener('change', (e) => {
+                slideshowConfig.effect = e.target.value;
+            });
+        }
+
+        const enabledCheck = document.getElementById('check-slideshow-enabled');
+        if (enabledCheck) {
+            enabledCheck.addEventListener('change', (e) => {
+                slideshowConfig.enabled = e.target.checked;
+            });
+        }
+
+        const indicatorsCheck = document.getElementById('check-slideshow-indicators');
+        if (indicatorsCheck) {
+            indicatorsCheck.addEventListener('change', (e) => {
+                slideshowConfig.show_indicators = e.target.checked;
+                const miniDots = document.getElementById('settings-mini-dots');
+                if (miniDots) miniDots.style.display = e.target.checked ? 'flex' : 'none';
+            });
+        }
+
+        const captionsCheck = document.getElementById('check-slideshow-captions');
+        if (captionsCheck) {
+            captionsCheck.addEventListener('change', (e) => {
+                slideshowConfig.show_captions = e.target.checked;
+                const miniCap = document.getElementById('settings-mini-caption');
+                if (miniCap) miniCap.style.display = e.target.checked ? 'block' : 'none';
+            });
+        }
+
+        // Save Slideshow Settings
+        const btnSaveSlideshow = document.getElementById('btn-save-slideshow-settings');
+        if (btnSaveSlideshow) {
+            btnSaveSlideshow.addEventListener('click', async () => {
+                if (slideshowConfig.slides.length < 3 || slideshowConfig.slides.length > 5) {
+                    this.showNotification('Validasi Gagal', 'Jumlah foto harus antara 3 hingga 5 foto.', 'delete');
+                    return;
+                }
+
+                btnSaveSlideshow.disabled = true;
+                btnSaveSlideshow.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Menyimpan...`;
+
+                try {
+                    const res = await api.saveLoginSlideshow(slideshowConfig);
+                    this.playClingSound();
+                    this.showNotification('Slideshow Tersimpan', 'Konfigurasi slideshow login dinamis berhasil disimpan ke modul sistem.', 'update');
+                    if (res.data?.data) {
+                        slideshowConfig = res.data.data;
+                    }
+                } catch (err) {
+                    console.error('Error saving slideshow settings:', err);
+                    this.showNotification('Gagal Menyimpan', err.response?.data?.message || 'Terjadi kesalahan saat menyimpan slideshow.', 'delete');
+                } finally {
+                    btnSaveSlideshow.disabled = false;
+                    btnSaveSlideshow.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> <span>Simpan Pengaturan Slideshow</span>`;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            });
+        }
+
+        // Initial render of slide cards and mini timer
+        renderSlideCards();
+        restartMiniSlideTimer();
+
+        // 6. Theme and System Settings Handler
         const themeSelect = document.getElementById('setting-theme-select');
         if (themeSelect) {
             themeSelect.addEventListener('change', (e) => {

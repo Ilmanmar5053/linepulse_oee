@@ -108,6 +108,13 @@ export const api = {
     getCompanyProfile: () => axios.get(`${API_BASE}/company-profile`),
     saveCompanyProfile: (data) => axios.post(`${API_BASE}/company-profile`, data),
 
+    // Login Page Dynamic Slideshow Settings
+    getLoginSlideshow: () => axios.get(`${API_BASE}/login-slideshow`),
+    saveLoginSlideshow: (data) => axios.post(`${API_BASE}/system/login-slideshow`, data),
+    uploadSlideshowImage: (formData) => axios.post(`${API_BASE}/system/login-slideshow/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
     // NG Detail Report API
     getNgQueue: (params) => axios.get(`${API_BASE}/ng-reports/queue`, { params }),
     getNgDetail: (id) => axios.get(`${API_BASE}/ng-reports/${id}`),
