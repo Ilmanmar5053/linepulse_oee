@@ -415,7 +415,7 @@ class OeeApp {
         const isLight = this.theme === 'light';
 
         app.innerHTML = `
-            <div class="min-h-screen ${isLight ? 'animate-aurora-light text-slate-800' : 'animate-aurora-dark text-slate-100'} flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans relative overflow-hidden select-none">
+            <div class="min-h-screen ${isLight ? 'animate-aurora-light text-slate-800' : 'animate-aurora-dark text-slate-100'} flex items-center justify-center p-3 sm:p-6 lg:p-8 font-sans relative overflow-y-auto select-none login-landscape-wrapper">
                 
                 <!-- DYNAMIC FLOATING AURA ORBS (LIVING BACKGROUND) -->
                 <div class="absolute -top-24 -left-24 w-[460px] h-[460px] rounded-full blur-3xl pointer-events-none animate-orb-1 ${isLight ? 'bg-gradient-to-tr from-sky-400/25 via-cyan-300/30 to-blue-400/25' : 'bg-gradient-to-tr from-cyan-600/20 via-blue-700/20 to-indigo-800/20'}"></div>
@@ -426,10 +426,10 @@ class OeeApp {
                 <div class="absolute inset-0 ${isLight ? 'login-grid-pattern-light opacity-50' : 'login-grid-pattern opacity-40'} pointer-events-none"></div>
 
                 <!-- MAIN SLIM LOGIN CARD -->
-                <div class="max-w-3xl w-full ${isLight ? 'bg-white/95 border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] backdrop-blur-xl' : 'bg-[#091124]/95 border-[#1B2C56] shadow-[0_20px_60px_rgba(0,0,0,0.7)] backdrop-blur-xl'} border rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10">
+                <div class="max-w-3xl w-full my-auto ${isLight ? 'bg-white/95 border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] backdrop-blur-xl' : 'bg-[#091124]/95 border-[#1B2C56] shadow-[0_20px_60px_rgba(0,0,0,0.7)] backdrop-blur-xl'} border rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10">
                     
                     <!-- SISI KIRI (DYNAMIC DUAL/MULTI-IMAGE SLIDESHOW WITH SMOOTH KEN BURNS MOTION) -->
-                    <div class="md:col-span-5 relative overflow-hidden min-h-[350px] md:min-h-[460px] flex flex-col justify-end p-6 sm:p-7 border-b md:border-b-0 md:border-r ${isLight ? 'border-slate-200' : 'border-[#152347]'} bg-slate-950 group/slide">
+                    <div class="md:col-span-5 relative overflow-hidden min-h-[220px] sm:min-h-[300px] md:min-h-[460px] flex flex-col justify-end p-5 sm:p-7 border-b md:border-b-0 md:border-r ${isLight ? 'border-slate-200' : 'border-[#152347]'} bg-slate-950 group/slide">
                         
                         <!-- SLIDES CONTAINER (DYNAMIC IMAGES WITH SMOOTH CROSSFADE & KEN BURNS ZOOM) -->
                         <div id="login-slides-container" class="absolute inset-0 overflow-hidden pointer-events-none">
@@ -442,19 +442,19 @@ class OeeApp {
                         <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent pointer-events-none z-[2]"></div>
 
                         <!-- BOTTOM: CLEAN PURE WHITE DYNAMIC CAPTIONS & SLIDE INDICATORS -->
-                        <div class="relative z-10 space-y-2.5 pb-1">
+                        <div class="relative z-10 space-y-2 pb-1">
                             <div id="login-slide-caption-box" class="transition-all duration-500 transform space-y-1">
                                 <div>
-                                    <span id="login-slide-tag" class="text-[11px] sm:text-xs font-black font-mono tracking-widest uppercase !text-white" style="color: #ffffff !important; text-shadow: 0 2px 4px rgba(0,0,0,1), 0 4px 8px rgba(0,0,0,0.9);">
+                                    <span id="login-slide-tag" class="text-[10px] sm:text-xs font-black font-mono tracking-widest uppercase !text-white" style="color: #ffffff !important; text-shadow: 0 2px 4px rgba(0,0,0,1), 0 4px 8px rgba(0,0,0,0.9);">
                                         PT YASUNAGA INDONESIA
                                     </span>
                                 </div>
                                 
-                                <h1 id="login-slide-title" class="text-xl sm:text-2xl font-black leading-tight tracking-tight !text-white" style="color: #ffffff !important; text-shadow: 0 2px 6px rgba(0,0,0,1), 0 4px 16px rgba(0,0,0,0.95);">
+                                <h1 id="login-slide-title" class="text-lg sm:text-2xl font-black leading-tight tracking-tight !text-white" style="color: #ffffff !important; text-shadow: 0 2px 6px rgba(0,0,0,1), 0 4px 16px rgba(0,0,0,0.95);">
                                     Overall Equipment Effectiveness
                                 </h1>
 
-                                <p id="login-slide-subtitle" class="text-xs sm:text-[13px] font-medium line-clamp-2 mt-0.5 !text-white" style="color: #ffffff !important; opacity: 0.95; text-shadow: 0 2px 4px rgba(0,0,0,1), 0 3px 6px rgba(0,0,0,0.85);">
+                                <p id="login-slide-subtitle" class="text-[11px] sm:text-[13px] font-medium line-clamp-2 mt-0.5 !text-white" style="color: #ffffff !important; opacity: 0.95; text-shadow: 0 2px 4px rgba(0,0,0,1), 0 3px 6px rgba(0,0,0,0.85);">
                                     Sistem Terintegrasi Monitoring Kinerja Lini Produksi Real-Time
                                 </p>
                             </div>
@@ -467,11 +467,11 @@ class OeeApp {
                     </div>
 
                     <!-- SISI KANAN (FORM LOGIN MANUAL ONLY - SLIM & PROPORTIONAL) -->
-                    <div class="md:col-span-7 p-6 sm:p-8 flex flex-col justify-center ${isLight ? 'bg-white/95' : 'bg-[#091124]'}">
+                    <div class="md:col-span-7 p-5 sm:p-7 md:p-8 flex flex-col justify-center ${isLight ? 'bg-white/95' : 'bg-[#091124]'}">
                         <div>
-                            <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center justify-between mb-4 sm:mb-6">
                                 <div>
-                                    <h3 class="text-xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight">Selamat Datang</h3>
+                                    <h3 class="text-lg sm:text-xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight">Selamat Datang</h3>
                                     <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Silakan masuk menggunakan akun corporate Anda.</p>
                                 </div>
                                 <button id="btn-login-theme-toggle" class="p-2 rounded-xl ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-400'} border transition-colors cursor-pointer" title="Toggle Theme">
@@ -1186,17 +1186,17 @@ class OeeApp {
 
     renderFilterBar() {
         const linesOptions = [
-            `<option value="" ${!this.filters.line_id ? 'selected' : ''} class="bg-slate-900 text-slate-100">${this.t('header.all_lines', 'All Production Lines')}</option>`,
+            `<option value="" ${!this.filters.line_id ? 'selected' : ''} class="bg-slate-900 text-slate-100">${this.t('header.all_lines', 'All Lines')}</option>`,
             ...this.masterData.lines.map(l => `<option value="${l.id}" class="bg-slate-900 text-slate-100" ${this.filters.line_id == l.id ? 'selected' : ''}>${l.code} - ${l.name}</option>`)
         ].join('');
 
         const measuringMachines = (this.masterData.machines || []).filter(m => (m.code || '').includes('MEASURING') || (m.name || '').includes('Measuring'));
         const otherMachines = (this.masterData.machines || []).filter(m => !(m.code || '').includes('MEASURING') && !(m.name || '').includes('Measuring'));
 
-        const optMeasuringLabel = this.currentLang === 'ja' ? '⭐ 全測定器 (全ライン)' : '⭐ All Measuring Machines (Semua Line)';
-        const optAllMachinesLabel = this.t('header.all_machines', 'All Machines (Semua Mesin)');
-        const groupMeasuringLabel = this.currentLang === 'ja' ? '── ライン別 測定器 ──' : '── Mesin Measuring per Line ──';
-        const groupOperationalLabel = this.currentLang === 'ja' ? '── 製造設備 (OP) ──' : '── Mesin Operasional (OP) ──';
+        const optMeasuringLabel = this.currentLang === 'ja' ? '⭐ 全測定器 (全ライン)' : '⭐ All Measuring (Semua Line)';
+        const optAllMachinesLabel = this.t('header.all_machines', 'All Machines');
+        const groupMeasuringLabel = this.currentLang === 'ja' ? '── ライン別 測定器 ──' : '── Mesin Measuring ──';
+        const groupOperationalLabel = this.currentLang === 'ja' ? '── 製造設備 (OP) ──' : '── Mesin Operasional ──';
 
         const machinesOptions = `
             <option value="all_measuring" ${this.filters.machine_id === 'all_measuring' ? 'selected' : ''} class="bg-slate-900 text-cyan-300 font-bold">${optMeasuringLabel}</option>
@@ -1218,56 +1218,56 @@ class OeeApp {
 
         const shiftsOptions = [
             `<option value="" ${!this.filters.shift_id ? 'selected' : ''} class="bg-slate-900 text-slate-100">${this.t('header.all_shifts', 'All Shifts')}</option>`,
-            ...this.masterData.shifts.map(s => `<option value="${s.id}" class="bg-slate-900 text-slate-100" ${this.filters.shift_id == s.id ? 'selected' : ''}>${s.name} (${s.start_time.slice(0,5)} - ${s.end_time.slice(0,5)})</option>`)
+            ...this.masterData.shifts.map(s => `<option value="${s.id}" class="bg-slate-900 text-slate-100" ${this.filters.shift_id == s.id ? 'selected' : ''}>${s.name} (${s.start_time.slice(0,5)}-${s.end_time.slice(0,5)})</option>`)
         ].join('');
 
         const isCustom = this.filters.period === 'custom';
 
         return `
-            <div class="flex items-center gap-2.5 flex-wrap">
-                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300">
-                    <i data-lucide="git-fork" class="w-3.5 h-3.5 text-cyan-400"></i>
-                    <select id="filter-line" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans">
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1 text-slate-300 max-w-[130px] sm:max-w-[160px] md:max-w-none">
+                    <i data-lucide="git-fork" class="w-3.5 h-3.5 text-cyan-400 flex-shrink-0"></i>
+                    <select id="filter-line" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans w-full truncate">
                         ${linesOptions}
                     </select>
                 </div>
 
-                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300">
-                    <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i>
-                    <select id="filter-machine" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1 text-slate-300 max-w-[140px] sm:max-w-[180px] md:max-w-none">
+                    <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0"></i>
+                    <select id="filter-machine" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans w-full truncate">
                         ${machinesOptions}
                     </select>
                 </div>
 
-                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300">
-                    <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
-                    <select id="filter-shift" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1 text-slate-300 max-w-[120px] sm:max-w-[150px] md:max-w-none">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400 flex-shrink-0"></i>
+                    <select id="filter-shift" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans w-full truncate">
                         ${shiftsOptions}
                     </select>
                 </div>
 
-                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300">
-                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-emerald-400"></i>
-                    <select id="filter-period" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1 text-slate-300 max-w-[130px] sm:max-w-[160px] md:max-w-none">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0"></i>
+                    <select id="filter-period" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans w-full truncate">
                         <option value="30days" class="bg-slate-900 text-slate-100" ${this.filters.period === '30days' ? 'selected' : ''}>${this.t('header.last_30_days', 'Last 30 Days')}</option>
                         <option value="7days" class="bg-slate-900 text-slate-100" ${this.filters.period === '7days' ? 'selected' : ''}>${this.t('header.last_7_days', 'Last 7 Days')}</option>
-                        <option value="today" class="bg-slate-900 text-slate-100" ${this.filters.period === 'today' ? 'selected' : ''}>${this.t('header.today', 'Today (Hari Ini)')}</option>
-                        <option value="yesterday" class="bg-slate-900 text-slate-100" ${this.filters.period === 'yesterday' ? 'selected' : ''}>${this.t('header.yesterday', 'Yesterday (Kemarin)')}</option>
-                        <option value="this_month" class="bg-slate-900 text-slate-100" ${this.filters.period === 'this_month' ? 'selected' : ''}>${this.t('header.this_month', 'This Month (Bulan Ini)')}</option>
-                        <option value="last_month" class="bg-slate-900 text-slate-100" ${this.filters.period === 'last_month' ? 'selected' : ''}>${this.currentLang === 'ja' ? '先月 (Last Month)' : 'Last Month (Bulan Lalu)'}</option>
-                        <option value="custom" class="bg-slate-900 text-slate-100" ${this.filters.period === 'custom' ? 'selected' : ''}>${this.currentLang === 'ja' ? '期間指定 (カスタム)...' : 'Custom Date Range...'}</option>
+                        <option value="today" class="bg-slate-900 text-slate-100" ${this.filters.period === 'today' ? 'selected' : ''}>${this.t('header.today', 'Today')}</option>
+                        <option value="yesterday" class="bg-slate-900 text-slate-100" ${this.filters.period === 'yesterday' ? 'selected' : ''}>${this.t('header.yesterday', 'Yesterday')}</option>
+                        <option value="this_month" class="bg-slate-900 text-slate-100" ${this.filters.period === 'this_month' ? 'selected' : ''}>${this.t('header.this_month', 'This Month')}</option>
+                        <option value="last_month" class="bg-slate-900 text-slate-100" ${this.filters.period === 'last_month' ? 'selected' : ''}>${this.currentLang === 'ja' ? '先月' : 'Last Month'}</option>
+                        <option value="custom" class="bg-slate-900 text-slate-100" ${this.filters.period === 'custom' ? 'selected' : ''}>${this.currentLang === 'ja' ? '期間指定...' : 'Custom...'}</option>
                     </select>
                 </div>
 
-                <div id="custom-date-container" class="${isCustom ? 'flex' : 'hidden'} items-center gap-2">
-                    <input type="date" id="filter-start-date" value="${this.filters.start_date || ''}" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans" />
+                <div id="custom-date-container" class="${isCustom ? 'flex' : 'hidden'} items-center gap-1.5 flex-wrap sm:flex-nowrap">
+                    <input type="date" id="filter-start-date" value="${this.filters.start_date || ''}" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans" />
                     <span class="text-xs text-slate-500">${this.currentLang === 'ja' ? '〜' : 's/d'}</span>
-                    <input type="date" id="filter-end-date" value="${this.filters.end_date || ''}" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans" />
+                    <input type="date" id="filter-end-date" value="${this.filters.end_date || ''}" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans" />
                 </div>
 
-                <button id="btn-apply-filters" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-cyan-600/20 flex items-center gap-1.5 cursor-pointer">
+                <button id="btn-apply-filters" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-cyan-600/20 flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <i data-lucide="filter" class="w-3.5 h-3.5"></i>
-                    <span>${this.t('header.apply_filter', 'Apply Filter')}</span>
+                    <span class="hidden sm:inline">${this.t('header.apply_filter', 'Apply')}</span>
                 </button>
             </div>
         `;
@@ -1279,7 +1279,10 @@ class OeeApp {
         const sidebarClass = this.isSidebarPinned ? 'sidebar-pinned w-60' : 'sidebar-unpinned sidebar-mini w-16';
 
         app.innerHTML = `
-            <div class="flex h-screen bg-[#070D1E] text-slate-100 overflow-hidden font-sans" id="main-container">
+            <!-- MOBILE SIDEBAR BACKDROP -->
+            <div id="sidebar-mobile-backdrop" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 hidden transition-opacity duration-300"></div>
+
+            <div class="flex h-screen bg-[#070D1E] text-slate-100 overflow-hidden font-sans relative" id="main-container">
                 <!-- LEFT SIDEBAR (DYNAMIC PASTEL & NAVY INDUSTRIAL DESIGN) -->
                 <aside id="sidebar" class="${sidebarClass} flex flex-col justify-between flex-shrink-0 transition-all duration-300 shadow-2xl z-20 select-none">
                     <div class="flex flex-col min-h-0 flex-1">
@@ -1390,12 +1393,19 @@ class OeeApp {
                 <!-- MAIN CONTENT AREA (NAVY BG) -->
                 <div class="flex-1 flex flex-col min-w-0 bg-[#070D1E] overflow-hidden">
                     <!-- TOPBAR -->
-                    <header class="h-14 border-b border-[#152347] bg-[#091124]/90 backdrop-blur-md px-5 flex items-center justify-between z-10 flex-shrink-0">
-                        <!-- FILTER BAR -->
-                        ${this.renderFilterBar()}
+                    <header class="min-h-14 h-auto border-b border-[#152347] bg-[#091124]/90 backdrop-blur-md px-3 sm:px-5 py-2 flex flex-wrap lg:flex-nowrap items-center justify-between gap-2.5 z-10 flex-shrink-0">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <!-- MOBILE HAMBURGER MENU BUTTON (TABLETS & SMARTPHONES) -->
+                            <button type="button" id="btn-mobile-sidebar-toggle" class="lg:hidden p-2 rounded-xl text-slate-300 hover:text-cyan-400 hover:bg-slate-800/80 border border-slate-700/60 transition-colors cursor-pointer flex-shrink-0 flex items-center justify-center" title="Menu Navigasi">
+                                <i data-lucide="menu" class="w-4 h-4 text-cyan-400"></i>
+                            </button>
+
+                            <!-- FILTER BAR -->
+                            ${this.renderFilterBar()}
+                        </div>
 
                         <!-- ACTIONS & SYSTEM CLOCK -->
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 flex-wrap sm:flex-nowrap ml-auto">
                             <!-- REALTIME NOTIFICATION BELL -->
                             <div class="relative cursor-pointer p-1 text-slate-400 hover:text-cyan-400 transition-colors" id="btn-notification-bell" title="${this.t('header.notifications', 'Real-time System Notifications')}">
                                 <i data-lucide="bell" class="w-4 h-4"></i>
@@ -1427,10 +1437,10 @@ class OeeApp {
 
                             <!-- LANGUAGE SELECTOR TOGGLE (INTERNATIONAL STYLE) -->
                             <div class="relative" id="language-switcher-container">
-                                <button id="btn-language-toggle" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-[#0E1A38] hover:bg-[#16254C] text-slate-200 border border-[#16254C]'}" title="${this.t('header.language', 'Language')}">
+                                <button id="btn-language-toggle" class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-[#0E1A38] hover:bg-[#16254C] text-slate-200 border border-[#16254C]'}" title="${this.t('header.language', 'Language')}">
                                     <i data-lucide="globe" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                    <span id="current-lang-label" class="font-mono text-[11px]">${this.currentLang === 'ja' ? '🇯🇵 日本語' : '🇮🇩 ID'}</span>
-                                    <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+                                    <span id="current-lang-label" class="font-mono text-[11px]">${this.currentLang === 'ja' ? '🇯🇵' : '🇮🇩'}</span>
+                                    <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400 hidden sm:inline"></i>
                                 </button>
                                 <div id="language-dropdown" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-2xl z-50 overflow-hidden font-sans border ${isLight ? 'bg-white border-slate-200 divide-slate-100' : 'bg-[#0B142C] border-[#1B2C56] divide-[#152347]/60'} divide-y">
                                     <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider ${isLight ? 'bg-slate-50 text-slate-500' : 'bg-[#070D1E] text-slate-400'} flex items-center justify-between">
@@ -1455,7 +1465,7 @@ class OeeApp {
                             </div>
 
                             <!-- LIVE TELEMETRY AUTO-REFRESH STATUS PILL -->
-                            <button type="button" id="btn-telemetry-pill" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono border transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-[#0E1A38] hover:bg-[#16254C] border-[#16254C] text-slate-200'}" title="Frekuensi Auto-Refresh Telemetri. Klik untuk memuat ulang data sekarang.">
+                            <button type="button" id="btn-telemetry-pill" class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-mono border transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-[#0E1A38] hover:bg-[#16254C] border-[#16254C] text-slate-200'}" title="Frekuensi Auto-Refresh Telemetri. Klik untuk memuat ulang data sekarang.">
                                 <span id="telemetry-live-dot" class="relative flex h-2 w-2">
                                     ${this.autoRefreshInterval > 0 
                                         ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>'
@@ -1467,23 +1477,24 @@ class OeeApp {
                             </button>
 
                             <!-- SYSTEM CLOCK -->
-                            <div class="flex items-center gap-2 text-right font-mono px-1">
+                            <div class="hidden sm:flex items-center gap-1.5 text-right font-mono px-1">
                                 <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i>
                                 <div class="leading-tight text-right">
                                     <div id="header-clock-time" class="text-xs font-bold text-cyan-400 tracking-wider">--:--:--</div>
-                                    <div id="header-clock-date" class="text-[9.5px] font-medium text-slate-400">-- --- ----</div>
+                                    <div id="header-clock-date" class="text-[9px] font-medium text-slate-400">-- --- ----</div>
                                 </div>
                             </div>
 
-                            <button id="btn-add-record" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-emerald-600/20 cursor-pointer">
+                            <button id="btn-add-record" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex-shrink-0">
                                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                                <span>${this.t('header.add_record', '+ Entry Record')}</span>
+                                <span class="hidden sm:inline">${this.t('header.add_record', '+ Entry Record')}</span>
+                                <span class="sm:hidden font-bold">Entry</span>
                             </button>
                         </div>
                     </header>
 
                     <!-- CONTENT PAGE BODY -->
-                    <main id="content-body" class="flex-1 overflow-y-auto p-5 space-y-5 bg-[#070D1E]">
+                    <main id="content-body" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 sm:space-y-5 bg-[#070D1E]">
                         <!-- Dynamic page component inserted here -->
                     </main>
                 </div>
@@ -1527,10 +1538,17 @@ class OeeApp {
         const contentBody = document.getElementById('content-body');
         const header = document.querySelector('header');
         const btnPin = document.getElementById('btn-toggle-sidebar-pin');
+        const mobileToggleBtn = document.getElementById('btn-mobile-sidebar-toggle');
+        const mobileBackdrop = document.getElementById('sidebar-mobile-backdrop');
 
         if (!sidebar) return;
 
+        // Desktop pinned vs unpinned handler
         const updateSidebarClasses = () => {
+            if (window.innerWidth < 1024) {
+                // In mobile / tablet, classes are handled via off-canvas drawer
+                return;
+            }
             if (this.isSidebarPinned) {
                 sidebar.classList.remove('sidebar-unpinned', 'sidebar-mini', 'sidebar-hover-expanded', 'w-16');
                 sidebar.classList.add('sidebar-pinned', 'w-60');
@@ -1554,9 +1572,52 @@ class OeeApp {
             }
         };
 
-        // Hover expand on sidebar
+        // Mobile / Tablet off-canvas drawer controls
+        const openMobileSidebar = () => {
+            sidebar.classList.add('sidebar-mobile-open');
+            if (mobileBackdrop) {
+                mobileBackdrop.classList.remove('hidden');
+                mobileBackdrop.classList.add('active');
+            }
+        };
+
+        const closeMobileSidebar = () => {
+            sidebar.classList.remove('sidebar-mobile-open');
+            if (mobileBackdrop) {
+                mobileBackdrop.classList.remove('active');
+                mobileBackdrop.classList.add('hidden');
+            }
+        };
+
+        if (mobileToggleBtn) {
+            mobileToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (sidebar.classList.contains('sidebar-mobile-open')) {
+                    closeMobileSidebar();
+                } else {
+                    openMobileSidebar();
+                }
+            });
+        }
+
+        if (mobileBackdrop) {
+            mobileBackdrop.addEventListener('click', () => {
+                closeMobileSidebar();
+            });
+        }
+
+        // Auto close mobile drawer on navigation click
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 1024) {
+                    closeMobileSidebar();
+                }
+            });
+        });
+
+        // Hover expand on sidebar for desktop
         sidebar.addEventListener('mouseenter', () => {
-            if (!this.isSidebarPinned) {
+            if (window.innerWidth >= 1024 && !this.isSidebarPinned) {
                 this.isSidebarHovered = true;
                 updateSidebarClasses();
             }
@@ -1564,7 +1625,7 @@ class OeeApp {
 
         // Hover collapse when mouse leaves sidebar
         sidebar.addEventListener('mouseleave', () => {
-            if (!this.isSidebarPinned) {
+            if (window.innerWidth >= 1024 && !this.isSidebarPinned) {
                 this.isSidebarHovered = false;
                 updateSidebarClasses();
             }
@@ -1573,7 +1634,7 @@ class OeeApp {
         // Hover collapse when mouse enters main dashboard content or top header
         if (contentBody) {
             contentBody.addEventListener('mouseenter', () => {
-                if (!this.isSidebarPinned && this.isSidebarHovered) {
+                if (window.innerWidth >= 1024 && !this.isSidebarPinned && this.isSidebarHovered) {
                     this.isSidebarHovered = false;
                     updateSidebarClasses();
                 }
@@ -1581,14 +1642,14 @@ class OeeApp {
         }
         if (header) {
             header.addEventListener('mouseenter', () => {
-                if (!this.isSidebarPinned && this.isSidebarHovered) {
+                if (window.innerWidth >= 1024 && !this.isSidebarPinned && this.isSidebarHovered) {
                     this.isSidebarHovered = false;
                     updateSidebarClasses();
                 }
             });
         }
 
-        // Toggle Pin Lock Button
+        // Toggle Pin Lock Button (Desktop)
         if (btnPin) {
             btnPin.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1603,6 +1664,29 @@ class OeeApp {
                 );
             });
         }
+
+        // Window resize and orientation change handler to redraw charts cleanly
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (window.innerWidth >= 1024) {
+                    closeMobileSidebar();
+                    updateSidebarClasses();
+                }
+                // Trigger ApexCharts resize if present
+                window.dispatchEvent(new Event('apexcharts-resize'));
+            }, 150);
+        });
+
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                if (window.innerWidth >= 1024) {
+                    closeMobileSidebar();
+                }
+                window.dispatchEvent(new Event('resize'));
+            }, 250);
+        });
 
         // Initialize state
         updateSidebarClasses();
