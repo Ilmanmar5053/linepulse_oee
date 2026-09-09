@@ -1041,18 +1041,25 @@ html.light #notification-dropdown {
 
 /* Indicators */
 .login-indicator-dot {
-    height: 4px;
+    height: 5px;
     width: 14px;
     border-radius: 9999px;
-    background-color: rgba(255, 255, 255, 0.35);
+    background-color: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
 }
 
+.login-indicator-dot:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
 .login-indicator-dot.active {
-    width: 28px;
+    width: 30px;
     background-color: #38bdf8;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+    border-color: #7dd3fc;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.95), 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
 /* ANIMATED MESH & AURORA GRADIENT FOR LOGIN BACKDROP */

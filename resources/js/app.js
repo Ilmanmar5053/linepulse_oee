@@ -427,7 +427,7 @@ class OeeApp {
                 <div class="max-w-3xl w-full ${isLight ? 'bg-white/95 border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] backdrop-blur-xl' : 'bg-[#091124]/95 border-[#1B2C56] shadow-[0_20px_60px_rgba(0,0,0,0.7)] backdrop-blur-xl'} border rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10">
                     
                     <!-- SISI KIRI (DYNAMIC DUAL/MULTI-IMAGE SLIDESHOW WITH SMOOTH KEN BURNS MOTION) -->
-                    <div class="md:col-span-5 relative overflow-hidden min-h-[340px] md:min-h-[460px] flex flex-col justify-between p-6 sm:p-7 border-b md:border-b-0 md:border-r ${isLight ? 'border-slate-200' : 'border-[#152347]'} bg-slate-950 group/slide">
+                    <div class="md:col-span-5 relative overflow-hidden min-h-[350px] md:min-h-[480px] flex flex-col justify-between p-5 sm:p-7 border-b md:border-b-0 md:border-r ${isLight ? 'border-slate-200' : 'border-[#152347]'} bg-slate-950 group/slide">
                         
                         <!-- SLIDES CONTAINER (DYNAMIC IMAGES WITH SMOOTH CROSSFADE & KEN BURNS ZOOM) -->
                         <div id="login-slides-container" class="absolute inset-0 overflow-hidden pointer-events-none">
@@ -436,40 +436,41 @@ class OeeApp {
                             </div>
                         </div>
                         
-                        <!-- HIGH CONTRAST TRANSPARENT GRADIENT OVERLAYS -->
-                        <div class="absolute inset-0 bg-gradient-to-b from-black/65 via-black/20 to-black/95 pointer-events-none z-[2]"></div>
+                        <!-- HIGH CONTRAST DUAL GRADIENT OVERLAYS (ENSURES TEXT IS ALWAYS CRYSTAL CLEAR & READABLE REGARDLESS OF THE PHOTO OR THEME) -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/30 pointer-events-none z-[2]"></div>
+                        <div class="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-transparent pointer-events-none z-[2]"></div>
 
                         <!-- TOP BAR: BRAND BADGE & SLIDE COUNTER -->
                         <div class="relative z-10 flex items-center justify-between">
-                            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/15 text-[10px] font-mono text-cyan-300 font-bold shadow-lg">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                <span>SMART MONOZUKURI</span>
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/85 backdrop-blur-md border border-cyan-400/40 text-[10.5px] font-mono text-cyan-300 font-bold shadow-xl shadow-black/60">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]"></span>
+                                <span class="tracking-wider">SMART MONOZUKURI</span>
                             </div>
-                            <div id="login-slide-counter" class="text-[10px] font-mono text-white/70 bg-black/50 px-2 py-0.5 rounded-full backdrop-blur-md border border-white/15 shadow">
+                            <div id="login-slide-counter" class="text-[10px] font-mono text-cyan-200 font-bold bg-slate-950/85 px-2.5 py-1 rounded-full backdrop-blur-md border border-white/20 shadow-lg">
                                 1 / 5
                             </div>
                         </div>
 
                         <!-- BOTTOM: DYNAMIC CAPTIONS & SLIDE INDICATORS -->
-                        <div class="relative z-10 space-y-2.5 pb-0.5">
-                            <div id="login-slide-caption-box" class="transition-all duration-500 transform">
+                        <div class="relative z-10 space-y-3 pb-1">
+                            <div id="login-slide-caption-box" class="p-3.5 sm:p-4 rounded-2xl bg-black/60 backdrop-blur-md border border-white/20 shadow-[0_12px_36px_rgba(0,0,0,0.75)] transition-all duration-500 transform space-y-1.5">
                                 <div class="flex items-center gap-2">
-                                    <span id="login-slide-tag" class="text-[10.5px] sm:text-xs font-black text-amber-400 font-mono tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
+                                    <span id="login-slide-tag" class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-amber-400/30 border border-amber-300/60 text-[11px] sm:text-xs font-black text-amber-300 font-mono tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
                                         PT YASUNAGA INDONESIA
                                     </span>
                                 </div>
                                 
-                                <h1 id="login-slide-title" class="text-xl sm:text-2xl font-black text-white leading-snug tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
+                                <h1 id="login-slide-title" class="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)]">
                                     Overall Equipment Effectiveness
                                 </h1>
 
-                                <p id="login-slide-subtitle" class="text-xs text-slate-300 font-medium line-clamp-2 drop-shadow-[0_1px_4px_rgba(0,0,0,1)] mt-0.5">
+                                <p id="login-slide-subtitle" class="text-xs sm:text-[13px] text-slate-100 font-medium line-clamp-2 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] mt-0.5">
                                     Sistem Terintegrasi Monitoring Kinerja Lini Produksi Real-Time
                                 </p>
                             </div>
 
                             <!-- INDICATOR PILLS / DOTS -->
-                            <div id="login-slides-indicators" class="flex items-center gap-1.5 pt-1">
+                            <div id="login-slides-indicators" class="flex items-center gap-2 pt-1 px-1">
                                 <!-- Injected dynamically via initLoginSlideshow -->
                             </div>
                         </div>
@@ -20059,32 +20060,33 @@ tbody.innerHTML = '';
                                 </div>
 
                                 <!-- MINI LOGIN CARD SIMULATION -->
-                                <div class="relative rounded-xl overflow-hidden aspect-[4/5] bg-slate-950 border border-slate-700 shadow-2xl flex flex-col justify-between p-4">
+                                <div class="relative rounded-xl overflow-hidden aspect-[4/5] bg-slate-950 border border-slate-700 shadow-2xl flex flex-col justify-between p-3.5">
                                     <!-- SLIDE BG CONTAINER -->
                                     <div id="settings-mini-slide-container" class="absolute inset-0 overflow-hidden pointer-events-none">
                                         <!-- Injected via JavaScript -->
                                     </div>
                                     <!-- GRADIENTS -->
-                                    <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90 pointer-events-none z-[2]"></div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/30 pointer-events-none z-[2]"></div>
+                                    <div class="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-transparent pointer-events-none z-[2]"></div>
 
                                     <!-- TOP BADGE -->
                                     <div class="relative z-10 flex items-center justify-between">
-                                        <span class="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[9px] font-mono text-cyan-300 font-bold">
+                                        <span class="px-2 py-0.5 rounded-full bg-slate-950/85 backdrop-blur-md border border-cyan-400/40 text-[9px] font-mono text-cyan-300 font-bold shadow">
                                             MONOZUKURI
                                         </span>
-                                        <span id="settings-mini-counter" class="text-[9px] font-mono text-white/70 bg-black/50 px-1.5 py-0.5 rounded backdrop-blur">
+                                        <span id="settings-mini-counter" class="text-[9px] font-mono text-cyan-200 font-bold bg-slate-950/85 px-1.5 py-0.5 rounded-full backdrop-blur border border-white/20">
                                             1/5
                                         </span>
                                     </div>
 
                                     <!-- BOTTOM CAPTION & INDICATORS -->
                                     <div class="relative z-10 space-y-1.5">
-                                        <div id="settings-mini-caption">
-                                            <div id="settings-mini-tag" class="text-[9px] font-mono font-bold text-amber-400 uppercase tracking-wider">PT YASUNAGA INDONESIA</div>
-                                            <div id="settings-mini-title" class="text-xs font-black text-white leading-tight">Overall Equipment Effectiveness</div>
-                                            <div id="settings-mini-sub" class="text-[10px] text-slate-300 line-clamp-2 mt-0.5">Sistem Terintegrasi Monitoring Kinerja Lini Produksi</div>
+                                        <div id="settings-mini-caption" class="p-2.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/20 shadow-lg space-y-1">
+                                            <div id="settings-mini-tag" class="text-[9.5px] font-mono font-black text-amber-300 uppercase tracking-wider drop-shadow">PT YASUNAGA INDONESIA</div>
+                                            <div id="settings-mini-title" class="text-xs font-black text-white leading-tight drop-shadow">Overall Equipment Effectiveness</div>
+                                            <div id="settings-mini-sub" class="text-[10px] text-slate-100 font-medium line-clamp-2 mt-0.5 drop-shadow">Sistem Terintegrasi Monitoring Kinerja Lini Produksi</div>
                                         </div>
-                                        <div id="settings-mini-dots" class="flex items-center gap-1 pt-1">
+                                        <div id="settings-mini-dots" class="flex items-center gap-1.5 pt-1 px-1">
                                             <!-- Dots -->
                                         </div>
                                     </div>
