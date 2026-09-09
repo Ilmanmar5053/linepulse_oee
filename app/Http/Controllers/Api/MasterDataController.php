@@ -129,26 +129,28 @@ class MasterDataController extends Controller
     {
         $code = trim($request->input('code', ''));
         $name = trim($request->input('name', ''));
-        $rawWcId = $request->input('work_center_id');
+        $rawLineOrWcId = $request->input('production_line_id') ?? $request->input('line_id') ?? $request->input('work_center_id');
         $status = strtoupper($request->input('status', 'RUNNING'));
 
-        // Resolve Work Center from work_center_id or production_line_id
+        // Resolve Work Center: Prioritize ProductionLine ID since frontend dropdown provides ProductionLine IDs
         $resolvedWcId = null;
-        if (!empty($rawWcId)) {
-            $wc = WorkCenter::find($rawWcId);
-            if (!$wc) {
-                $wc = WorkCenter::where('production_line_id', $rawWcId)->first();
+        if (!empty($rawLineOrWcId)) {
+            $line = ProductionLine::find($rawLineOrWcId);
+            if ($line) {
+                $wc = WorkCenter::where('production_line_id', $line->id)->first();
                 if (!$wc) {
-                    $line = ProductionLine::find($rawWcId);
                     $wc = WorkCenter::create([
-                        'production_line_id' => $rawWcId,
-                        'code' => 'WC-' . ($line ? $line->code : $rawWcId),
-                        'name' => 'Work Center ' . ($line ? $line->name : $rawWcId),
+                        'production_line_id' => $line->id,
+                        'code' => 'WC-' . $line->code,
+                        'name' => 'Work Center ' . $line->name,
                     ]);
                 }
-            }
-            if ($wc) {
                 $resolvedWcId = $wc->id;
+            } else {
+                $wc = WorkCenter::find($rawLineOrWcId);
+                if ($wc) {
+                    $resolvedWcId = $wc->id;
+                }
             }
         }
 
@@ -211,12 +213,25 @@ class MasterDataController extends Controller
         foreach ($request->items as $item) {
             $code = trim($item['code']);
             $name = trim($item['name']);
-            $rawWcId = $item['work_center_id'] ?? null;
+            $rawLineOrWcId = $item['production_line_id'] ?? $item['line_id'] ?? $item['work_center_id'] ?? null;
             $resolvedWcId = null;
 
-            if ($rawWcId) {
-                $wc = WorkCenter::find($rawWcId) ?? WorkCenter::where('production_line_id', $rawWcId)->first();
-                if ($wc) $resolvedWcId = $wc->id;
+            if (!empty($rawLineOrWcId)) {
+                $line = ProductionLine::find($rawLineOrWcId);
+                if ($line) {
+                    $wc = WorkCenter::where('production_line_id', $line->id)->first();
+                    if (!$wc) {
+                        $wc = WorkCenter::create([
+                            'production_line_id' => $line->id,
+                            'code' => 'WC-' . $line->code,
+                            'name' => 'Work Center ' . $line->name,
+                        ]);
+                    }
+                    $resolvedWcId = $wc->id;
+                } else {
+                    $wc = WorkCenter::find($rawLineOrWcId);
+                    if ($wc) $resolvedWcId = $wc->id;
+                }
             }
             if (!$resolvedWcId) {
                 $resolvedWcId = 17;
@@ -259,7 +274,7 @@ class MasterDataController extends Controller
 
         $code = $request->input('code');
         $name = $request->input('name');
-        $rawWcId = $request->input('work_center_id');
+        $rawLineOrWcId = $request->input('production_line_id') ?? $request->input('line_id') ?? $request->input('work_center_id');
         $status = $request->input('status');
 
         $updateData = [];
@@ -269,10 +284,23 @@ class MasterDataController extends Controller
         if ($name) {
             $updateData['name'] = trim($name);
         }
-        if ($rawWcId) {
-            $wc = WorkCenter::find($rawWcId) ?? WorkCenter::where('production_line_id', $rawWcId)->first();
-            if ($wc) {
+        if (!empty($rawLineOrWcId)) {
+            $line = ProductionLine::find($rawLineOrWcId);
+            if ($line) {
+                $wc = WorkCenter::where('production_line_id', $line->id)->first();
+                if (!$wc) {
+                    $wc = WorkCenter::create([
+                        'production_line_id' => $line->id,
+                        'code' => 'WC-' . $line->code,
+                        'name' => 'Work Center ' . $line->name,
+                    ]);
+                }
                 $updateData['work_center_id'] = $wc->id;
+            } else {
+                $wc = WorkCenter::find($rawLineOrWcId);
+                if ($wc) {
+                    $updateData['work_center_id'] = $wc->id;
+                }
             }
         }
         if ($status) {

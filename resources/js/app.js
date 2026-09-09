@@ -14439,8 +14439,9 @@ tbody.innerHTML = '';
         }
 
         if (type === 'machines') {
+            const selectedLineId = item.work_center?.production_line_id || item.production_line_id || (this.masterData.lines || []).find(l => l.id == item.work_center_id)?.id || item.work_center_id;
             const lineOptions = (this.masterData.lines || []).map(l => 
-                `<option value="${l.id}" ${l.id == (item.work_center?.production_line_id || item.work_center_id) ? 'selected' : ''}>${l.name} (${l.code})</option>`
+                `<option value="${l.id}" ${l.id == selectedLineId ? 'selected' : ''}>${l.name} (${l.code})</option>`
             ).join('');
             fieldsHtml = `
                 <div>
