@@ -46,7 +46,9 @@ class OeeApp {
             role_keys: ['super_admin'],
         };
 
+        this.autoRefreshInterval = parseInt(localStorage.getItem('telemetry_refresh_interval') || '30000', 10);
         this.autoRefreshTimer = null;
+        this.autoRefreshCountdownTimer = null;
         this.charts = {};
         this.audioCtx = null;
         this.notifCount = 0;
@@ -1103,15 +1105,83 @@ class OeeApp {
     }
 
     setupAutoRefresh() {
-        if (this.autoRefreshTimer) clearInterval(this.autoRefreshTimer);
+        if (this.autoRefreshTimer) {
+            clearInterval(this.autoRefreshTimer);
+            this.autoRefreshTimer = null;
+        }
+        if (this.autoRefreshCountdownTimer) {
+            clearInterval(this.autoRefreshCountdownTimer);
+            this.autoRefreshCountdownTimer = null;
+        }
+
+        const interval = this.autoRefreshInterval !== undefined ? this.autoRefreshInterval : 30000;
+        this.updateTelemetryHeaderPill(interval);
+
+        if (interval <= 0) {
+            console.log('Telemetry auto-refresh is disabled (manual mode).');
+            return;
+        }
+
+        let secondsRemaining = Math.floor(interval / 1000);
+        this.autoRefreshCountdownTimer = setInterval(() => {
+            secondsRemaining--;
+            if (secondsRemaining <= 0) {
+                secondsRemaining = Math.floor(interval / 1000);
+            }
+            const labelEl = document.getElementById('telemetry-interval-label');
+            if (labelEl) {
+                labelEl.textContent = `${secondsRemaining}s`;
+            }
+        }, 1000);
+
         this.autoRefreshTimer = setInterval(() => {
-            // Jangan pernah auto-refresh pada halaman settings (profil perusahaan), database management, input laporan harian, input laporan NG, atau saat modal terbuka
-            if (this.currentTab === 'settings' || this.currentTab === 'database' || this.currentTab === 'daily-report' || this.currentTab === 'ng-report' || document.querySelector('.modal-active, #modal-container:not(.hidden)')) {
+            // Jangan pernah auto-refresh pada halaman settings, database, input laporan harian, input laporan NG, saat modal terbuka, atau saat user sedang aktif mengetik
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+            const modalOpen = document.querySelector('.modal-active, #modal-container > div:not(.hidden)');
+
+            if (this.currentTab === 'settings' || this.currentTab === 'database' || this.currentTab === 'daily-report' || this.currentTab === 'ng-report' || isTyping || modalOpen) {
+                secondsRemaining = Math.floor(interval / 1000);
                 return;
             }
-            console.log('Auto-refreshing dashboard metrics for tab:', this.currentTab);
-            this.loadCurrentTab(false);
-        }, 30000);
+
+            console.log(`Auto-refreshing telemetri OEE (Interval: ${interval / 1000}s) for tab:`, this.currentTab);
+            
+            const iconEl = document.getElementById('telemetry-refresh-icon');
+            if (iconEl) iconEl.classList.add('animate-spin');
+
+            this.loadCurrentTab(false).finally(() => {
+                setTimeout(() => {
+                    if (iconEl) iconEl.classList.remove('animate-spin');
+                }, 600);
+            });
+            secondsRemaining = Math.floor(interval / 1000);
+        }, interval);
+    }
+
+    updateTelemetryHeaderPill(interval) {
+        const pill = document.getElementById('btn-telemetry-pill');
+        const dot = document.getElementById('telemetry-live-dot');
+        const label = document.getElementById('telemetry-interval-label');
+
+        if (!pill || !label) return;
+
+        if (interval > 0) {
+            label.textContent = `${interval / 1000}s`;
+            pill.setAttribute('title', `Auto-Refresh Telemetri Aktif: setiap ${interval / 1000} detik. Klik untuk refresh sekarang.`);
+            if (dot) {
+                dot.innerHTML = `
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                `;
+            }
+        } else {
+            label.textContent = 'Manual';
+            pill.setAttribute('title', 'Auto-Refresh Telemetri Nonaktif (Manual). Klik untuk refresh sekarang.');
+            if (dot) {
+                dot.innerHTML = `<span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>`;
+            }
+        }
     }
 
     renderFilterBar() {
@@ -1384,6 +1454,18 @@ class OeeApp {
                                 </div>
                             </div>
 
+                            <!-- LIVE TELEMETRY AUTO-REFRESH STATUS PILL -->
+                            <button type="button" id="btn-telemetry-pill" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono border transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-[#0E1A38] hover:bg-[#16254C] border-[#16254C] text-slate-200'}" title="Frekuensi Auto-Refresh Telemetri. Klik untuk memuat ulang data sekarang.">
+                                <span id="telemetry-live-dot" class="relative flex h-2 w-2">
+                                    ${this.autoRefreshInterval > 0 
+                                        ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>'
+                                        : '<span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>'
+                                    }
+                                </span>
+                                <i data-lucide="refresh-cw" id="telemetry-refresh-icon" class="w-3 h-3 text-cyan-400"></i>
+                                <span id="telemetry-interval-label" class="text-[11px] font-bold">${this.autoRefreshInterval > 0 ? `${this.autoRefreshInterval / 1000}s` : 'Manual'}</span>
+                            </button>
+
                             <!-- SYSTEM CLOCK -->
                             <div class="flex items-center gap-2 text-right font-mono px-1">
                                 <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i>
@@ -1620,6 +1702,21 @@ class OeeApp {
                 this.applyTheme();
                 this.renderLayout();
                 this.loadCurrentTab(false);
+            });
+        }
+
+        // TELEMETRY AUTO-REFRESH STATUS PILL EVENT LISTENER
+        const btnTelemetry = document.getElementById('btn-telemetry-pill');
+        if (btnTelemetry) {
+            btnTelemetry.addEventListener('click', async () => {
+                const iconEl = document.getElementById('telemetry-refresh-icon');
+                if (iconEl) iconEl.classList.add('animate-spin');
+                this.playClingSound();
+                await this.loadCurrentTab(false);
+                this.showNotification('Telemetri Diperbarui', 'Data metrik telemetri OEE lini produksi berhasil dimuat ulang secara real-time.', 'status');
+                setTimeout(() => {
+                    if (iconEl) iconEl.classList.remove('animate-spin');
+                }, 600);
             });
         }
 
@@ -16975,95 +17072,6 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 11. SYSTEM SETTINGS PAGE
-    // ==========================================
-    async renderSettings() {
-        const res = await api.getSettings();
-        const settings = res.data.data;
-
-        const targetOee = settings.find(s => s.key === 'target_oee')?.value || '85.0';
-        const targetAvail = settings.find(s => s.key === 'target_availability')?.value || '90.0';
-        const targetPerf = settings.find(s => s.key === 'target_performance')?.value || '95.0';
-        const targetQual = settings.find(s => s.key === 'target_quality')?.value || '99.0';
-        const tvRefresh = settings.find(s => s.key === 'auto_refresh_interval')?.value || '30';
-
-        const content = document.getElementById('content-body');
-        content.innerHTML = `
-            <div class="mb-4">
-                <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
-                    <i data-lucide="sliders" class="w-5 h-5 text-cyan-400"></i>
-                    <span>System Settings</span>
-                </h2>
-            </div>
-
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl max-w-2xl">
-                <form id="form-system-settings" class="space-y-4 text-xs">
-                    <h3 class="font-bold text-sm text-cyan-400 mb-3 border-b border-slate-800 pb-2">Global OEE Target Thresholds</h3>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-slate-300 font-semibold mb-1">Target OEE (%)</label>
-                            <input type="number" step="0.1" name="target_oee" value="${targetOee}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-100 font-mono" />
-                            <p class="text-[10px] text-slate-500 mt-1">World Class Benchmark: 85.0%</p>
-                        </div>
-                        <div>
-                            <label class="block text-slate-300 font-semibold mb-1">Target Availability (%)</label>
-                            <input type="number" step="0.1" name="target_availability" value="${targetAvail}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-100 font-mono" />
-                            <p class="text-[10px] text-slate-500 mt-1">World Class Benchmark: 90.0%</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-slate-300 font-semibold mb-1">Target Performance (%)</label>
-                            <input type="number" step="0.1" name="target_performance" value="${targetPerf}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-100 font-mono" />
-                            <p class="text-[10px] text-slate-500 mt-1">World Class Benchmark: 95.0%</p>
-                        </div>
-                        <div>
-                            <label class="block text-slate-300 font-semibold mb-1">Target Quality (%)</label>
-                            <input type="number" step="0.1" name="target_quality" value="${targetQual}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-100 font-mono" />
-                            <p class="text-[10px] text-slate-500 mt-1">World Class Benchmark: 99.0%</p>
-                        </div>
-                    </div>
-
-                    <h3 class="font-bold text-sm text-cyan-400 pt-3 mb-3 border-b border-slate-800 pb-2">Production Floor TV Mode Settings</h3>
-
-                    <div>
-                        <label class="block text-slate-300 font-semibold mb-1">TV Auto-Refresh Interval (Seconds)</label>
-                        <select name="auto_refresh_interval" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-100 font-mono">
-                            <option value="15" ${tvRefresh === '15' ? 'selected' : ''}>15 Seconds</option>
-                            <option value="30" ${tvRefresh === '30' ? 'selected' : ''}>30 Seconds (Default)</option>
-                            <option value="60" ${tvRefresh === '60' ? 'selected' : ''}>1 Minute</option>
-                            <option value="300" ${tvRefresh === '300' ? 'selected' : ''}>5 Minutes</option>
-                        </select>
-                    </div>
-
-                    <div class="pt-4 border-t border-slate-800 flex justify-end">
-                        <button type="submit" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-md shadow-cyan-600/20">
-                            Save System Settings
-                        </button>
-                    </div>
-                </form>
-            </div>
-        `;
-
-        document.getElementById('form-system-settings').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-
-            try {
-                for (let [key, val] of formData.entries()) {
-                    await api.updateSetting(key, val);
-                }
-                alert('System settings updated successfully!');
-                await this.loadMasterData();
-            } catch (err) {
-                alert('Error saving settings: ' + err.message);
-            }
-        });
-    }
-
-    // ==========================================
     // APEXCHARTS HELPER RENDERING METHODS
     renderGlobalOeeAndProductionTrendChart(dataPayload = {}, kpi = {}, mode = 'lines_oee', containerId = 'chart-global-oee-trend', chartInstanceKey = 'globalOeeTrend') {
         const el = document.getElementById(containerId);
@@ -20235,16 +20243,24 @@ tbody.innerHTML = '';
                                 </select>
                             </div>
 
-                            <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                            <div class="flex items-center justify-between p-3.5 bg-slate-950 border border-slate-800 rounded-xl">
                                 <div>
-                                    <div class="font-bold text-slate-200">Interval Auto-Refresh Telemetri</div>
-                                    <div class="text-slate-400 text-[11px]">Frekuensi pembaruan data OEE secara otomatis.</div>
+                                    <div class="font-bold text-slate-200 flex items-center gap-2">
+                                        <span>Interval Auto-Refresh Telemetri</span>
+                                        <span id="badge-current-interval" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">
+                                            ${this.autoRefreshInterval > 0 ? (this.autoRefreshInterval / 1000) + ' Detik' : 'Nonaktif'}
+                                        </span>
+                                    </div>
+                                    <div class="text-slate-400 text-[11px] mt-0.5">Frekuensi pembaruan data OEE dan status lini produksi secara otomatis.</div>
                                 </div>
-                                <select id="setting-refresh-select" class="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-2.5 py-1.5 font-mono">
-                                    <option value="15000">Setiap 15 Detik</option>
-                                    <option value="30000" selected>Setiap 30 Detik (Standar)</option>
-                                    <option value="60000">Setiap 1 Menit</option>
-                                    <option value="0">Nonaktif (Manual)</option>
+                                <select id="setting-refresh-select" class="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-xs focus:border-cyan-500 focus:outline-none cursor-pointer">
+                                    <option value="5000" ${this.autoRefreshInterval === 5000 ? 'selected' : ''}>5 Detik (Ultra Cepat / Realtime)</option>
+                                    <option value="10000" ${this.autoRefreshInterval === 10000 ? 'selected' : ''}>10 Detik (Cepat)</option>
+                                    <option value="15000" ${this.autoRefreshInterval === 15000 ? 'selected' : ''}>15 Detik (Responsif)</option>
+                                    <option value="30000" ${this.autoRefreshInterval === 30000 ? 'selected' : ''}>30 Detik (Standar Rekomendasi)</option>
+                                    <option value="60000" ${this.autoRefreshInterval === 60000 ? 'selected' : ''}>1 Menit (Santai)</option>
+                                    <option value="300000" ${this.autoRefreshInterval === 300000 ? 'selected' : ''}>5 Menit (Hemat Kuota)</option>
+                                    <option value="0" ${this.autoRefreshInterval === 0 ? 'selected' : ''}>Nonaktif (Manual Refresh Saja)</option>
                                 </select>
                             </div>
 
@@ -21076,6 +21092,35 @@ tbody.innerHTML = '';
                 this.theme = e.target.value;
                 this.applyTheme();
                 this.showNotification('Tema Diperbarui', `Tema aplikasi diubah ke ${this.theme === 'dark' ? 'Dark Mode' : 'Light Mode'}.`, 'status');
+            });
+        }
+
+        // Telemetry Auto-Refresh Interval Handler
+        const refreshSelect = document.getElementById('setting-refresh-select');
+        if (refreshSelect) {
+            refreshSelect.addEventListener('change', async (e) => {
+                const val = parseInt(e.target.value, 10);
+                this.autoRefreshInterval = val;
+                localStorage.setItem('telemetry_refresh_interval', String(val));
+                this.setupAutoRefresh();
+
+                try {
+                    if (api.updateSetting) {
+                        await api.updateSetting('auto_refresh_interval', String(val > 0 ? val / 1000 : 0));
+                    }
+                } catch (err) {
+                    console.warn('Could not sync refresh interval to server:', err);
+                }
+
+                const badge = document.getElementById('badge-current-interval');
+                if (badge) {
+                    badge.textContent = val > 0 ? `${val / 1000} Detik` : 'Nonaktif';
+                }
+
+                const msg = val > 0 
+                    ? `Data telemetri OEE akan diperbarui otomatis setiap ${val / 1000} detik.`
+                    : 'Auto-refresh telemetri dinonaktifkan (mode manual).';
+                this.showNotification('Interval Telemetri Diperbarui', msg, 'update');
             });
         }
 
