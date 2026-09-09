@@ -20044,7 +20044,15 @@ tbody.innerHTML = '';
                                         <i data-lucide="play-circle" class="w-4 h-4 text-cyan-400"></i>
                                         Live Login Card Preview
                                     </h4>
-                                    <span id="preview-slide-badge" class="text-[10px] font-mono text-cyan-400 font-bold">Slide 1 / 5</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <button type="button" id="btn-mini-prev-slide" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs cursor-pointer transition-colors" title="Slide Sebelumnya">
+                                            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                        <span id="preview-slide-badge" class="text-[10px] font-mono text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60">Slide 1 / 5</span>
+                                        <button type="button" id="btn-mini-next-slide" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs cursor-pointer transition-colors" title="Slide Berikutnya">
+                                            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- MINI LOGIN CARD SIMULATION -->
@@ -20459,13 +20467,57 @@ tbody.innerHTML = '';
         let miniSlideTimer = null;
         let miniSlideIndex = 0;
 
+        const presetGalleryList = [
+            {
+                url: '/images/slideshow/slide-1-plant.webp',
+                title: 'Overall Equipment Effectiveness',
+                tag: 'PT YASUNAGA INDONESIA',
+                subtitle: 'Sistem Terintegrasi Monitoring Kinerja Lini Produksi Real-Time',
+                category: 'Plant & Pabrik'
+            },
+            {
+                url: '/images/slideshow/slide-2-machining.webp',
+                title: 'High-Precision CNC Machining',
+                tag: 'MACHINING LINE',
+                subtitle: 'Monitoring Spindle Speed, Siklus Waktu, & Stabilitas Proses Otomatis',
+                category: 'Machining'
+            },
+            {
+                url: '/images/slideshow/slide-3-measuring.webp',
+                title: 'Zero Defect Quality Assurance',
+                tag: 'QUALITY ASSURANCE',
+                subtitle: 'Inspeksi Dimensi Presisi Tinggi & Verifikasi Kualitas Mutu Monozukuri',
+                category: 'QC / Measuring'
+            },
+            {
+                url: '/images/slideshow/slide-4-assembly.webp',
+                title: 'Automotive Air Pump Assembly',
+                tag: 'ASSEMBLY LINE',
+                subtitle: 'Lini Perakitan Cepat dengan Standar Ergonomi dan Keselamatan Kerja',
+                category: 'Assembly Line'
+            },
+            {
+                url: '/images/slideshow/slide-5-andon.webp',
+                title: 'Smart Andon & Floor Visibility',
+                tag: 'SMART FACTORY MES',
+                subtitle: 'Respon Cepat Terhadap Kendala Mesin, Breakdown, dan Deviasi Siklus',
+                category: 'Digital Andon'
+            },
+            {
+                url: '/images/yasunaga-factory.jpg',
+                title: 'Smart Monozukuri Factory',
+                tag: 'PLANT-01 • SERANG',
+                subtitle: 'Continuous Improvement & Kaizen Productivity Standard',
+                category: 'Factory Landscape'
+            }
+        ];
+
         const updateMiniPreview = () => {
             const miniContainer = document.getElementById('settings-mini-slide-container');
             const miniDots = document.getElementById('settings-mini-dots');
             const miniTag = document.getElementById('settings-mini-tag');
             const miniTitle = document.getElementById('settings-mini-title');
             const miniSub = document.getElementById('settings-mini-sub');
-            const miniCounter = document.getElementById('settings-mini-counter');
             const previewBadge = document.getElementById('preview-slide-badge');
 
             if (!miniContainer) return;
@@ -20474,6 +20526,7 @@ tbody.innerHTML = '';
             if (validSlides.length === 0) return;
 
             if (miniSlideIndex >= validSlides.length) miniSlideIndex = 0;
+            if (miniSlideIndex < 0) miniSlideIndex = validSlides.length - 1;
             const current = validSlides[miniSlideIndex];
 
             // Render background with Ken Burns
@@ -20482,7 +20535,6 @@ tbody.innerHTML = '';
                 <div class="absolute inset-0 bg-cover bg-center bg-no-repeat ${motionClass}" style="background-image: url('${this.escapeHtml(current.image_url)}');"></div>
             `;
 
-            if (miniCounter) miniCounter.textContent = `${miniSlideIndex + 1}/${validSlides.length}`;
             if (previewBadge) previewBadge.textContent = `Slide ${miniSlideIndex + 1} / ${validSlides.length}`;
 
             if (miniTag) miniTag.textContent = current.tag || 'PT YASUNAGA INDONESIA';
@@ -20508,6 +20560,158 @@ tbody.innerHTML = '';
             }, interval);
         };
 
+        // Manual Mini Preview Navigation Arrows
+        const btnMiniPrev = document.getElementById('btn-mini-prev-slide');
+        const btnMiniNext = document.getElementById('btn-mini-next-slide');
+        if (btnMiniPrev) {
+            btnMiniPrev.addEventListener('click', () => {
+                const validSlides = slideshowConfig.slides.filter(s => s && s.image_url);
+                if (validSlides.length > 0) {
+                    miniSlideIndex = (miniSlideIndex - 1 + validSlides.length) % validSlides.length;
+                    updateMiniPreview();
+                    restartMiniSlideTimer();
+                }
+            });
+        }
+        if (btnMiniNext) {
+            btnMiniNext.addEventListener('click', () => {
+                const validSlides = slideshowConfig.slides.filter(s => s && s.image_url);
+                if (validSlides.length > 0) {
+                    miniSlideIndex = (miniSlideIndex + 1) % validSlides.length;
+                    updateMiniPreview();
+                    restartMiniSlideTimer();
+                }
+            });
+        }
+
+        // Preset Gallery Modal Picker
+        const showPresetGalleryModal = (targetSlideIdx) => {
+            const modalContainer = document.getElementById('modal-container') || document.body;
+            const modalEl = document.createElement('div');
+            modalEl.id = 'modal-preset-gallery';
+            modalEl.className = 'fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200';
+            modalEl.innerHTML = `
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                    <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-950 border border-indigo-800 text-indigo-400 flex items-center justify-center">
+                                <i data-lucide="image" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-100">Pilih Foto dari Galeri Pabrik Yasunaga</h3>
+                                <p class="text-[11px] text-slate-400">Pilih foto standar lini produksi beresolusi tinggi dan format ringan WebP untuk Slide #${targetSlideIdx + 1}.</p>
+                            </div>
+                        </div>
+                        <button type="button" id="btn-close-preset-gallery" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-5 overflow-y-auto space-y-4 max-h-[65vh]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                            ${presetGalleryList.map((preset, pIdx) => `
+                                <div class="bg-slate-950 border border-slate-800 hover:border-cyan-500 rounded-xl overflow-hidden transition-all group/preset cursor-pointer flex flex-col justify-between" data-preset-idx="${pIdx}">
+                                    <div class="relative aspect-video bg-slate-900 overflow-hidden">
+                                        <img src="${this.escapeHtml(preset.url)}" class="w-full h-full object-cover transition-transform duration-300 group-hover/preset:scale-105" alt="${this.escapeHtml(preset.title)}" />
+                                        <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-black/75 text-cyan-400 border border-cyan-800 backdrop-blur-sm">
+                                            ${this.escapeHtml(preset.category)}
+                                        </span>
+                                    </div>
+                                    <div class="p-3 space-y-1.5 flex-1 flex flex-col justify-between">
+                                        <div>
+                                            <div class="text-[10px] font-bold text-amber-400 font-mono">${this.escapeHtml(preset.tag)}</div>
+                                            <div class="text-xs font-bold text-slate-100 leading-tight mt-0.5">${this.escapeHtml(preset.title)}</div>
+                                            <div class="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-snug">${this.escapeHtml(preset.subtitle)}</div>
+                                        </div>
+                                        <button type="button" class="btn-select-preset-item w-full mt-2.5 py-1.5 px-2.5 bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white text-[11px] font-bold rounded-lg border border-cyan-500/30 transition-all flex items-center justify-center gap-1 cursor-pointer" data-preset-idx="${pIdx}">
+                                            <i data-lucide="check" class="w-3 h-3"></i> Gunakan Foto Ini
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 bg-slate-950 border-t border-slate-800 flex justify-end gap-2">
+                        <button type="button" id="btn-cancel-preset-gallery" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl cursor-pointer">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modalContainer.appendChild(modalEl);
+            if (window.lucide) window.lucide.createIcons();
+
+            const closeModal = () => {
+                if (modalEl && modalEl.parentNode) {
+                    modalEl.parentNode.removeChild(modalEl);
+                }
+            };
+
+            modalEl.querySelector('#btn-close-preset-gallery')?.addEventListener('click', closeModal);
+            modalEl.querySelector('#btn-cancel-preset-gallery')?.addEventListener('click', closeModal);
+            modalEl.addEventListener('click', (e) => {
+                if (e.target === modalEl) closeModal();
+            });
+
+            modalEl.querySelectorAll('.btn-select-preset-item, .group\\/preset').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const pIdx = parseInt(btn.getAttribute('data-preset-idx'), 10);
+                    const selected = presetGalleryList[pIdx];
+                    if (selected && slideshowConfig.slides[targetSlideIdx]) {
+                        slideshowConfig.slides[targetSlideIdx].image_url = selected.url;
+                        if (!slideshowConfig.slides[targetSlideIdx].title || slideshowConfig.slides[targetSlideIdx].title.startsWith('Slide Foto')) {
+                            slideshowConfig.slides[targetSlideIdx].title = selected.title;
+                        }
+                        if (!slideshowConfig.slides[targetSlideIdx].tag) {
+                            slideshowConfig.slides[targetSlideIdx].tag = selected.tag;
+                        }
+                        if (!slideshowConfig.slides[targetSlideIdx].subtitle) {
+                            slideshowConfig.slides[targetSlideIdx].subtitle = selected.subtitle;
+                        }
+                        closeModal();
+                        renderSlideCards();
+                        this.showNotification('Foto Galeri Dipilih', `Foto '${selected.title}' berhasil diterapkan pada Slide #${targetSlideIdx + 1}.`, 'success');
+                    }
+                });
+            });
+        };
+
+        // Slide Upload Execution Helper
+        const handleSlideUpload = async (idx, file) => {
+            if (!file) return;
+            if (!file.type.match(/image\/(png|jpeg|jpg|webp|svg\+xml)/)) {
+                this.showNotification('Format Tidak Didukung', 'Harap pilih file gambar PNG, JPG, JPEG, atau WebP.', 'delete');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                this.showNotification('Ukuran Terlalu Besar', 'Maksimal ukuran file gambar slide adalah 5MB.', 'delete');
+                return;
+            }
+
+            const loadingOverlay = document.querySelector(`.slide-upload-loading[data-index="${idx}"]`);
+            if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                this.showNotification('Mengunggah Foto', `Mengunggah foto baru untuk Slide #${idx + 1}...`, 'status');
+                const res = await api.uploadSlideshowImage(formData);
+                if (res.data?.data?.url) {
+                    slideshowConfig.slides[idx].image_url = res.data.data.url;
+                    renderSlideCards();
+                    this.showNotification('Foto Berhasil Diunggah', `Foto Slide #${idx + 1} berhasil diperbarui. Klik 'Simpan Pengaturan Slideshow' untuk mempublikasikan.`, 'success');
+                }
+            } catch (err) {
+                console.error('Error uploading slide image:', err);
+                this.showNotification('Gagal Unggah', err.response?.data?.message || 'Gagal mengunggah foto slide ke server.', 'delete');
+                if (loadingOverlay) loadingOverlay.classList.add('hidden');
+            }
+        };
+
         const renderSlideCards = () => {
             const container = document.getElementById('slideshow-cards-container');
             const countLabel = document.getElementById('slides-count-label');
@@ -20529,62 +20733,90 @@ tbody.innerHTML = '';
             if (!container) return;
 
             container.innerHTML = slideshowConfig.slides.map((slide, idx) => `
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-3 slide-manage-card" data-index="${idx}">
-                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                        <div class="flex items-center gap-2">
+                <div class="bg-slate-950/80 border border-slate-800 hover:border-slate-700 rounded-xl p-4 space-y-3.5 slide-manage-card transition-colors" data-index="${idx}">
+                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                        <div class="flex items-center gap-2.5">
                             <span class="w-6 h-6 rounded-lg bg-cyan-950 border border-cyan-800 text-cyan-400 text-[11px] font-mono font-bold flex items-center justify-center">
                                 #${idx + 1}
                             </span>
-                            <span class="text-xs font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs">
-                                ${this.escapeHtml(slide.title || 'Slide Foto ' + (idx + 1))}
-                            </span>
+                            <div>
+                                <span class="text-xs font-bold text-slate-100 truncate max-w-[200px] sm:max-w-xs block">
+                                    ${this.escapeHtml(slide.title || 'Slide Foto ' + (idx + 1))}
+                                </span>
+                                <span class="text-[10px] text-slate-400 font-mono">
+                                    ${this.escapeHtml(slide.image_url ? slide.image_url.split('/').pop() : 'Belum ada foto')}
+                                </span>
+                            </div>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button type="button" class="btn-move-slide-up p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" data-index="${idx}" ${idx === 0 ? 'disabled' : ''} title="Geser ke Atas">
-                                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+                            <button type="button" class="btn-move-slide-up p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-colors" data-index="${idx}" ${idx === 0 ? 'disabled' : ''} title="Geser ke Atas">
+                                <i data-lucide="chevron-up" class="w-4 h-4"></i>
                             </button>
-                            <button type="button" class="btn-move-slide-down p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" data-index="${idx}" ${idx === slideshowConfig.slides.length - 1 ? 'disabled' : ''} title="Geser ke Bawah">
-                                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                            <button type="button" class="btn-move-slide-down p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-colors" data-index="${idx}" ${idx === slideshowConfig.slides.length - 1 ? 'disabled' : ''} title="Geser ke Bawah">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
                             </button>
-                            <button type="button" class="btn-delete-slide p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" data-index="${idx}" ${slideshowConfig.slides.length <= 3 ? 'disabled title="Minimal harus ada 3 slide"' : 'title="Hapus Slide"'}>
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <button type="button" class="btn-delete-slide p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-colors" data-index="${idx}" ${slideshowConfig.slides.length <= 3 ? 'disabled title="Minimal harus ada 3 slide"' : 'title="Hapus Slide"'}>
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-                        <!-- THUMBNAIL & UPLOADER (4 COLS) -->
-                        <div class="md:col-span-4 space-y-2">
-                            <div class="relative aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-800 group/thumb">
-                                <img src="${this.escapeHtml(slide.image_url)}" class="w-full h-full object-cover slide-thumb-img" alt="Slide ${idx + 1}" onerror="this.src='/images/yasunaga-factory.jpg'" />
-                                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center p-2">
-                                    <button type="button" class="btn-trigger-slide-upload px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-bold shadow flex items-center gap-1 cursor-pointer" data-index="${idx}">
-                                        <i data-lucide="upload" class="w-3 h-3"></i> Ganti Foto
-                                    </button>
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                        <!-- THUMBNAIL & IMAGE CONTROLS (5 COLS) -->
+                        <div class="md:col-span-5 space-y-2.5">
+                            <!-- Interactive Drop Zone Thumbnail -->
+                            <div class="slide-drop-zone relative aspect-video rounded-xl overflow-hidden bg-slate-900 border-2 border-dashed border-slate-700 hover:border-cyan-500/80 transition-all cursor-pointer group/thumb flex items-center justify-center" data-index="${idx}" title="Klik atau tarik file gambar ke sini untuk mengganti">
+                                <img src="${this.escapeHtml(slide.image_url)}" class="w-full h-full object-cover slide-thumb-img transition-transform duration-300 group-hover/thumb:scale-105" alt="Slide ${idx + 1}" onerror="this.src='/images/yasunaga-factory.jpg'" />
+                                
+                                <div class="absolute inset-0 bg-slate-950/75 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-2 text-center pointer-events-none">
+                                    <i data-lucide="upload-cloud" class="w-6 h-6 text-cyan-400 animate-bounce"></i>
+                                    <span class="text-xs font-bold text-slate-100">Klik / Tarik Foto ke Sini</span>
+                                    <span class="text-[9px] text-slate-400">JPG, PNG, WebP (Maks. 5MB)</span>
+                                </div>
+
+                                <div class="slide-upload-loading hidden absolute inset-0 bg-slate-950/85 flex flex-col items-center justify-center gap-2 z-10" data-index="${idx}">
+                                    <div class="w-7 h-7 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                                    <span class="text-[11px] font-bold text-cyan-300">Mengunggah Foto...</span>
                                 </div>
                             </div>
+
                             <input type="file" class="hidden input-slide-file" data-index="${idx}" accept="image/webp, image/png, image/jpeg, image/jpg" />
-                            <div class="flex items-center gap-1.5">
-                                <input type="text" class="input-slide-url w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-[10px] font-mono text-slate-300 focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.image_url)}" placeholder="/images/slideshow/foto.webp" />
+
+                            <!-- Quick Action Buttons -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" class="btn-trigger-slide-upload w-full px-2.5 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 hover:text-white border border-cyan-500/40 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm" data-index="${idx}">
+                                    <i data-lucide="upload" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                    <span>Unggah File</span>
+                                </button>
+                                <button type="button" class="btn-open-gallery-modal w-full px-2.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/40 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm" data-index="${idx}">
+                                    <i data-lucide="image" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                    <span>Pilih Galeri</span>
+                                </button>
+                            </div>
+
+                            <!-- URL Input Field -->
+                            <div class="relative">
+                                <input type="text" class="input-slide-url w-full bg-slate-900 border border-slate-800 rounded-lg pl-7 pr-2 py-1.5 text-[10px] font-mono text-slate-300 focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.image_url)}" placeholder="Path: /images/slideshow/slide-1.webp" />
+                                <i data-lucide="link" class="w-3 h-3 text-slate-500 absolute left-2.5 top-2 pointer-events-none"></i>
                             </div>
                         </div>
 
-                        <!-- CAPTIONS & TAGS (8 COLS) -->
-                        <div class="md:col-span-8 space-y-2 text-xs">
+                        <!-- CAPTIONS & TAGS (7 COLS) -->
+                        <div class="md:col-span-7 space-y-2.5 text-xs">
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="sm:col-span-1">
                                     <label class="block text-[10px] font-medium text-slate-400 mb-0.5">Tag / Badge</label>
-                                    <input type="text" class="input-slide-tag w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-amber-400 font-mono font-bold focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.tag || '')}" placeholder="PT YASUNAGA INDONESIA" />
+                                    <input type="text" class="input-slide-tag w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-amber-400 font-mono font-bold focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.tag || '')}" placeholder="PT YASUNAGA INDONESIA" />
                                 </div>
                                 <div class="sm:col-span-2">
                                     <label class="block text-[10px] font-medium text-slate-400 mb-0.5">Judul Slide (Heading)</label>
-                                    <input type="text" class="input-slide-title w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.title || '')}" placeholder="Overall Equipment Effectiveness" />
+                                    <input type="text" class="input-slide-title w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-white font-bold focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.title || '')}" placeholder="Overall Equipment Effectiveness" />
                                 </div>
                             </div>
 
                             <div>
                                 <label class="block text-[10px] font-medium text-slate-400 mb-0.5">Sub-judul / Penjelasan Monozukuri</label>
-                                <input type="text" class="input-slide-subtitle w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:border-cyan-500 focus:outline-none" data-index="${idx}" value="${this.escapeHtml(slide.subtitle || '')}" placeholder="Sistem Terintegrasi Monitoring Kinerja Lini Produksi" />
+                                <textarea rows="2" class="input-slide-subtitle w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-slate-300 focus:border-cyan-500 focus:outline-none resize-none leading-relaxed" data-index="${idx}" placeholder="Sistem Terintegrasi Monitoring Kinerja Lini Produksi">${this.escapeHtml(slide.subtitle || '')}</textarea>
                             </div>
                         </div>
                     </div>
@@ -20636,6 +20868,33 @@ tbody.innerHTML = '';
                 });
             });
 
+            // Drop Zone Click & Drag-and-Drop
+            document.querySelectorAll('.slide-drop-zone').forEach(dropZone => {
+                const idx = parseInt(dropZone.getAttribute('data-index'), 10);
+                const fileInput = document.querySelector(`.input-slide-file[data-index="${idx}"]`);
+
+                dropZone.addEventListener('click', () => {
+                    if (fileInput) fileInput.click();
+                });
+
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('border-cyan-400', 'bg-cyan-950/40');
+                });
+
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.classList.remove('border-cyan-400', 'bg-cyan-950/40');
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('border-cyan-400', 'bg-cyan-950/40');
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        handleSlideUpload(idx, e.dataTransfer.files[0]);
+                    }
+                });
+            });
+
             // Upload Button Trigger
             document.querySelectorAll('.btn-trigger-slide-upload').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -20645,27 +20904,21 @@ tbody.innerHTML = '';
                 });
             });
 
-            // File Upload Handler via API
+            // Preset Gallery Modal Trigger
+            document.querySelectorAll('.btn-open-gallery-modal').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.getAttribute('data-index'), 10);
+                    showPresetGalleryModal(idx);
+                });
+            });
+
+            // File Upload Handler via Input Change
             document.querySelectorAll('.input-slide-file').forEach(input => {
                 input.addEventListener('change', async (e) => {
                     const idx = parseInt(input.getAttribute('data-index'), 10);
                     const file = e.target.files && e.target.files[0];
-                    if (!file) return;
-
-                    const formData = new FormData();
-                    formData.append('image', file);
-
-                    try {
-                        this.showNotification('Mengunggah Foto', 'Mengunggah gambar slide...', 'status');
-                        const res = await api.uploadSlideshowImage(formData);
-                        if (res.data?.data?.url) {
-                            slideshowConfig.slides[idx].image_url = res.data.data.url;
-                            renderSlideCards();
-                            this.showNotification('Foto Berhasil Diunggah', 'Gambar slide login berhasil diperbarui.', 'success');
-                        }
-                    } catch (err) {
-                        console.error('Error uploading slide image:', err);
-                        this.showNotification('Gagal Unggah', err.response?.data?.message || 'Gagal mengunggah foto slide.', 'delete');
+                    if (file) {
+                        handleSlideUpload(idx, file);
                     }
                 });
             });
