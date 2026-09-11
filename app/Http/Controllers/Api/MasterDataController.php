@@ -1166,7 +1166,12 @@ class MasterDataController extends Controller
 
         if ($raw) {
             $parsed = is_array($raw) ? $raw : json_decode($raw, true);
-            $slideshow = array_merge($defaultSlideshow, is_array($parsed) ? $parsed : []);
+            if (is_array($parsed) && !empty($parsed['slides']) && is_array($parsed['slides'])) {
+                $slideshow = array_merge($defaultSlideshow, $parsed);
+                $slideshow['slides'] = $parsed['slides'];
+            } else {
+                $slideshow = $defaultSlideshow;
+            }
         } else {
             $slideshow = $defaultSlideshow;
         }
@@ -1207,24 +1212,31 @@ class MasterDataController extends Controller
 
         $validated = $request->validate([
             'enabled' => 'nullable|boolean',
-            'interval' => 'required|integer|min:2000|max:30000',
+            'interval' => 'nullable|integer|min:1000|max:60000',
             'transition_speed' => 'nullable|integer|min:500|max:5000',
-            'effect' => 'required|string|in:ken-burns,zoom-in-out,smooth-fade,pan-zoom,zoom-in,zoom-out,fade-scale',
+            'effect' => 'nullable|string',
             'overlay_style' => 'nullable|string',
             'show_indicators' => 'nullable|boolean',
             'show_captions' => 'nullable|boolean',
             'show_caption' => 'nullable|boolean',
             'show_badges' => 'nullable|boolean',
             'auto_play' => 'nullable|boolean',
-            'slides' => 'required|array|min:3|max:5',
+            'slides' => 'required|array|min:1|max:10',
             'slides.*.id' => 'nullable|string',
             'slides.*.image' => 'nullable|string',
             'slides.*.image_url' => 'nullable|string',
             'slides.*.title' => 'nullable|string|max:255',
-            'slides.*.subtitle' => 'nullable|string|max:255',
+            'slides.*.subtitle' => 'nullable|string|max:500',
             'slides.*.tag' => 'nullable|string|max:100',
             'slides.*.active' => 'nullable|boolean',
         ]);
+
+        if (empty($validated['interval'])) {
+            $validated['interval'] = 5000;
+        }
+        if (empty($validated['effect'])) {
+            $validated['effect'] = 'ken-burns';
+        }
 
         // Normalize slide images
         foreach ($validated['slides'] as &$slide) {

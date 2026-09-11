@@ -36,13 +36,6 @@ class Product extends Model
         return $this->belongsTo(ProductCategory::class);
     }
 
-    public function machines(): BelongsToMany
-    {
-        return $this->belongsToMany(Machine::class, 'machine_products')
-            ->withPivot('process_id', 'specific_ideal_cycle_time')
-            ->withTimestamps();
-    }
-
     public function productionRecords(): HasMany
     {
         return $this->hasMany(ProductionRecord::class);

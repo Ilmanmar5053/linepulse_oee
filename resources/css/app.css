@@ -972,54 +972,54 @@ html.light #notification-dropdown {
    ========================================================================== */
 @keyframes ken-burns-zoom-in {
     0% {
-        transform: scale(1.0) translate(0, 0);
+        transform: scale(1.0) translate(0%, 0%);
     }
     100% {
-        transform: scale(1.15) translate(-1.5%, -1%);
+        transform: scale(1.22) translate(-2.5%, -1.5%);
     }
 }
 
 @keyframes ken-burns-zoom-out {
     0% {
-        transform: scale(1.15) translate(-1.5%, -1%);
+        transform: scale(1.25) translate(-2.5%, -1.5%);
     }
     100% {
-        transform: scale(1.0) translate(0, 0);
+        transform: scale(1.0) translate(0%, 0%);
     }
 }
 
 @keyframes ken-burns-pan-left {
     0% {
-        transform: scale(1.08) translate(2%, 0);
+        transform: scale(1.12) translate(3%, 0%);
     }
     100% {
-        transform: scale(1.14) translate(-2%, -1%);
+        transform: scale(1.22) translate(-3%, -2%);
     }
 }
 
 @keyframes ken-burns-pan-right {
     0% {
-        transform: scale(1.14) translate(-2%, 0);
+        transform: scale(1.22) translate(-3%, -2%);
     }
     100% {
-        transform: scale(1.08) translate(2%, -1%);
+        transform: scale(1.12) translate(3%, 0%);
     }
 }
 
 .animate-kb-zoom-in {
-    animation: ken-burns-zoom-in 10s ease-out forwards;
+    animation: ken-burns-zoom-in 8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
 .animate-kb-zoom-out {
-    animation: ken-burns-zoom-out 10s ease-out forwards;
+    animation: ken-burns-zoom-out 8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
 .animate-kb-pan-left {
-    animation: ken-burns-pan-left 10s ease-out forwards;
+    animation: ken-burns-pan-left 8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
 .animate-kb-pan-right {
-    animation: ken-burns-pan-right 10s ease-out forwards;
+    animation: ken-burns-pan-right 8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
 .animate-kb-smooth-fade {
@@ -1040,6 +1040,37 @@ html.light #notification-dropdown {
     opacity: 1;
     visibility: visible;
     z-index: 1;
+}
+
+.login-slide-item .slide-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transform: scale(1.0);
+    will-change: transform;
+}
+
+/* Dynamic Ken Burns Movements Triggered Per Active Slide */
+.login-slide-item.active .slide-bg.anim-zoom-in,
+.login-slide-item.active .slide-bg.animate-kb-zoom-in {
+    animation: ken-burns-zoom-in 8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.login-slide-item.active .slide-bg.anim-zoom-out,
+.login-slide-item.active .slide-bg.animate-kb-zoom-out {
+    animation: ken-burns-zoom-out 8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.login-slide-item.active .slide-bg.anim-pan-left,
+.login-slide-item.active .slide-bg.animate-kb-pan-left {
+    animation: ken-burns-pan-left 8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.login-slide-item.active .slide-bg.anim-pan-right,
+.login-slide-item.active .slide-bg.animate-kb-pan-right {
+    animation: ken-burns-pan-right 8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
 /* Indicators */

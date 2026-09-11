@@ -15,31 +15,139 @@ class DowntimeController extends Controller
     {
         $query = Downtime::with([
             'machine',
-            'productionLine',
+            'productionLine.plant',
             'shift',
             'product',
             'downtimeCategory',
             'downtimeReason',
             'creator',
+            'productionRecord',
         ])->orderBy('start_time', 'desc');
 
-        if ($request->filled('line_id')) {
-            $query->where('production_line_id', $request->line_id);
+        if ($request->filled('plant_id')) {
+            $query->whereHas('productionLine.area', function ($q) use ($request) {
+                $q->where('plant_id', $request->plant_id);
+            });
         }
+
+        $lineId = $request->input('line_id') ?: $request->input('production_line_id');
+        if ($lineId) {
+            $query->where('production_line_id', $lineId);
+        }
+
         if ($request->filled('machine_id')) {
-            $query->where('machine_id', $request->machine_id);
+            if ($request->machine_id === 'all_measuring') {
+                $query->whereHas('machine', function ($q) {
+                    $q->where('code', 'LIKE', '%MEASURING%')
+                      ->orWhere('name', 'LIKE', '%Measuring%');
+                });
+            } else {
+                $query->where('machine_id', $request->machine_id);
+            }
         }
-        if ($request->filled('date')) {
-            $query->whereDate('start_time', $request->date);
-        }
+
         if ($request->filled('shift_id')) {
             $query->where('shift_id', $request->shift_id);
         }
+
+        if ($request->filled('team')) {
+            $query->where('team', $request->team);
+        }
+
+        if ($request->filled('problem_type') && $request->problem_type !== 'all') {
+            $query->where('problem_type', $request->problem_type);
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $statusVal = strtoupper($request->status);
+            if ($statusVal === 'OPEN') {
+                $query->where(function ($q) {
+                    $q->where('status', 'OPEN')
+                      ->orWhereNull('end_time');
+                });
+            } else {
+                $query->where('status', $statusVal);
+            }
+        }
+
         if ($request->filled('is_planned')) {
             $query->where('is_planned', filter_var($request->is_planned, FILTER_VALIDATE_BOOLEAN));
         }
 
-        $downtimes = $query->paginate($request->get('per_page', 15));
+        if ($request->filled('search')) {
+            $search = '%' . trim($request->search) . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'LIKE', $search)
+                  ->orWhere('cause', 'LIKE', $search)
+                  ->orWhere('action_taken', 'LIKE', $search)
+                  ->orWhere('pic', 'LIKE', $search)
+                  ->orWhere('problem_type', 'LIKE', $search)
+                  ->orWhereHas('product', function ($pq) use ($search) {
+                      $pq->where('name', 'LIKE', $search)->orWhere('sku', 'LIKE', $search);
+                  })
+                  ->orWhereHas('machine', function ($mq) use ($search) {
+                      $mq->where('name', 'LIKE', $search)->orWhere('code', 'LIKE', $search);
+                  })
+                  ->orWhereHas('productionLine', function ($lq) use ($search) {
+                      $lq->where('name', 'LIKE', $search)->orWhere('code', 'LIKE', $search);
+                  });
+            });
+        }
+
+        // Date & Period Filter
+        $startDate = $request->input('start_date') ?: $request->input('date_from');
+        $endDate = $request->input('end_date') ?: $request->input('date_to');
+        $singleDate = $request->input('date');
+
+        if ($singleDate) {
+            $query->whereDate('start_time', $singleDate);
+        } elseif ($startDate && $endDate) {
+            $query->whereBetween('start_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        } elseif ($startDate) {
+            $query->whereDate('start_time', $startDate);
+        } elseif ($request->filled('period')) {
+            $today = Carbon::now()->toDateString();
+            match ($request->period) {
+                'today', 'day', '1d' => $query->whereDate('start_time', $today),
+                'yesterday' => $query->whereDate('start_time', Carbon::yesterday()->toDateString()),
+                '7days', '7d', 'week', 'this_week' => $query->whereBetween('start_time', [Carbon::now()->subDays(7)->startOfDay(), Carbon::now()->endOfDay()]),
+                '30days', '30d', 'month', 'this_month' => $query->whereBetween('start_time', [Carbon::now()->subDays(30)->startOfDay(), Carbon::now()->endOfDay()]),
+                'last_month' => $query->whereBetween('start_time', [Carbon::now()->subMonth()->startOfMonth()->startOfDay(), Carbon::now()->subMonth()->endOfMonth()->endOfDay()]),
+                'all' => null,
+                default => null,
+            };
+        } else {
+            // Default 30 days
+            $query->whereBetween('start_time', [
+                Carbon::now()->subDays(30)->startOfDay(),
+                Carbon::now()->endOfDay()
+            ]);
+        }
+
+        $perPage = $request->get('per_page', 100);
+        $isAll = $request->boolean('all') || $perPage === 'all' || $perPage === '-1';
+
+        if ($isAll) {
+            $items = $query->get();
+            $formatted = $items->map(function ($dt) {
+                $item = $dt->toArray();
+                $item['calculated_duration_minutes'] = $dt->calculated_duration_minutes;
+                $item['is_ongoing'] = is_null($dt->end_time);
+                return $item;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formatted,
+                'meta' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'total' => $items->count(),
+                ],
+            ]);
+        }
+
+        $downtimes = $query->paginate((int) $perPage);
 
         // Format dynamic calculated duration for ongoing downtimes
         $formatted = collect($downtimes->items())->map(function ($dt) {

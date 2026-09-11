@@ -122,12 +122,12 @@ class DashboardController extends Controller
         } elseif ($request->filled('period')) {
             $today = Carbon::now()->toDateString();
             match ($request->period) {
-                'today' => $query->whereDate($dateColumn, $today),
+                'today', 'day', '1d' => $query->whereDate($dateColumn, $today),
                 'yesterday' => $query->whereDate($dateColumn, Carbon::yesterday()->toDateString()),
-                '7days' => $query->whereBetween($dateColumn, [Carbon::now()->subDays(7)->startOfDay(), Carbon::now()->endOfDay()]),
-                '30days' => $query->whereBetween($dateColumn, [Carbon::now()->subDays(30)->startOfDay(), Carbon::now()->endOfDay()]),
-                'this_month' => $query->whereBetween($dateColumn, [Carbon::now()->startOfMonth()->startOfDay(), Carbon::now()->endOfMonth()->endOfDay()]),
+                '7days', '7d', 'week', 'this_week' => $query->whereBetween($dateColumn, [Carbon::now()->subDays(7)->startOfDay(), Carbon::now()->endOfDay()]),
+                '30days', '30d', 'month', 'this_month' => $query->whereBetween($dateColumn, [Carbon::now()->subDays(30)->startOfDay(), Carbon::now()->endOfDay()]),
                 'last_month' => $query->whereBetween($dateColumn, [Carbon::now()->subMonth()->startOfMonth()->startOfDay(), Carbon::now()->subMonth()->endOfMonth()->endOfDay()]),
+                'all' => null,
                 default => null,
             };
         } else {

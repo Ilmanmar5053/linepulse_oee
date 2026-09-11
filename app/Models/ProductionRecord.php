@@ -14,7 +14,6 @@ class ProductionRecord extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'production_order_id',
         'production_line_id',
         'machine_id',
         'product_id',
@@ -44,11 +43,6 @@ class ProductionRecord extends Model
         'actual_cycle_time' => 'float',
         'production_rate' => 'float',
     ];
-
-    public function productionOrder(): BelongsTo
-    {
-        return $this->belongsTo(ProductionOrder::class);
-    }
 
     public function productionLine(): BelongsTo
     {

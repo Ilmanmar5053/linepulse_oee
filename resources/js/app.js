@@ -434,7 +434,7 @@ class OeeApp {
                         <!-- SLIDES CONTAINER (DYNAMIC IMAGES WITH SMOOTH CROSSFADE & KEN BURNS ZOOM) -->
                         <div id="login-slides-container" class="absolute inset-0 overflow-hidden pointer-events-none">
                             <div class="login-slide-item active">
-                                <div class="absolute inset-0 bg-cover bg-center bg-no-repeat animate-kb-zoom-in" style="background-image: url('/images/slideshow/slide-1-plant.webp');"></div>
+                                <div class="slide-bg anim-zoom-in" style="background-image: url('/images/slideshow/slide-1-plant.webp');"></div>
                             </div>
                         </div>
                         
@@ -607,13 +607,14 @@ class OeeApp {
         if (slides.length < 3) return;
 
         this.activeSlideIndex = 0;
+        const motionList = ['anim-zoom-in', 'anim-zoom-out', 'anim-pan-left', 'anim-pan-right'];
 
         // Render slide items
         container.innerHTML = slides.map((slide, idx) => {
-            const motionClass = (idx % 2 === 0) ? 'animate-kb-zoom-in' : 'animate-kb-zoom-out';
+            const motionClass = motionList[idx % motionList.length];
             return `
                 <div class="login-slide-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
-                    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat ${motionClass}" style="background-image: url('${this.escapeHtml(slide.image_url)}');"></div>
+                    <div class="slide-bg ${motionClass}" style="background-image: url('${this.escapeHtml(slide.image_url)}');"></div>
                 </div>
             `;
         }).join('');
@@ -675,14 +676,15 @@ class OeeApp {
             
             const slideElements = container.querySelectorAll('.login-slide-item');
             slideElements.forEach((el, i) => {
+                const bgEl = el.querySelector('.slide-bg');
                 if (i === this.activeSlideIndex) {
-                    el.classList.add('active');
-                    // Dynamic alternating Ken Burns effect
-                    const bgEl = el.querySelector('div');
                     if (bgEl) {
-                        const animClass = (this.activeSlideIndex % 2 === 0) ? 'animate-kb-zoom-in' : 'animate-kb-zoom-out';
-                        bgEl.className = `absolute inset-0 bg-cover bg-center bg-no-repeat ${animClass}`;
+                        const currentMotion = motionList[i % motionList.length];
+                        bgEl.className = 'slide-bg';
+                        void bgEl.offsetWidth; // Force reflow to restart Ken Burns animation cleanly
+                        bgEl.className = `slide-bg ${currentMotion}`;
                     }
+                    el.classList.add('active');
                 } else {
                     el.classList.remove('active');
                 }
@@ -1062,13 +1064,17 @@ class OeeApp {
 
     populateFilterDropdowns() {
         const lineSelect = document.getElementById('filter-line');
-        if (lineSelect && this.masterData.lines.length > 0) {
-            lineSelect.innerHTML = '<option value="" class="bg-slate-900 text-slate-100">All Production Lines</option>' +
+        const mobileLineSelect = document.getElementById('mobile-filter-line');
+        if (this.masterData.lines && this.masterData.lines.length > 0) {
+            const linesHtml = '<option value="" class="bg-slate-900 text-slate-100">All Production Lines</option>' +
                 this.masterData.lines.map(l => `<option value="${l.id}" class="bg-slate-900 text-slate-100" ${this.filters.line_id == l.id ? 'selected' : ''}>${l.code} - ${l.name}</option>`).join('');
+            if (lineSelect) lineSelect.innerHTML = linesHtml;
+            if (mobileLineSelect) mobileLineSelect.innerHTML = linesHtml;
         }
 
         const machineSelect = document.getElementById('filter-machine');
-        if (machineSelect && this.masterData.machines.length > 0) {
+        const mobileMachineSelect = document.getElementById('mobile-filter-machine');
+        if (this.masterData.machines && this.masterData.machines.length > 0) {
             const measuringMachines = this.masterData.machines.filter(m => (m.code || '').includes('MEASURING') || (m.name || '').includes('Measuring'));
             const otherMachines = this.masterData.machines.filter(m => !(m.code || '').includes('MEASURING') && !(m.name || '').includes('Measuring'));
 
@@ -1094,13 +1100,17 @@ class OeeApp {
                 optionsHtml += `</optgroup>`;
             }
 
-            machineSelect.innerHTML = optionsHtml;
+            if (machineSelect) machineSelect.innerHTML = optionsHtml;
+            if (mobileMachineSelect) mobileMachineSelect.innerHTML = optionsHtml;
         }
 
         const shiftSelect = document.getElementById('filter-shift');
-        if (shiftSelect && this.masterData.shifts.length > 0) {
-            shiftSelect.innerHTML = '<option value="" class="bg-slate-900 text-slate-100">All Shifts</option>' +
+        const mobileShiftSelect = document.getElementById('mobile-filter-shift');
+        if (this.masterData.shifts && this.masterData.shifts.length > 0) {
+            const shiftsHtml = '<option value="" class="bg-slate-900 text-slate-100">All Shifts</option>' +
                 this.masterData.shifts.map(s => `<option value="${s.id}" class="bg-slate-900 text-slate-100" ${this.filters.shift_id == s.id ? 'selected' : ''}>${s.name} (${s.start_time.slice(0,5)} - ${s.end_time.slice(0,5)})</option>`).join('');
+            if (shiftSelect) shiftSelect.innerHTML = shiftsHtml;
+            if (mobileShiftSelect) mobileShiftSelect.innerHTML = shiftsHtml;
         }
     }
 
@@ -1135,12 +1145,16 @@ class OeeApp {
         }, 1000);
 
         this.autoRefreshTimer = setInterval(() => {
-            // Jangan pernah auto-refresh pada halaman settings, database, input laporan harian, input laporan NG, saat modal terbuka, atau saat user sedang aktif mengetik
+            // Cek apakah user sedang aktif mengetik di input/textarea atau sedang ada modal popup terbuka
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
-            const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
-            const modalOpen = document.querySelector('.modal-active, #modal-container > div:not(.hidden)');
+            const isTyping = (activeTag === 'INPUT' || activeTag === 'TEXTAREA') && document.activeElement.type !== 'button' && document.activeElement.type !== 'submit';
+            
+            const modalContainer = document.getElementById('modal-container');
+            const isModalOpen = (modalContainer && modalContainer.children.length > 0 && Array.from(modalContainer.children).some(c => !c.classList.contains('hidden') && c.offsetHeight > 0)) ||
+                                document.querySelector('.modal-active, #modal-create-daily-prod, #modal-create-standalone-trouble') !== null;
 
-            if (this.currentTab === 'settings' || this.currentTab === 'database' || this.currentTab === 'daily-report' || this.currentTab === 'ng-report' || isTyping || modalOpen) {
+            // Jangan refresh hanya pada halaman konfigurasi statis (settings, database), atau saat user sedang aktif mengetik / membuka modal
+            if (this.currentTab === 'settings' || this.currentTab === 'database' || isTyping || isModalOpen) {
                 secondsRemaining = Math.floor(interval / 1000);
                 return;
             }
@@ -1150,7 +1164,8 @@ class OeeApp {
             const iconEl = document.getElementById('telemetry-refresh-icon');
             if (iconEl) iconEl.classList.add('animate-spin');
 
-            this.loadCurrentTab(false).finally(() => {
+            this.clearDashboardCache();
+            this.loadCurrentTab(false, true).finally(() => {
                 setTimeout(() => {
                     if (iconEl) iconEl.classList.remove('animate-spin');
                 }, 600);
@@ -1182,6 +1197,10 @@ class OeeApp {
                 dot.innerHTML = `<span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>`;
             }
         }
+    }
+
+    hasActiveFilters() {
+        return !!(this.filters.line_id || (this.filters.machine_id && this.filters.machine_id !== 'all_measuring') || this.filters.shift_id || (this.filters.period && this.filters.period !== '30days' && this.filters.period !== 'all'));
     }
 
     renderFilterBar() {
@@ -1224,32 +1243,33 @@ class OeeApp {
         const isCustom = this.filters.period === 'custom';
 
         return `
-            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 min-w-0">
-                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1 text-slate-300 max-w-[130px] sm:max-w-[160px] md:max-w-none">
+            <div class="hidden lg:flex items-center gap-1.5 xl:gap-2 flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300 max-w-[145px] xl:max-w-[175px]">
                     <i data-lucide="git-fork" class="w-3.5 h-3.5 text-cyan-400 flex-shrink-0"></i>
                     <select id="filter-line" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans w-full truncate">
                         ${linesOptions}
                     </select>
                 </div>
 
-                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1 text-slate-300 max-w-[140px] sm:max-w-[180px] md:max-w-none">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300 max-w-[155px] xl:max-w-[195px]">
                     <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0"></i>
                     <select id="filter-machine" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans w-full truncate">
                         ${machinesOptions}
                     </select>
                 </div>
 
-                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1 text-slate-300 max-w-[120px] sm:max-w-[150px] md:max-w-none">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300 max-w-[130px] xl:max-w-[160px]">
                     <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400 flex-shrink-0"></i>
                     <select id="filter-shift" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer font-sans w-full truncate">
                         ${shiftsOptions}
                     </select>
                 </div>
 
-                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2 sm:px-2.5 py-1 text-slate-300 max-w-[130px] sm:max-w-[160px] md:max-w-none">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-300 max-w-[140px] xl:max-w-[170px]">
                     <i data-lucide="calendar" class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0"></i>
                     <select id="filter-period" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans w-full truncate">
-                        <option value="30days" class="bg-slate-900 text-slate-100" ${this.filters.period === '30days' ? 'selected' : ''}>${this.t('header.last_30_days', 'Last 30 Days')}</option>
+                        <option value="all" class="bg-slate-900 text-slate-100" ${this.filters.period === 'all' ? 'selected' : ''}>${this.currentLang === 'ja' ? 'すべての期間 (All)' : 'Semua Periode'}</option>
+                        <option value="30days" class="bg-slate-900 text-slate-100" ${(!this.filters.period || this.filters.period === '30days') ? 'selected' : ''}>${this.t('header.last_30_days', 'Last 30 Days')}</option>
                         <option value="7days" class="bg-slate-900 text-slate-100" ${this.filters.period === '7days' ? 'selected' : ''}>${this.t('header.last_7_days', 'Last 7 Days')}</option>
                         <option value="today" class="bg-slate-900 text-slate-100" ${this.filters.period === 'today' ? 'selected' : ''}>${this.t('header.today', 'Today')}</option>
                         <option value="yesterday" class="bg-slate-900 text-slate-100" ${this.filters.period === 'yesterday' ? 'selected' : ''}>${this.t('header.yesterday', 'Yesterday')}</option>
@@ -1259,7 +1279,7 @@ class OeeApp {
                     </select>
                 </div>
 
-                <div id="custom-date-container" class="${isCustom ? 'flex' : 'hidden'} items-center gap-1.5 flex-wrap sm:flex-nowrap">
+                <div id="custom-date-container" class="${isCustom ? 'flex' : 'hidden'} items-center gap-1.5 flex-nowrap">
                     <input type="date" id="filter-start-date" value="${this.filters.start_date || ''}" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans" />
                     <span class="text-xs text-slate-500">${this.currentLang === 'ja' ? '〜' : 's/d'}</span>
                     <input type="date" id="filter-end-date" value="${this.filters.end_date || ''}" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-cyan-500 font-sans" />
@@ -1267,8 +1287,158 @@ class OeeApp {
 
                 <button id="btn-apply-filters" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-cyan-600/20 flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <i data-lucide="filter" class="w-3.5 h-3.5"></i>
-                    <span class="hidden sm:inline">${this.t('header.apply_filter', 'Apply')}</span>
+                    <span>${this.t('header.apply_filter', 'Apply')}</span>
                 </button>
+            </div>
+        `;
+    }
+
+    renderMobileFilterDrawer() {
+        const linesOptions = [
+            `<option value="" ${!this.filters.line_id ? 'selected' : ''} class="bg-slate-900 text-slate-100">${this.t('header.all_lines', 'All Production Lines')}</option>`,
+            ...this.masterData.lines.map(l => `<option value="${l.id}" class="bg-slate-900 text-slate-100" ${this.filters.line_id == l.id ? 'selected' : ''}>${l.code} - ${l.name}</option>`)
+        ].join('');
+
+        const measuringMachines = (this.masterData.machines || []).filter(m => (m.code || '').includes('MEASURING') || (m.name || '').includes('Measuring'));
+        const otherMachines = (this.masterData.machines || []).filter(m => !(m.code || '').includes('MEASURING') && !(m.name || '').includes('Measuring'));
+
+        const optMeasuringLabel = this.currentLang === 'ja' ? '⭐ 全測定器 (全ライン)' : '⭐ All Measuring Machines (Semua Line)';
+        const optAllMachinesLabel = this.t('header.all_machines', 'All Machines (Semua Mesin)');
+        const groupMeasuringLabel = this.currentLang === 'ja' ? '── ライン別 測定器 ──' : '── Mesin Measuring per Line ──';
+        const groupOperationalLabel = this.currentLang === 'ja' ? '── 製造設備 (OP) ──' : '── Mesin Operasional (OP) ──';
+
+        const machinesOptions = `
+            <option value="all_measuring" ${this.filters.machine_id === 'all_measuring' ? 'selected' : ''} class="bg-slate-900 text-cyan-300 font-bold">${optMeasuringLabel}</option>
+            <option value="" ${!this.filters.machine_id ? 'selected' : ''} class="bg-slate-900 text-slate-100">${optAllMachinesLabel}</option>
+            ${measuringMachines.length > 0 ? `
+                <optgroup label="${groupMeasuringLabel}" class="bg-slate-950 text-cyan-400 font-bold">
+                    ${measuringMachines.map(m => {
+                        const lineName = m.work_center?.production_line?.name || m.work_center?.production_line?.code || '';
+                        return `<option value="${m.id}" class="bg-slate-900 text-slate-100" ${this.filters.machine_id == m.id ? 'selected' : ''}>Measuring - ${lineName ? `${lineName} ` : ''}(${m.code})</option>`;
+                    }).join('')}
+                </optgroup>
+            ` : ''}
+            ${otherMachines.length > 0 ? `
+                <optgroup label="${groupOperationalLabel}" class="bg-slate-950 text-slate-400">
+                    ${otherMachines.map(m => `<option value="${m.id}" class="bg-slate-900 text-slate-100" ${this.filters.machine_id == m.id ? 'selected' : ''}>${m.name} (${m.code})</option>`).join('')}
+                </optgroup>
+            ` : ''}
+        `;
+
+        const shiftsOptions = [
+            `<option value="" ${!this.filters.shift_id ? 'selected' : ''} class="bg-slate-900 text-slate-100">${this.t('header.all_shifts', 'All Shifts')}</option>`,
+            ...this.masterData.shifts.map(s => `<option value="${s.id}" class="bg-slate-900 text-slate-100" ${this.filters.shift_id == s.id ? 'selected' : ''}>${s.name} (${s.start_time.slice(0,5)} - ${s.end_time.slice(0,5)})</option>`)
+        ].join('');
+
+        const isCustom = this.filters.period === 'custom';
+
+        return `
+            <div id="mobile-filter-drawer" class="hidden lg:hidden w-full bg-[#091124] border-b border-[#152347] px-3.5 sm:px-5 py-3 shadow-2xl transition-all select-none">
+                <div class="flex items-center justify-between pb-2 border-b border-[#152347] mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center">
+                            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-cyan-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-100">${this.currentLang === 'ja' ? 'ダッシュボード フィルター' : 'Filter Dashboard & Telemetri'}</h4>
+                            <p class="text-[10px] text-slate-400">${this.currentLang === 'ja' ? 'ライン、設備、シフト、期間で絞り込み' : 'Filter data menurut line, mesin, shift, atau rentang waktu'}</p>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-close-mobile-filter-drawer" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition-colors cursor-pointer">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+                    <!-- 1. Line Filter -->
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="git-fork" class="w-3.5 h-3.5 text-cyan-400"></i>
+                            <span>${this.currentLang === 'ja' ? '生産ライン (Line)' : 'Line Produksi'}</span>
+                        </label>
+                        <div class="bg-slate-950 border border-slate-800 focus-within:border-cyan-500 rounded-xl px-2.5 py-1.5 flex items-center">
+                            <select id="mobile-filter-line" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer w-full font-sans">
+                                ${linesOptions}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 2. Machine Filter -->
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span>${this.currentLang === 'ja' ? '設備・機械 (Machine)' : 'Mesin / Equipment'}</span>
+                        </label>
+                        <div class="bg-slate-950 border border-slate-800 focus-within:border-cyan-500 rounded-xl px-2.5 py-1.5 flex items-center">
+                            <select id="mobile-filter-machine" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer w-full font-sans">
+                                ${machinesOptions}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 3. Shift Filter -->
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+                            <span>${this.currentLang === 'ja' ? '勤務シフト (Shift)' : 'Shift Kerja'}</span>
+                        </label>
+                        <div class="bg-slate-950 border border-slate-800 focus-within:border-cyan-500 rounded-xl px-2.5 py-1.5 flex items-center">
+                            <select id="mobile-filter-shift" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer w-full font-sans">
+                                ${shiftsOptions}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 4. Period Filter -->
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span>${this.currentLang === 'ja' ? '期間 (Period)' : 'Periode Waktu'}</span>
+                        </label>
+                        <div class="bg-slate-950 border border-slate-800 focus-within:border-cyan-500 rounded-xl px-2.5 py-1.5 flex items-center">
+                            <select id="mobile-filter-period" class="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer w-full font-sans">
+                                <option value="all" class="bg-slate-900 text-slate-100" ${this.filters.period === 'all' ? 'selected' : ''}>${this.currentLang === 'ja' ? 'すべての期間 (All)' : 'Semua Periode'}</option>
+                                <option value="30days" class="bg-slate-900 text-slate-100" ${(!this.filters.period || this.filters.period === '30days') ? 'selected' : ''}>${this.t('header.last_30_days', '30 Hari Terakhir')}</option>
+                                <option value="7days" class="bg-slate-900 text-slate-100" ${this.filters.period === '7days' ? 'selected' : ''}>${this.t('header.last_7_days', '7 Hari Terakhir')}</option>
+                                <option value="today" class="bg-slate-900 text-slate-100" ${this.filters.period === 'today' ? 'selected' : ''}>${this.t('header.today', 'Hari Ini')}</option>
+                                <option value="yesterday" class="bg-slate-900 text-slate-100" ${this.filters.period === 'yesterday' ? 'selected' : ''}>${this.t('header.yesterday', 'Kemarin')}</option>
+                                <option value="this_month" class="bg-slate-900 text-slate-100" ${this.filters.period === 'this_month' ? 'selected' : ''}>${this.t('header.this_month', 'Bulan Ini')}</option>
+                                <option value="last_month" class="bg-slate-900 text-slate-100" ${this.filters.period === 'last_month' ? 'selected' : ''}>${this.currentLang === 'ja' ? '先月' : 'Bulan Lalu'}</option>
+                                <option value="custom" class="bg-slate-900 text-slate-100" ${this.filters.period === 'custom' ? 'selected' : ''}>${this.currentLang === 'ja' ? '期間指定 (Custom)...' : 'Pilih Tanggal Kustom...'}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Date Container (Mobile) -->
+                <div id="mobile-custom-date-container" class="${isCustom ? 'block' : 'hidden'} mb-3 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <label class="text-[11px] font-semibold text-cyan-400 flex items-center gap-1 mb-2">
+                        <i data-lucide="calendar-range" class="w-3.5 h-3.5"></i>
+                        <span>${this.currentLang === 'ja' ? '期間指定 (開始・終了日)' : 'Rentang Tanggal Kustom'}</span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-[10px] text-slate-400 mb-1 block">${this.currentLang === 'ja' ? '開始日' : 'Dari Tanggal'}</span>
+                            <input type="date" id="mobile-filter-start-date" value="${this.filters.start_date || ''}" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-500 w-full font-sans" />
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 mb-1 block">${this.currentLang === 'ja' ? '終了日' : 'Sampai Tanggal'}</span>
+                            <input type="date" id="mobile-filter-end-date" value="${this.filters.end_date || ''}" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-500 w-full font-sans" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-between gap-2 pt-2 border-t border-[#152347]">
+                    <button type="button" id="btn-mobile-reset-filters" class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-rose-300 hover:bg-rose-950/40 border border-slate-800 transition-all flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>${this.currentLang === 'ja' ? 'リセット' : 'Reset'}</span>
+                    </button>
+                    <button type="button" id="btn-mobile-apply-filters" class="flex-1 bg-cyan-600 hover:bg-cyan-500 active:scale-[0.98] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-cyan-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>${this.t('header.apply_filter', 'Terapkan Filter')}</span>
+                    </button>
+                </div>
             </div>
         `;
     }
@@ -1393,19 +1563,27 @@ class OeeApp {
                 <!-- MAIN CONTENT AREA (NAVY BG) -->
                 <div class="flex-1 flex flex-col min-w-0 bg-[#070D1E] overflow-hidden">
                     <!-- TOPBAR -->
-                    <header class="min-h-14 h-auto border-b border-[#152347] bg-[#091124]/90 backdrop-blur-md px-3 sm:px-5 py-2 flex flex-wrap lg:flex-nowrap items-center justify-between gap-2.5 z-10 flex-shrink-0">
-                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <header class="min-h-14 h-auto border-b border-[#152347] bg-[#091124]/90 backdrop-blur-md px-2.5 sm:px-5 py-2 flex flex-nowrap items-center justify-between gap-1.5 sm:gap-2.5 z-10 flex-shrink-0">
+                        <div class="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                             <!-- MOBILE HAMBURGER MENU BUTTON (TABLETS & SMARTPHONES) -->
-                            <button type="button" id="btn-mobile-sidebar-toggle" class="lg:hidden p-2 rounded-xl text-slate-300 hover:text-cyan-400 hover:bg-slate-800/80 border border-slate-700/60 transition-colors cursor-pointer flex-shrink-0 flex items-center justify-center" title="Menu Navigasi">
+                            <button type="button" id="btn-mobile-sidebar-toggle" class="lg:hidden p-1.5 sm:p-2 rounded-xl text-slate-300 hover:text-cyan-400 hover:bg-slate-800/80 border border-slate-700/60 transition-colors cursor-pointer flex-shrink-0 flex items-center justify-center" title="Menu Navigasi">
                                 <i data-lucide="menu" class="w-4 h-4 text-cyan-400"></i>
                             </button>
 
-                            <!-- FILTER BAR -->
+                            <!-- MOBILE FILTER ACCORDION TOGGLE BUTTON (< lg) -->
+                            <button type="button" id="btn-mobile-filter-toggle" class="lg:hidden flex items-center gap-1.5 bg-[#0E1A38] hover:bg-[#16254C] active:scale-95 border border-[#1B2C56] text-slate-200 hover:text-cyan-300 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex-shrink-0 shadow-sm" title="Buka / Tutup Filter Dashboard">
+                                <i data-lucide="filter" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                <span class="hidden xs:inline text-[11px]">Filter</span>
+                                <span id="mobile-filter-active-dot" class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee] ${this.hasActiveFilters() ? 'inline-block' : 'hidden'}"></span>
+                                <i data-lucide="chevron-down" id="mobile-filter-chevron" class="w-3 h-3 text-slate-400 transition-transform duration-200"></i>
+                            </button>
+
+                            <!-- DESKTOP FILTER BAR (>= lg) -->
                             ${this.renderFilterBar()}
                         </div>
 
                         <!-- ACTIONS & SYSTEM CLOCK -->
-                        <div class="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 flex-wrap sm:flex-nowrap ml-auto">
+                        <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
                             <!-- REALTIME NOTIFICATION BELL -->
                             <div class="relative cursor-pointer p-1 text-slate-400 hover:text-cyan-400 transition-colors" id="btn-notification-bell" title="${this.t('header.notifications', 'Real-time System Notifications')}">
                                 <i data-lucide="bell" class="w-4 h-4"></i>
@@ -1437,7 +1615,7 @@ class OeeApp {
 
                             <!-- LANGUAGE SELECTOR TOGGLE (INTERNATIONAL STYLE) -->
                             <div class="relative" id="language-switcher-container">
-                                <button id="btn-language-toggle" class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-[#0E1A38] hover:bg-[#16254C] text-slate-200 border border-[#16254C]'}" title="${this.t('header.language', 'Language')}">
+                                <button id="btn-language-toggle" class="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-[#0E1A38] hover:bg-[#16254C] text-slate-200 border border-[#16254C]'}" title="${this.t('header.language', 'Language')}">
                                     <i data-lucide="globe" class="w-3.5 h-3.5 text-cyan-400"></i>
                                     <span id="current-lang-label" class="font-mono text-[11px]">${this.currentLang === 'ja' ? '🇯🇵' : '🇮🇩'}</span>
                                     <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400 hidden sm:inline"></i>
@@ -1465,7 +1643,7 @@ class OeeApp {
                             </div>
 
                             <!-- LIVE TELEMETRY AUTO-REFRESH STATUS PILL -->
-                            <button type="button" id="btn-telemetry-pill" class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-mono border transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-[#0E1A38] hover:bg-[#16254C] border-[#16254C] text-slate-200'}" title="Frekuensi Auto-Refresh Telemetri. Klik untuk memuat ulang data sekarang.">
+                            <button type="button" id="btn-telemetry-pill" class="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-mono border transition-all cursor-pointer ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-[#0E1A38] hover:bg-[#16254C] border-[#16254C] text-slate-200'}" title="Frekuensi Auto-Refresh Telemetri. Klik untuk memuat ulang data sekarang.">
                                 <span id="telemetry-live-dot" class="relative flex h-2 w-2">
                                     ${this.autoRefreshInterval > 0 
                                         ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>'
@@ -1473,11 +1651,11 @@ class OeeApp {
                                     }
                                 </span>
                                 <i data-lucide="refresh-cw" id="telemetry-refresh-icon" class="w-3 h-3 text-cyan-400"></i>
-                                <span id="telemetry-interval-label" class="text-[11px] font-bold">${this.autoRefreshInterval > 0 ? `${this.autoRefreshInterval / 1000}s` : 'Manual'}</span>
+                                <span id="telemetry-interval-label" class="text-[10px] sm:text-[11px] font-bold">${this.autoRefreshInterval > 0 ? `${this.autoRefreshInterval / 1000}s` : 'Manual'}</span>
                             </button>
 
-                            <!-- SYSTEM CLOCK -->
-                            <div class="hidden sm:flex items-center gap-1.5 text-right font-mono px-1">
+                            <!-- SYSTEM CLOCK (HIDDEN ON SMALL SCREENS) -->
+                            <div class="hidden xl:flex items-center gap-1.5 text-right font-mono px-1">
                                 <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i>
                                 <div class="leading-tight text-right">
                                     <div id="header-clock-time" class="text-xs font-bold text-cyan-400 tracking-wider">--:--:--</div>
@@ -1485,13 +1663,24 @@ class OeeApp {
                                 </div>
                             </div>
 
-                            <button id="btn-add-record" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex-shrink-0">
+                            <!-- SHORTCUT POPUP INPUT HP / TABLET -->
+                            <button id="btn-mobile-entry-shortcut" class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2 sm:px-2.5 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-indigo-600/20 cursor-pointer flex-shrink-0" title="Buka Form Input Produksi Khusus Smartphone / HP Tablet">
+                                <i data-lucide="smartphone" class="w-3.5 h-3.5 text-cyan-300"></i>
+                                <span class="hidden md:inline">Mode HP 📱</span>
+                                <span class="md:hidden font-bold text-[11px]">HP</span>
+                            </button>
+
+                            <!-- ADD RECORD BUTTON -->
+                            <button id="btn-add-record" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2 sm:px-2.5 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex-shrink-0" title="Buka Form Input Produksi & OEE (Desktop View)">
                                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                                <span class="hidden sm:inline">${this.t('header.add_record', '+ Entry Record')}</span>
-                                <span class="sm:hidden font-bold">Entry</span>
+                                <span class="hidden md:inline">${this.t('header.add_record', '+ Entry Record')}</span>
+                                <span class="md:hidden font-bold text-[11px]">Entry</span>
                             </button>
                         </div>
                     </header>
+
+                    <!-- MOBILE COLLAPSIBLE FILTER DRAWER -->
+                    ${this.renderMobileFilterDrawer()}
 
                     <!-- CONTENT PAGE BODY -->
                     <main id="content-body" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 sm:space-y-5 bg-[#070D1E]">
@@ -1716,6 +1905,200 @@ class OeeApp {
             });
         }
 
+        // MOBILE FILTER ACCORDION / DRAWER LISTENERS
+        const btnMobileFilterToggle = document.getElementById('btn-mobile-filter-toggle');
+        const mobileFilterDrawer = document.getElementById('mobile-filter-drawer');
+        const mobileFilterChevron = document.getElementById('mobile-filter-chevron');
+        const btnCloseMobileFilter = document.getElementById('btn-close-mobile-filter-drawer');
+
+        const toggleMobileFilterDrawer = (forceState = null) => {
+            if (!mobileFilterDrawer) return;
+            const isCurrentlyHidden = mobileFilterDrawer.classList.contains('hidden');
+            const shouldOpen = forceState !== null ? forceState : isCurrentlyHidden;
+
+            if (shouldOpen) {
+                // Sync mobile fields from current state
+                const mobileLine = document.getElementById('mobile-filter-line');
+                const mobileMachine = document.getElementById('mobile-filter-machine');
+                const mobileShift = document.getElementById('mobile-filter-shift');
+                const mobilePeriod = document.getElementById('mobile-filter-period');
+                const mobileStart = document.getElementById('mobile-filter-start-date');
+                const mobileEnd = document.getElementById('mobile-filter-end-date');
+                const mobileCustomDate = document.getElementById('mobile-custom-date-container');
+
+                if (mobileLine) mobileLine.value = this.filters.line_id || '';
+                if (mobileMachine) mobileMachine.value = this.filters.machine_id || '';
+                if (mobileShift) mobileShift.value = this.filters.shift_id || '';
+                if (mobilePeriod) mobilePeriod.value = this.filters.period || '30days';
+                if (mobileStart) mobileStart.value = this.filters.start_date || '';
+                if (mobileEnd) mobileEnd.value = this.filters.end_date || '';
+
+                if (mobileCustomDate) {
+                    if (this.filters.period === 'custom') {
+                        mobileCustomDate.classList.remove('hidden');
+                        mobileCustomDate.classList.add('block');
+                    } else {
+                        mobileCustomDate.classList.remove('block');
+                        mobileCustomDate.classList.add('hidden');
+                    }
+                }
+
+                mobileFilterDrawer.classList.remove('hidden');
+                if (mobileFilterChevron) mobileFilterChevron.classList.add('rotate-180');
+            } else {
+                mobileFilterDrawer.classList.add('hidden');
+                if (mobileFilterChevron) mobileFilterChevron.classList.remove('rotate-180');
+            }
+        };
+
+        if (btnMobileFilterToggle) {
+            btnMobileFilterToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMobileFilterDrawer();
+            });
+        }
+
+        if (btnCloseMobileFilter) {
+            btnCloseMobileFilter.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMobileFilterDrawer(false);
+            });
+        }
+
+        const mobileFilterPeriod = document.getElementById('mobile-filter-period');
+        const mobileCustomDateContainer = document.getElementById('mobile-custom-date-container');
+        if (mobileFilterPeriod && mobileCustomDateContainer) {
+            mobileFilterPeriod.addEventListener('change', (e) => {
+                if (e.target.value === 'custom') {
+                    mobileCustomDateContainer.classList.remove('hidden');
+                    mobileCustomDateContainer.classList.add('block');
+                } else {
+                    mobileCustomDateContainer.classList.remove('block');
+                    mobileCustomDateContainer.classList.add('hidden');
+                }
+            });
+        }
+
+        const btnMobileApply = document.getElementById('btn-mobile-apply-filters');
+        if (btnMobileApply) {
+            btnMobileApply.addEventListener('click', () => {
+                this.filters.line_id = document.getElementById('mobile-filter-line')?.value || '';
+                this.filters.machine_id = document.getElementById('mobile-filter-machine')?.value || '';
+                this.filters.shift_id = document.getElementById('mobile-filter-shift')?.value || '';
+                this.filters.period = document.getElementById('mobile-filter-period')?.value || '';
+
+                if (this.filters.period === 'custom') {
+                    this.filters.start_date = document.getElementById('mobile-filter-start-date')?.value || '';
+                    this.filters.end_date = document.getElementById('mobile-filter-end-date')?.value || '';
+                } else {
+                    this.filters.start_date = '';
+                    this.filters.end_date = '';
+                }
+
+                // Sync desktop filters
+                const desktopLine = document.getElementById('filter-line');
+                const desktopMachine = document.getElementById('filter-machine');
+                const desktopShift = document.getElementById('filter-shift');
+                const desktopPeriod = document.getElementById('filter-period');
+                const desktopStart = document.getElementById('filter-start-date');
+                const desktopEnd = document.getElementById('filter-end-date');
+                const customDateContainer = document.getElementById('custom-date-container');
+
+                if (desktopLine) desktopLine.value = this.filters.line_id;
+                if (desktopMachine) desktopMachine.value = this.filters.machine_id;
+                if (desktopShift) desktopShift.value = this.filters.shift_id;
+                if (desktopPeriod) desktopPeriod.value = this.filters.period;
+                if (desktopStart) desktopStart.value = this.filters.start_date;
+                if (desktopEnd) desktopEnd.value = this.filters.end_date;
+
+                if (customDateContainer) {
+                    if (this.filters.period === 'custom') {
+                        customDateContainer.classList.remove('hidden');
+                        customDateContainer.classList.add('flex');
+                    } else {
+                        customDateContainer.classList.remove('flex');
+                        customDateContainer.classList.add('hidden');
+                    }
+                }
+
+                // Update active dot
+                const activeDot = document.getElementById('mobile-filter-active-dot');
+                if (activeDot) {
+                    if (this.hasActiveFilters()) {
+                        activeDot.classList.remove('hidden');
+                        activeDot.classList.add('inline-block');
+                    } else {
+                        activeDot.classList.remove('inline-block');
+                        activeDot.classList.add('hidden');
+                    }
+                }
+
+                toggleMobileFilterDrawer(false);
+
+                if (this.filters.period === 'today') {
+                    this.selectedDailyDate = new Date().toISOString().slice(0, 10);
+                } else if (this.filters.period === 'yesterday') {
+                    const y = new Date();
+                    y.setDate(y.getDate() - 1);
+                    this.selectedDailyDate = y.toISOString().slice(0, 10);
+                } else if (this.filters.period === 'custom' && this.filters.start_date) {
+                    this.selectedDailyDate = this.filters.start_date;
+                }
+
+                this.dashMachineFilters = { line: '', machine: '', product: '', status: '' };
+                this.clearDashboardCache();
+                this.loadCurrentTab(false);
+            });
+        }
+
+        const btnMobileReset = document.getElementById('btn-mobile-reset-filters');
+        if (btnMobileReset) {
+            btnMobileReset.addEventListener('click', () => {
+                this.filters.line_id = '';
+                this.filters.machine_id = '';
+                this.filters.shift_id = '';
+                this.filters.period = '30days';
+                this.filters.start_date = '';
+                this.filters.end_date = '';
+
+                // Reset all desktop and mobile inputs
+                ['filter-line', 'mobile-filter-line', 'filter-machine', 'mobile-filter-machine', 'filter-shift', 'mobile-filter-shift'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                ['filter-period', 'mobile-filter-period'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '30days';
+                });
+                ['filter-start-date', 'mobile-filter-start-date', 'filter-end-date', 'mobile-filter-end-date'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+
+                const customDateContainer = document.getElementById('custom-date-container');
+                if (customDateContainer) {
+                    customDateContainer.classList.remove('flex');
+                    customDateContainer.classList.add('hidden');
+                }
+                const mobileCustomDateContainer = document.getElementById('mobile-custom-date-container');
+                if (mobileCustomDateContainer) {
+                    mobileCustomDateContainer.classList.remove('block');
+                    mobileCustomDateContainer.classList.add('hidden');
+                }
+
+                const activeDot = document.getElementById('mobile-filter-active-dot');
+                if (activeDot) {
+                    activeDot.classList.remove('inline-block');
+                    activeDot.classList.add('hidden');
+                }
+
+                toggleMobileFilterDrawer(false);
+                this.dashMachineFilters = { line: '', machine: '', product: '', status: '' };
+                this.clearDashboardCache();
+                this.loadCurrentTab(false);
+            });
+        }
+
         const autoApplyFilter = () => {
             this.filters.line_id = document.getElementById('filter-line')?.value || '';
             this.filters.machine_id = document.getElementById('filter-machine')?.value || '';
@@ -1728,6 +2111,32 @@ class OeeApp {
             } else {
                 this.filters.start_date = '';
                 this.filters.end_date = '';
+            }
+
+            // Sync to mobile inputs
+            const mobileLine = document.getElementById('mobile-filter-line');
+            const mobileMachine = document.getElementById('mobile-filter-machine');
+            const mobileShift = document.getElementById('mobile-filter-shift');
+            const mobilePeriod = document.getElementById('mobile-filter-period');
+            const mobileStart = document.getElementById('mobile-filter-start-date');
+            const mobileEnd = document.getElementById('mobile-filter-end-date');
+
+            if (mobileLine) mobileLine.value = this.filters.line_id;
+            if (mobileMachine) mobileMachine.value = this.filters.machine_id;
+            if (mobileShift) mobileShift.value = this.filters.shift_id;
+            if (mobilePeriod) mobilePeriod.value = this.filters.period;
+            if (mobileStart) mobileStart.value = this.filters.start_date;
+            if (mobileEnd) mobileEnd.value = this.filters.end_date;
+
+            const activeDot = document.getElementById('mobile-filter-active-dot');
+            if (activeDot) {
+                if (this.hasActiveFilters()) {
+                    activeDot.classList.remove('hidden');
+                    activeDot.classList.add('inline-block');
+                } else {
+                    activeDot.classList.remove('inline-block');
+                    activeDot.classList.add('hidden');
+                }
             }
 
             if (this.filters.period === 'today') {
@@ -1796,7 +2205,8 @@ class OeeApp {
                 const iconEl = document.getElementById('telemetry-refresh-icon');
                 if (iconEl) iconEl.classList.add('animate-spin');
                 this.playClingSound();
-                await this.loadCurrentTab(false);
+                this.clearDashboardCache();
+                await this.loadCurrentTab(false, true);
                 this.showNotification('Telemetri Diperbarui', 'Data metrik telemetri OEE lini produksi berhasil dimuat ulang secara real-time.', 'status');
                 setTimeout(() => {
                     if (iconEl) iconEl.classList.remove('animate-spin');
@@ -1839,7 +2249,18 @@ class OeeApp {
         const btnEntry = document.getElementById('btn-add-record');
         if (btnEntry) {
             btnEntry.addEventListener('click', () => {
-                this.showProductionModal();
+                if (window.innerWidth <= 768) {
+                    this.showMobileProductionModal();
+                } else {
+                    this.showProductionModal();
+                }
+            });
+        }
+
+        const btnMobileEntry = document.getElementById('btn-mobile-entry-shortcut');
+        if (btnMobileEntry) {
+            btnMobileEntry.addEventListener('click', () => {
+                this.showMobileProductionModal();
             });
         }
 
@@ -2080,7 +2501,7 @@ class OeeApp {
         if (window.lucide) window.lucide.createIcons();
     }
 
-    async loadCurrentTab(showSpinner = true) {
+    async loadCurrentTab(showSpinner = true, force = false) {
         const content = document.getElementById('content-body');
         if (!content) return;
 
@@ -2103,7 +2524,7 @@ class OeeApp {
         try {
             switch (this.currentTab) {
                 case 'dashboard':
-                    await this.renderDashboard();
+                    await this.renderDashboard(force);
                     break;
                 case 'daily-report':
                     await this.renderDailyReport();
@@ -2148,7 +2569,7 @@ class OeeApp {
                     await this.renderDatabaseManagement();
                     break;
                 default:
-                    await this.renderDashboard();
+                    await this.renderDashboard(force);
             }
         } catch (err) {
             console.error('Error rendering page:', err);
@@ -4666,23 +5087,41 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 3. MACHINE PERFORMANCE PAGE
     // ==========================================
-    // 3. MACHINE PERFORMANCE PAGE (PAGINATED)
+    // 3. MACHINE PERFORMANCE PAGE (WITH DASHBOARD & CHARTS)
     // ==========================================
     async renderMachines() {
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
         const res = await api.getMachineRanking(this.filters);
         const allMachines = res.data.data || [];
 
-        // Pagination & Filter States
-        if (!this.machinePerPage) this.machinePerPage = 25;
+        // Pagination & Filter States (Default to 15 rows per page as requested)
+        if (!this.machinePerPage) this.machinePerPage = 15;
         if (!this.machinePage) this.machinePage = 1;
         this.machineSearchQuery = this.machineSearchQuery || '';
         this.machineLineFilter = this.machineLineFilter || '';
 
         // Extract available lines for filtering
         const availableLines = Array.from(new Set(allMachines.map(m => m.line_name).filter(Boolean))).sort();
+
+        // Separate Running / Active Machines vs Idle
+        const runningMachines = allMachines.filter(m => (Number(m.actual_quantity) || 0) > 0 || (Number(m.target_quantity) || 0) > 0 || Number(m.oee || 0) > 0 || m.status === 'RUNNING');
+        const totalAll = allMachines.length;
+        const runningCount = runningMachines.length;
+        const idleCount = Math.max(0, totalAll - runningCount);
+        const utilizationRate = totalAll > 0 ? ((runningCount / totalAll) * 100).toFixed(1) : '0.0';
+
+        // Summary KPI Metrics
+        const totalTarget = allMachines.reduce((sum, m) => sum + (Number(m.target_quantity) || 0), 0);
+        const totalActual = allMachines.reduce((sum, m) => sum + (Number(m.actual_quantity) || 0), 0);
+        const totalReject = allMachines.reduce((sum, m) => sum + (Number(m.reject_quantity) || 0), 0);
+        const totalDowntime = allMachines.reduce((sum, m) => sum + (Number(m.downtime_minutes) || 0), 0);
+        const defectRate = (totalActual + totalReject) > 0 ? ((totalReject / (totalActual + totalReject)) * 100).toFixed(2) : '0.00';
+
+        const runningAvgOee = runningMachines.length > 0 ? (runningMachines.reduce((sum, m) => sum + Number(m.oee || 0), 0) / runningMachines.length).toFixed(1) : '0.0';
+        const runningAvgAv = runningMachines.length > 0 ? (runningMachines.reduce((sum, m) => sum + Number(m.availability || 0), 0) / runningMachines.length).toFixed(1) : '0.0';
+        const runningAvgPerf = runningMachines.length > 0 ? (runningMachines.reduce((sum, m) => sum + Number(m.performance || 0), 0) / runningMachines.length).toFixed(1) : '0.0';
+        const runningAvgQual = runningMachines.length > 0 ? (runningMachines.reduce((sum, m) => sum + Number(m.quality || 0), 0) / runningMachines.length).toFixed(1) : '0.0';
 
         // Apply Local Search & Line Filters
         let filteredMachines = allMachines;
@@ -4700,7 +5139,6 @@ tbody.innerHTML = '';
         }
 
         const totalFiltered = filteredMachines.length;
-        const totalAll = allMachines.length;
         const perPage = this.machinePerPage === 'all' ? (totalFiltered || 1) : parseInt(this.machinePerPage);
         const totalPages = Math.ceil(totalFiltered / perPage) || 1;
 
@@ -4712,28 +5150,16 @@ tbody.innerHTML = '';
         const endIndex = Math.min(startIndex + perPage, totalFiltered);
         const displayedMachines = totalFiltered === 0 ? [] : filteredMachines.slice(startIndex, endIndex);
 
-        // Summary KPI calculations
-        const avgOee = allMachines.length > 0 ? (allMachines.reduce((acc, m) => acc + Number(m.oee || 0), 0) / allMachines.length).toFixed(1) : '0.0';
-        const activeMachinesCount = allMachines.filter(m => (m.actual_quantity || 0) > 0 || m.status === 'RUNNING').length;
-
         const content = document.getElementById('content-body');
         content.innerHTML = `
-            <!-- HEADER & SEARCH/FILTER BAR -->
+            <!-- HEADER BAR & CONTROLS -->
             <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl mb-5">
                 <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <div class="flex items-center gap-3">
-                            <h2 class="text-xl font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                                <i data-lucide="cpu" class="w-6 h-6 text-cyan-400"></i>
-                                <span>Machine Performance</span>
-                            </h2>
-                            <span class="px-2.5 py-0.5 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border font-mono font-bold text-xs">
-                                Total ${totalAll} Mesin
-                            </span>
-                        </div>
-                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">
-                            Peringkat efisiensi OEE, ketersediaan mesin, kualitas, dan downtime per unit sub-asset.
-                        </p>
+                        <h2 class="text-xl font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                            <i data-lucide="cpu" class="w-6 h-6 text-cyan-400"></i>
+                            <span>Performa & Analisa Mesin Produksi</span>
+                        </h2>
                     </div>
 
                     <!-- SEARCH & FILTER CONTROLS -->
@@ -4760,6 +5186,8 @@ tbody.innerHTML = '';
 
                         <!-- ROWS PER PAGE SELECT -->
                         <select id="machine-per-page-select" class="${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2 text-xs font-sans font-mono outline-none focus:border-cyan-500 cursor-pointer">
+                            <option value="10" ${this.machinePerPage == 10 ? 'selected' : ''}>10 / halaman</option>
+                            <option value="15" ${this.machinePerPage == 15 ? 'selected' : ''}>15 / halaman</option>
                             <option value="25" ${this.machinePerPage == 25 ? 'selected' : ''}>25 / halaman</option>
                             <option value="50" ${this.machinePerPage == 50 ? 'selected' : ''}>50 / halaman</option>
                             <option value="100" ${this.machinePerPage == 100 ? 'selected' : ''}>100 / halaman</option>
@@ -4769,8 +5197,135 @@ tbody.innerHTML = '';
                 </div>
             </div>
 
+            <!-- DASHBOARD KPI CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                <!-- CARD 1: RUNNING MACHINES -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Mesin Beroperasi</span>
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-2 mb-2">
+                        <span class="text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono">${runningCount}</span>
+                        <span class="text-xs font-semibold text-slate-400">/ ${totalAll} Total Mesin</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}">
+                        <span class="flex items-center gap-1.5 text-emerald-500 font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            ${utilizationRate}% Utilisasi
+                        </span>
+                        <span class="text-slate-400 font-medium">${idleCount} Standby/Off</span>
+                    </div>
+                </div>
+
+                <!-- CARD 2: RUNNING OEE AVERAGE -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Rata-Rata OEE Aktif</span>
+                        <div class="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                            <i data-lucide="gauge" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-2 mb-2">
+                        <span class="text-2xl font-black ${Number(runningAvgOee) >= 85 ? 'text-emerald-400' : (Number(runningAvgOee) >= 65 ? 'text-amber-400' : 'text-cyan-400')} font-mono">${runningAvgOee}%</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${this.getStatusBadge(Number(runningAvgOee) >= 85 ? 'EXCELLENT' : (Number(runningAvgOee) >= 65 ? 'GOOD' : 'CRITICAL'))}">
+                            ${Number(runningAvgOee) >= 85 ? 'World Class' : (Number(runningAvgOee) >= 65 ? 'Optimal' : 'Low')}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'} font-mono">
+                        <span>Avail: <strong class="${isLight ? 'text-slate-800' : 'text-slate-200'}">${runningAvgAv}%</strong></span>
+                        <span>Perf: <strong class="${isLight ? 'text-slate-800' : 'text-slate-200'}">${runningAvgPerf}%</strong></span>
+                        <span>Qual: <strong class="${isLight ? 'text-slate-800' : 'text-slate-200'}">${runningAvgQual}%</strong></span>
+                    </div>
+                </div>
+
+                <!-- CARD 3: TOTAL ACTUAL OUTPUT -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Total Output Actual</span>
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                            <i data-lucide="package-check" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-1 mb-2">
+                        <span class="text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono">${totalActual.toLocaleString()}</span>
+                        <span class="text-xs font-semibold text-slate-400">pcs</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}">
+                        <span class="text-slate-400">Target: <strong class="${isLight ? 'text-slate-700' : 'text-slate-300'} font-mono">${totalTarget.toLocaleString()}</strong></span>
+                        <span class="${totalReject > 0 ? 'text-rose-400 font-semibold' : 'text-slate-400'}">NG: ${totalReject.toLocaleString()} (${defectRate}%)</span>
+                    </div>
+                </div>
+
+                <!-- CARD 4: TOTAL DOWNTIME -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Total Downtime</span>
+                        <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                            <i data-lucide="clock" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline gap-1 mb-2">
+                        <span class="text-2xl font-black ${totalDowntime > 0 ? 'text-amber-400' : 'text-slate-400'} font-mono">${totalDowntime.toLocaleString()}</span>
+                        <span class="text-xs font-semibold text-slate-400">menit</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'} text-slate-400">
+                        <span>Stoppage & kendala mesin</span>
+                        <span class="font-mono text-cyan-400">${(totalDowntime / 60).toFixed(1)} Jam</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD CHARTS SECTION -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+                <!-- CHART 1: TOP RUNNING MACHINES OUTPUT & TARGET (2 Cols) -->
+                <div class="lg:col-span-2 ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4 text-cyan-400"></i>
+                                <span>Output & Target Mesin Beroperasi</span>
+                            </h3>
+                            <span class="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-md">
+                                Top Active Machines
+                            </span>
+                        </div>
+                    </div>
+                    <div id="chart-machine-running-bar" class="w-full h-[290px]"></div>
+                </div>
+
+                <!-- CHART 2: MACHINE STATUS DISTRIBUTION DONUT (1 Col) -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
+                                <span>Distribusi Status & Health Mesin</span>
+                            </h3>
+                            <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                                Status OEE
+                            </span>
+                        </div>
+                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mb-3">
+                            Proporsi kategori capaian OEE dan kesiapan seluruh armada mesin.
+                        </p>
+                    </div>
+                    <div id="chart-machine-status-donut" class="w-full h-[290px]"></div>
+                </div>
+            </div>
+
             <!-- MAIN TABLE CARD -->
             <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl shadow-xl overflow-hidden mb-4">
+                <div class="p-4 border-b ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-slate-800 bg-slate-950/40'} flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="table" class="w-4 h-4 text-cyan-400"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-800' : 'text-slate-200'}">Tabel Rincian Data Kinerja Mesin</span>
+                    </div>
+                    <span class="text-xs text-slate-400 font-mono">Menampilkan ${displayedMachines.length} dari ${totalFiltered} baris</span>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs border-collapse font-sans">
                         <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
@@ -4931,6 +5486,9 @@ tbody.innerHTML = '';
 
         if (window.lucide) window.lucide.createIcons();
 
+        // Render ApexCharts for Running Machines and Status Donut
+        this.renderMachinePerformanceCharts(runningMachines, allMachines, isLight);
+
         // 1. Search Input Event (Debounced / on input)
         const searchInput = document.getElementById('machine-search-input');
         if (searchInput) {
@@ -5002,6 +5560,216 @@ tbody.innerHTML = '';
 
         if (this.currentLang === 'ja') {
             i18n.localizeDom(document.getElementById('content-body') || document.body);
+        }
+    }
+
+    // Helper to render ApexCharts on Machine Performance page
+    renderMachinePerformanceCharts(runningMachines, allMachines, isLight) {
+        if (!window.ApexCharts) return;
+
+        // -------------------------------------------------------------
+        // CHART 1: Top Running Machines Output vs Target & OEE Bar Chart
+        // -------------------------------------------------------------
+        const barEl = document.getElementById('chart-machine-running-bar');
+        if (barEl) {
+            if (this.charts['machineRunningBar']) {
+                try { this.charts['machineRunningBar'].destroy(); } catch (e) {}
+            }
+
+            // Get Top 8-10 active machines by actual output (or all machines if few running)
+            const activeList = runningMachines.length > 0 ? runningMachines : allMachines;
+            const topMachines = [...activeList]
+                .sort((a, b) => (Number(b.actual_quantity) || 0) - (Number(a.actual_quantity) || 0))
+                .slice(0, 10);
+
+            const categories = topMachines.map(m => m.code || m.name);
+            const targetData = topMachines.map(m => Number(m.target_quantity) || 0);
+            const actualData = topMachines.map(m => Number(m.actual_quantity) || 0);
+
+            const barOptions = {
+                chart: {
+                    type: 'line',
+                    height: 290,
+                    background: 'transparent',
+                    toolbar: { show: false },
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 700,
+                        dynamicAnimation: {
+                            enabled: true,
+                            speed: 350
+                        }
+                    }
+                },
+                theme: { mode: isLight ? 'light' : 'dark' },
+                colors: ['#06b6d4', '#f59e0b'],
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '38%',
+                        borderRadius: 6,
+                        dataLabels: { position: 'top' }
+                    }
+                },
+                stroke: {
+                    curve: ['straight', 'smooth'],
+                    width: [0, 3],
+                    dashArray: [0, 0]
+                },
+                markers: {
+                    size: [0, 5],
+                    colors: ['#06b6d4', '#f59e0b'],
+                    strokeColors: isLight ? '#ffffff' : '#0f172a',
+                    strokeWidth: 2,
+                    strokeOpacity: 0.9,
+                    hover: {
+                        size: 8,
+                        sizeOffset: 3
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                series: [
+                    { name: 'Actual Output (pcs)', type: 'column', data: actualData },
+                    { name: 'Target Batasan (pcs)', type: 'line', data: targetData }
+                ],
+                xaxis: {
+                    categories: categories,
+                    labels: {
+                        style: { colors: isLight ? '#475569' : '#94a3b8', fontSize: '10px', fontWeight: 'bold' },
+                        rotate: -25,
+                        trim: true
+                    },
+                    axisBorder: { color: isLight ? '#cbd5e1' : '#334155' }
+                },
+                yaxis: {
+                    labels: {
+                        style: { colors: isLight ? '#475569' : '#64748b', fontSize: '10px' },
+                        formatter: val => Number(val).toLocaleString()
+                    }
+                },
+                grid: {
+                    borderColor: isLight ? '#e2e8f0' : '#1e293b',
+                    strokeDashArray: 4,
+                    padding: { top: 10, right: 10, bottom: 0, left: 10 }
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'right',
+                    labels: { colors: isLight ? '#1e293b' : '#cbd5e1' },
+                    fontSize: '11px',
+                    markers: { radius: 3 }
+                },
+                tooltip: {
+                    theme: isLight ? 'light' : 'dark',
+                    custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+                        const m = topMachines[dataPointIndex] || {};
+                        const act = (Number(m.actual_quantity) || 0).toLocaleString();
+                        const tgt = (Number(m.target_quantity) || 0).toLocaleString();
+                        const oee = m.oee || 0;
+                        const rej = (Number(m.reject_quantity) || 0).toLocaleString();
+                        const dt = (Number(m.downtime_minutes) || 0);
+                        const line = m.line_name || '-';
+                        return `
+                            <div class="p-3 text-xs ${isLight ? 'bg-white text-slate-800 border-slate-200' : 'bg-slate-900 text-slate-100 border-slate-800'} border rounded-xl shadow-xl font-sans min-w-[200px]">
+                                <div class="font-bold text-cyan-400 mb-1 flex items-center justify-between">
+                                    <span>${m.code || 'Machine'}</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300">Lini: ${line}</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mb-2 font-medium">${m.name || ''}</div>
+                                <div class="space-y-1 font-mono text-[11px] border-t ${isLight ? 'border-slate-100' : 'border-slate-800'} pt-2">
+                                    <div class="flex justify-between"><span>Actual:</span><strong class="text-cyan-400">${act} pcs</strong></div>
+                                    <div class="flex justify-between"><span>Target Batasan:</span><strong class="text-amber-400">${tgt} pcs</strong></div>
+                                    <div class="flex justify-between"><span>OEE Score:</span><strong class="${Number(oee) >= 85 ? 'text-emerald-400' : (Number(oee) >= 65 ? 'text-amber-400' : 'text-rose-400')}">${oee}%</strong></div>
+                                    <div class="flex justify-between text-slate-400"><span>Rejects:</span><span>${rej} pcs</span></div>
+                                    <div class="flex justify-between text-slate-400"><span>Downtime:</span><span>${dt} m</span></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            };
+
+            this.charts['machineRunningBar'] = new window.ApexCharts(barEl, barOptions);
+            this.charts['machineRunningBar'].render();
+        }
+
+        // -------------------------------------------------------------
+        // CHART 2: Machine Status & OEE Health Donut Chart
+        // -------------------------------------------------------------
+        const donutEl = document.getElementById('chart-machine-status-donut');
+        if (donutEl) {
+            if (this.charts['machineStatusDonut']) {
+                try { this.charts['machineStatusDonut'].destroy(); } catch (e) {}
+            }
+
+            const worldClass = allMachines.filter(m => Number(m.oee || 0) >= 85).length;
+            const excellent = allMachines.filter(m => Number(m.oee || 0) >= 65 && Number(m.oee || 0) < 85).length;
+            const critical = allMachines.filter(m => Number(m.oee || 0) > 0 && Number(m.oee || 0) < 65).length;
+            const standby = allMachines.filter(m => Number(m.oee || 0) === 0 && (Number(m.actual_quantity) || 0) === 0).length;
+
+            const donutSeries = [worldClass, excellent, critical, standby];
+            const donutLabels = ['World Class (≥85%)', 'Optimal (65-85%)', 'Under Target (<65%)', 'Standby / 0 Prod'];
+            const donutColors = ['#10b981', '#06b6d4', '#f43f5e', '#64748b'];
+
+            const donutOptions = {
+                chart: {
+                    type: 'donut',
+                    height: 290,
+                    background: 'transparent'
+                },
+                theme: { mode: isLight ? 'light' : 'dark' },
+                colors: donutColors,
+                labels: donutLabels,
+                series: donutSeries,
+                stroke: { show: true, width: 2, colors: [isLight ? '#ffffff' : '#0f172a'] },
+                dataLabels: {
+                    enabled: false
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '72%',
+                            labels: {
+                                show: true,
+                                name: { show: true, fontSize: '12px', color: isLight ? '#475569' : '#94a3b8' },
+                                value: {
+                                    show: true,
+                                    fontSize: '22px',
+                                    fontWeight: '800',
+                                    color: isLight ? '#0f172a' : '#ffffff',
+                                    formatter: val => `${val} Unit`
+                                },
+                                total: {
+                                    show: true,
+                                    label: 'Total Mesin',
+                                    color: isLight ? '#64748b' : '#94a3b8',
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    formatter: w => `${allMachines.length} Mesin`
+                                }
+                            }
+                        }
+                    }
+                },
+                legend: {
+                    position: 'bottom',
+                    fontSize: '10px',
+                    labels: { colors: isLight ? '#334155' : '#cbd5e1' },
+                    markers: { radius: 3 }
+                },
+                tooltip: {
+                    theme: isLight ? 'light' : 'dark',
+                    y: {
+                        formatter: (val) => `${val} Mesin (${((val / (allMachines.length || 1)) * 100).toFixed(1)}%)`
+                    }
+                }
+            };
+
+            this.charts['machineStatusDonut'] = new window.ApexCharts(donutEl, donutOptions);
+            this.charts['machineStatusDonut'].render();
         }
     }
 
@@ -5092,6 +5860,25 @@ tbody.innerHTML = '';
             dtLineGroupsMap.get(lineId).items.push(dt);
         });
         const dtLineGroups = Array.from(dtLineGroupsMap.values());
+
+        // Capture currently expanded lines in DOM to preserve state across silent auto-refresh / sync
+        const openLineIds = new Set();
+        document.querySelectorAll('[data-toggle-line]').forEach(header => {
+            const lineId = header.getAttribute('data-toggle-line');
+            const firstChild = document.querySelector(`.line-row-${lineId}`);
+            if (firstChild && !firstChild.classList.contains('hidden')) {
+                openLineIds.add(String(lineId));
+            }
+        });
+
+        const openDtLineIds = new Set();
+        document.querySelectorAll('[data-toggle-dt-line]').forEach(header => {
+            const lineId = header.getAttribute('data-toggle-dt-line');
+            const firstChild = document.querySelector(`.dt-line-row-${lineId}`);
+            if (firstChild && !firstChild.classList.contains('hidden')) {
+                openDtLineIds.add(String(lineId));
+            }
+        });
 
         const content = document.getElementById('content-body');
         content.innerHTML = `
@@ -5295,13 +6082,16 @@ tbody.innerHTML = '';
                                     const grpAvgOee = (grp.records.reduce((s, r) => s + (r.oee_record?.oee || 0), 0) / grp.records.length).toFixed(1);
                                     const uniqueShifts = [...new Set(grp.records.map(r => r.shift?.name || 'Shift 1'))].join(', ');
                                     const uniqueProducts = [...new Set(grp.records.map(r => r.product ? `${r.product.name}` : '-'))].join('; ');
+                                    const isLineOpen = openLineIds.has(String(grp.lineId));
+                                    const chevronClass = isLineOpen ? 'rotate-0' : '-rotate-90';
+                                    const rowHiddenClass = isLineOpen ? '' : 'hidden';
 
                                     return `
                                         <!-- LINE GROUP SUMMARY HEADER ROW (CLICKABLE COLLAPSIBLE) -->
                                         <tr class="line-group-header cursor-pointer select-none ${isLight ? 'bg-slate-100 hover:bg-slate-200/90 border-slate-300 text-slate-900' : 'bg-slate-950 hover:bg-slate-800/90 border-slate-800 text-slate-100'} border-t-2 border-b transition-colors" data-toggle-line="${grp.lineId}">
                                             <td class="p-3 text-center">
                                                 <button type="button" class="w-6 h-6 rounded-lg ${isLight ? 'bg-white text-slate-700 border-slate-300' : 'bg-slate-900 text-slate-300 border-slate-700'} border flex items-center justify-center transition-transform cursor-pointer shadow-xs">
-                                                    <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-${grp.lineId} transition-transform duration-200"></i>
+                                                    <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-${grp.lineId} ${chevronClass} transition-transform duration-200"></i>
                                                 </button>
                                             </td>
                                             <td class="p-3 font-sans">
@@ -5351,7 +6141,7 @@ tbody.innerHTML = '';
 
                                         <!-- EXPANDABLE CHILD ROWS FOR THIS LINE -->
                                         ${grp.records.map((r, rIdx) => `
-                                            <tr class="line-row-${grp.lineId} ${isLight ? 'bg-white hover:bg-slate-50' : 'bg-slate-900/70 hover:bg-slate-800/60'} transition-colors border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/50'}">
+                                            <tr class="line-row-${grp.lineId} ${rowHiddenClass} ${isLight ? 'bg-white hover:bg-slate-50' : 'bg-slate-900/70 hover:bg-slate-800/60'} transition-colors border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/50'}">
                                                 <td class="p-3 text-center text-xs font-mono ${isLight ? 'text-slate-400' : 'text-slate-500'}">
                                                     <span class="inline-block pl-2 text-[11px] text-slate-400 font-mono">${gIdx + 1}.${rIdx + 1}</span>
                                                 </td>
@@ -5471,13 +6261,16 @@ tbody.innerHTML = '';
                                     const closedCount = grp.items.length - openCount;
                                     const uniqueShifts = [...new Set(grp.items.map(dt => dt.shift?.name || 'Shift 1'))].join(', ');
                                     const uniqueCategories = [...new Set(grp.items.map(dt => dt.problem_type || 'Problem Mesin Mekanik'))].join(', ');
+                                    const isDtLineOpen = openDtLineIds.has(String(grp.lineId));
+                                    const chevronDtClass = isDtLineOpen ? 'rotate-0' : '-rotate-90';
+                                    const rowDtHiddenClass = isDtLineOpen ? '' : 'hidden';
 
                                     return `
                                         <!-- LINE GROUP HEADER ROW (CLICKABLE COLLAPSIBLE) -->
                                         <tr class="line-dt-group-header cursor-pointer select-none ${isLight ? 'bg-amber-50/90 hover:bg-amber-100/90 border-amber-200 text-slate-900' : 'bg-slate-950 hover:bg-slate-800/90 border-slate-800 text-slate-100'} border-t-2 border-b transition-colors" data-toggle-dt-line="${grp.lineId}">
                                             <td class="p-3 text-center">
                                                 <button type="button" class="w-6 h-6 rounded-lg ${isLight ? 'bg-white text-slate-700 border-amber-300' : 'bg-slate-900 text-slate-300 border-slate-700'} border flex items-center justify-center transition-transform cursor-pointer shadow-xs">
-                                                    <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-dt-${grp.lineId} transition-transform duration-200"></i>
+                                                    <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-dt-${grp.lineId} ${chevronDtClass} transition-transform duration-200"></i>
                                                 </button>
                                             </td>
                                             <td class="p-3 font-sans" colspan="2">
@@ -5518,7 +6311,7 @@ tbody.innerHTML = '';
 
                                         <!-- EXPANDABLE CHILD ROWS FOR PROBLEM TABLE -->
                                         ${grp.items.map((dt, dIdx) => `
-                                            <tr class="dt-line-row-${grp.lineId} ${isLight ? 'bg-white hover:bg-slate-50' : 'bg-slate-900/70 hover:bg-slate-800/60'} transition-colors border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/50'}">
+                                            <tr class="dt-line-row-${grp.lineId} ${rowDtHiddenClass} ${isLight ? 'bg-white hover:bg-slate-50' : 'bg-slate-900/70 hover:bg-slate-800/60'} transition-colors border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/50'}">
                                                 <td class="p-3 text-center text-xs font-mono text-slate-400">
                                                     ${gIdx + 1}.${dIdx + 1}
                                                 </td>
@@ -6827,6 +7620,16 @@ tbody.innerHTML = '';
             `<option value="${s.id}" ${this.ngFilters.shift_id == s.id ? 'selected' : ''}>${s.name}</option>`
         ).join('');
 
+        // Capture currently expanded lines in DOM to preserve state across silent auto-refresh / sync
+        const openNgLineIds = new Set();
+        document.querySelectorAll('[data-toggle-ng-line]').forEach(header => {
+            const lineId = header.getAttribute('data-toggle-ng-line');
+            const firstChild = document.querySelector(`.ng-line-row-${lineId}`);
+            if (firstChild && !firstChild.classList.contains('hidden')) {
+                openNgLineIds.add(String(lineId));
+            }
+        });
+
         const content = document.getElementById('content-body');
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
 
@@ -6875,6 +7678,12 @@ tbody.innerHTML = '';
                             <option value="completed" class="text-emerald-600 font-bold" ${this.ngFilters.status === 'completed' ? 'selected' : ''}>🟢 Selesai Terisi (${summary.completed_count})</option>
                         </select>
                     </div>
+
+                    <!-- FULLSCREEN POPUP MEETING MODE BUTTON -->
+                    <button id="btn-ng-fullscreen-popup" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex-shrink-0" title="Buka Tampilan Pop-up Fullscreen Fit to Display untuk Management Floor Meeting">
+                        <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                        <span>Pop-up Fullscreen Focus</span>
+                    </button>
 
                     <!-- RESET / REFRESH -->
                     <button id="btn-reset-ng-filters" class="p-2 ${isLight ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} border rounded-lg transition-colors cursor-pointer" title="Reset Filter">
@@ -6984,11 +7793,17 @@ tbody.innerHTML = '';
                     <div>
                         <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                             <i data-lucide="list-checks" class="w-4 h-4 text-cyan-500"></i>
-                            Daftar Antrean Laporan Harian yang Memiliki Reject / Defect
+                            Laporan Not Goods, Defect & Reject
                         </h3>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
+                        <!-- FULLSCREEN POPUP MEETING MODE BUTTON ON TABLE -->
+                        <button id="btn-ng-fullscreen-popup-table" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex-shrink-0" title="Buka Tampilan Pop-up Fullscreen Fit to Display untuk Management Floor Meeting">
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                            <span>Pop-up Fullscreen Focus</span>
+                        </button>
+
                         <!-- EXPAND / COLLAPSE ALL BUTTONS FOR NG TABLE -->
                         <div class="flex items-center gap-1 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl p-1 shrink-0">
                             <button id="btn-expand-all-ng-lines" title="Buka seluruh laporan NG semua line" class="px-2.5 py-1 text-[11px] font-bold ${isLight ? 'text-slate-700 hover:bg-white' : 'text-slate-300 hover:bg-slate-800'} rounded-lg transition-all flex items-center gap-1 cursor-pointer">
@@ -7048,13 +7863,16 @@ tbody.innerHTML = '';
                                 const uniqueShifts = [...new Set(grp.items.map(it => it.shift_name || 'Shift 1'))].join(', ');
                                 const uniqueProducts = [...new Set(grp.items.map(it => it.product_sku || it.product_name))].join(', ');
                                 const uniqueProductsCount = new Set(grp.items.map(it => it.product_sku || it.product_name)).size;
+                                const isNgLineOpen = openNgLineIds.has(String(grp.lineId));
+                                const chevronNgClass = isNgLineOpen ? 'rotate-0' : '-rotate-90';
+                                const rowNgHiddenClass = isNgLineOpen ? '' : 'hidden';
 
                                 return `
                                     <!-- LINE GROUP HEADER ROW (CLICKABLE COLLAPSIBLE) -->
                                     <tr class="line-ng-group-header cursor-pointer select-none ${isLight ? 'bg-rose-50/70 hover:bg-rose-100/80 border-rose-200 text-slate-900' : 'bg-slate-950 hover:bg-slate-800/90 border-slate-800 text-slate-100'} border-t-2 border-b transition-colors" data-toggle-ng-line="${grp.lineId}">
                                         <td class="p-3 text-center">
                                             <button type="button" class="w-6 h-6 rounded-lg ${isLight ? 'bg-white text-slate-700 border-rose-200' : 'bg-slate-900 text-slate-300 border-slate-700'} border flex items-center justify-center transition-transform cursor-pointer shadow-xs">
-                                                <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-ng-${grp.lineId} -rotate-90 transition-transform duration-200"></i>
+                                                <i data-lucide="chevron-down" class="w-4 h-4 chevron-icon-ng-${grp.lineId} ${chevronNgClass} transition-transform duration-200"></i>
                                             </button>
                                         </td>
                                         <td class="p-3 font-sans">
@@ -7113,7 +7931,7 @@ tbody.innerHTML = '';
                                     ${grp.items.map((item, idx) => {
                                         const ng = item.ng_detail;
                                         return `
-                                            <tr class="ng-line-row-${grp.lineId} hidden ${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors ${item.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/10') : ''}">
+                                            <tr class="ng-line-row-${grp.lineId} ${rowNgHiddenClass} ${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors ${item.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/10') : ''}">
                                                 <td class="p-3 text-center font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'} text-[11px]">${idx + 1}</td>
                                                 <td class="p-3 font-sans">
                                                     <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${item.formatted_date}</div>
@@ -7208,15 +8026,18 @@ tbody.innerHTML = '';
                                                         `}
                                                     ` : `
                                                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${isLight ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-amber-950/80 text-amber-400 border border-amber-800'}">
-                                                            <i data-lucide="clock" class="w-3 h-3"></i> Perlu Input
+                                                                <i data-lucide="clock" class="w-3 h-3"></i> Perlu Input
                                                         </span>
                                                     `}
                                                 </td>
                                                 <td class="p-3 text-center font-sans">
-                                                    <!-- TOMBOL AKSI ICON-ONLY (EDIT & HAPUS DETAIL NG) -->
+                                                    <!-- TOMBOL AKSI (EDIT, MODE HP, HAPUS DETAIL NG) -->
                                                     <div class="flex items-center justify-center gap-1.5">
-                                                        <button type="button" class="btn-open-ng-modal w-7 h-7 rounded-lg ${item.has_ng_detail ? (isLight ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200' : 'bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200') : (isLight ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300' : 'bg-amber-950/70 hover:bg-amber-900 border border-amber-800/80 text-amber-400 hover:text-amber-200')} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95" data-record-id="${item.production_record_id}" title="${item.has_ng_detail ? 'Edit Detail NG' : 'Input Detail NG'}">
+                                                        <button type="button" class="btn-open-ng-modal w-7 h-7 rounded-lg ${item.has_ng_detail ? (isLight ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200' : 'bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-400 hover:text-cyan-200') : (isLight ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300' : 'bg-amber-950/70 hover:bg-amber-900 border border-amber-800/80 text-amber-400 hover:text-amber-200')} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95" data-record-id="${item.production_record_id}" title="${item.has_ng_detail ? 'Edit Detail NG (Desktop)' : 'Input Detail NG (Desktop)'}">
                                                             <i data-lucide="${item.has_ng_detail ? 'pencil' : 'plus'}" class="w-3.5 h-3.5"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-open-mobile-ng-modal w-7 h-7 rounded-lg ${isLight ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-800/80 text-indigo-400 hover:text-indigo-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95" data-record-id="${item.production_record_id}" title="Input Detail NG (Mode HP / Tablet Layar Sentuh)">
+                                                            <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
                                                         </button>
                                                         ${item.has_ng_detail ? `
                                                             <button type="button" class="btn-delete-ng-row w-7 h-7 rounded-lg ${isLight ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' : 'bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-400 hover:text-rose-200'} border flex items-center justify-center cursor-pointer transition-all shadow-sm hover:scale-110 active:scale-95" data-record-id="${item.production_record_id}" data-ng-id="${item.ng_detail?.id || ''}" title="Hapus / Reset Detail NG">
@@ -7283,12 +8104,29 @@ tbody.innerHTML = '';
             });
         }
 
+        // 1b. Bind Pop-up Fullscreen Focus Buttons
+        const openNgFullscreen = () => {
+            this.showNgFullscreenModal(items, summary);
+        };
+        document.getElementById('btn-ng-fullscreen-popup')?.addEventListener('click', openNgFullscreen);
+        document.getElementById('btn-ng-fullscreen-popup-table')?.addEventListener('click', openNgFullscreen);
+
         // 2. Bind Open NG Detail Modal Buttons
         document.querySelectorAll('.btn-open-ng-modal').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const recordId = e.currentTarget.getAttribute('data-record-id');
                 if (recordId) {
                     this.showNgDetailModal(recordId);
+                }
+            });
+        });
+
+        // 2b. Bind Open Mobile NG Detail Modal Buttons
+        document.querySelectorAll('.btn-open-mobile-ng-modal').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const recordId = e.currentTarget.getAttribute('data-record-id');
+                if (recordId) {
+                    this.showMobileNgDetailModal(recordId);
                 }
             });
         });
@@ -7370,11 +8208,915 @@ tbody.innerHTML = '';
         }
     }
 
+    // ==========================================
+    // 3D. NG REPORT FULLSCREEN POPUP MODAL (MANAGEMENT FLOOR MEETING FOCUS MODE)
+    // ==========================================
+    showNgFullscreenModal(initialItems, initialSummary) {
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) return;
+
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        let modalItems = [...(initialItems || [])];
+        let modalSummary = { ...(initialSummary || {}) };
+        let modalActivePeriod = this.filters.period || 'all';
+        let modalStartDate = this.ngFilters?.start_date || this.filters.start_date || '';
+        let modalEndDate = this.ngFilters?.end_date || this.filters.end_date || '';
+        let modalSingleDate = this.ngFilters?.date || '';
+        let modalActiveStatus = this.ngFilters?.status || 'all';
+        let modalActiveLine = this.ngFilters?.line_id || '';
+        let modalActiveShift = this.ngFilters?.shift_id || '';
+        let modalActiveComp = 'all';
+        let modalSearchQuery = this.ngFilters?.search || '';
+
+        const linesOptions = (this.masterData.lines || []).map(l => 
+            `<option value="${l.id}">${l.code} - ${l.name}</option>`
+        ).join('');
+
+        const shiftsOptions = (this.masterData.shifts || []).map(s => 
+            `<option value="${s.id}">${s.name}</option>`
+        ).join('');
+
+        modalContainer.innerHTML = `
+            <div id="ng-fullscreen-modal-wrapper" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col p-2 sm:p-3 md:p-4 animate-fadeIn select-none">
+                <div class="w-full h-full flex flex-col rounded-2xl border ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} shadow-2xl overflow-hidden">
+                    
+                    <!-- 1. POPUP TOP HEADER -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b ${isLight ? 'bg-slate-50/90 border-slate-200' : 'bg-slate-950/70 border-slate-800'} flex-shrink-0">
+                        <div class="flex items-center gap-2.5">
+                            <h2 class="text-base sm:text-lg font-black tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                <span>Data Histori NG, Defect dan Reject</span>
+                            </h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isLight ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
+                                Management Floor Meeting Mode
+                            </span>
+                        </div>
+
+                        <!-- Header Actions & Close -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Quick Period Pills -->
+                            <div class="inline-flex ${isLight ? 'bg-slate-100 border-slate-200 shadow-xs' : 'bg-slate-900 border-slate-800'} border p-0.5 rounded-xl text-xs font-medium">
+                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'all' && !modalStartDate && !modalSingleDate ? 'bg-indigo-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="all">Semua</button>
+                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'today' && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="today">Hari Ini</button>
+                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${(modalActivePeriod === '7days' || modalActivePeriod === '7d') && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="7days">7 Hari</button>
+                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${(modalActivePeriod === '30days' || modalActivePeriod === '30d') && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="30days">30 Hari</button>
+                            </div>
+
+                            <!-- Dynamic Date Range Filter -->
+                            <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-100 border-slate-200 shadow-xs' : 'bg-slate-950 border-slate-800'} border px-2.5 py-1 rounded-xl text-xs">
+                                <span class="text-[10px] font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-wider flex items-center gap-1">
+                                    <i data-lucide="calendar" class="w-3 h-3 text-cyan-500"></i>
+                                    <span>Dari:</span>
+                                </span>
+                                <input type="date" id="modal-ng-start-date" value="${modalStartDate || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2 py-0.5 text-xs focus:outline-none focus:border-cyan-500 font-mono" />
+                                <span class="text-[10px] font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-wider">s/d</span>
+                                <input type="date" id="modal-ng-end-date" value="${modalEndDate || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2 py-0.5 text-xs focus:outline-none focus:border-cyan-500 font-mono" />
+                                <button id="btn-modal-ng-apply-dates" class="px-2.5 py-1 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white rounded-lg text-[11px] font-bold transition-all shadow-md shadow-rose-600/20 cursor-pointer flex items-center gap-1" title="Terapkan Filter Rentang Tanggal">
+                                    <i data-lucide="filter" class="w-3 h-3"></i>
+                                    <span>Terapkan</span>
+                                </button>
+                                <button id="btn-modal-ng-reset-dates" class="px-2 py-1 ${isLight ? 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} rounded-lg text-[11px] transition-all cursor-pointer" title="Reset Rentang Tanggal">
+                                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+
+                            <!-- Export Excel -->
+                            <button id="btn-modal-ng-export-excel" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition-all cursor-pointer" title="Export Laporan NG ke File Excel / CSV">
+                                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                                <span class="hidden sm:inline">Export Excel</span>
+                            </button>
+
+                            <!-- Close Button -->
+                            <button id="btn-modal-close-ng-popup" class="p-1.5 rounded-xl ${isLight ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'} transition-colors cursor-pointer" title="Tutup Popup (Esc)">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 2. SUMMARY KPI CHIPS STRIP -->
+                    <div id="modal-ng-summary-chips" class="flex flex-wrap items-center justify-between gap-3 px-4 py-2 border-b ${isLight ? 'bg-slate-100/70 border-slate-200 text-slate-700' : 'bg-slate-950/40 border-slate-800/80 text-slate-300'} text-xs font-mono flex-shrink-0">
+                        <!-- Summary metrics populated dynamically -->
+                    </div>
+
+                    <!-- 3. DYNAMIC FILTER TOOLBAR -->
+                    <div class="flex flex-wrap items-center justify-between gap-2.5 p-3 border-b ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900 border-slate-800'} flex-shrink-0">
+                        <!-- Search Box -->
+                        <div class="relative flex-1 min-w-[220px] max-w-md">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="modal-ng-search" value="${modalSearchQuery}" placeholder="Cari Lini, Mesin, Produk/SKU, Komponen, Alasan NG, Section..." class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400' : 'bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-500'} border rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-rose-500 font-sans" />
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Status Filter -->
+                            <select id="modal-ng-status" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 font-sans cursor-pointer">
+                                <option value="all" ${modalActiveStatus === 'all' ? 'selected' : ''}>Semua Status</option>
+                                <option value="pending" ${modalActiveStatus === 'pending' ? 'selected' : ''}>🟡 Belum Diisi / Pending</option>
+                                <option value="completed" ${modalActiveStatus === 'completed' ? 'selected' : ''}>🟢 Selesai Terisi / Lengkap</option>
+                            </select>
+
+                            <!-- Line Filter -->
+                            <select id="modal-ng-line" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 font-sans cursor-pointer max-w-[150px] truncate">
+                                <option value="">Semua Lini Produksi</option>
+                                ${linesOptions}
+                            </select>
+
+                            <!-- Shift Filter -->
+                            <select id="modal-ng-shift" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 font-sans cursor-pointer max-w-[120px] truncate">
+                                <option value="">Semua Shift</option>
+                                ${shiftsOptions}
+                            </select>
+
+                            <!-- Komponen Breakdown Filter -->
+                            <select id="modal-ng-comp" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 font-sans cursor-pointer max-w-[140px] truncate">
+                                <option value="all">Semua Komponen</option>
+                                <option value="assy">Hanya NG Assy</option>
+                                <option value="rod">Hanya NG Rod</option>
+                                <option value="cap">Hanya NG Cap</option>
+                                <option value="non_oee">Hanya Non-OEE</option>
+                            </select>
+
+                            <!-- Count Indicator -->
+                            <span id="modal-ng-count-badge" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold ${isLight ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-rose-950/80 text-rose-300 border border-rose-800'}">
+                                0 Baris Defect
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 4. FULLSCREEN FIT-TO-DISPLAY TABLE CONTAINER (PURE DETAIL VIEW) -->
+                    <div class="flex-1 overflow-y-auto overflow-x-auto min-h-0">
+                        <table class="w-full text-left text-xs">
+                            <thead class="sticky top-0 z-10 ${isLight ? 'bg-slate-100 text-slate-700 shadow-xs' : 'bg-slate-950 text-slate-300 shadow-sm'} uppercase font-bold text-[11px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} tracking-wider">
+                                <tr>
+                                    <th class="p-3 text-center w-12 bg-inherit">No</th>
+                                    <th class="p-3 bg-inherit min-w-[130px]">Tanggal & Shift</th>
+                                    <th class="p-3 bg-inherit min-w-[140px]">Lini & Mesin</th>
+                                    <th class="p-3 bg-inherit min-w-[180px]">Produk & SKU</th>
+                                    <th class="p-3 text-right bg-inherit min-w-[120px]">Output & Target</th>
+                                    <th class="p-3 text-center bg-inherit w-24">Komponen</th>
+                                    <th class="p-3 text-right bg-inherit w-24">Jumlah Defect</th>
+                                    <th class="p-3 text-center bg-inherit w-28">Mesin / OP</th>
+                                    <th class="p-3 bg-inherit min-w-[160px]">Section / Proses</th>
+                                    <th class="p-3 bg-inherit min-w-[220px]">Alasan Defect / Keterangan NG</th>
+                                    <th class="p-3 text-center bg-inherit w-28">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-ng-tbody" class="divide-y ${isLight ? 'divide-slate-200 text-slate-800' : 'divide-slate-800/60 text-slate-200'} font-mono">
+                                <!-- Dynamic rows populated via renderModalRows() -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 5. POPUP FOOTER -->
+                    <div class="flex flex-wrap items-center justify-between text-xs px-4 py-2.5 border-t ${isLight ? 'bg-slate-50 border-slate-200 text-slate-600' : 'bg-slate-950 border-slate-800 text-slate-400'} font-sans flex-shrink-0">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md ${isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-slate-300'} font-mono text-[10px]">
+                                ⌨️ Tekan <kbd class="font-bold ${isLight ? 'text-slate-900' : 'text-white'}">ESC</kbd> untuk menutup
+                            </span>
+                            <span class="hidden sm:inline ${isLight ? 'text-slate-500' : 'text-slate-500'}">| Mode fokus meeting lantai produksi (Pure Detailed Table View)</span>
+                        </div>
+                        <div id="modal-ng-total-footer" class="font-mono font-bold ${isLight ? 'text-rose-600' : 'text-rose-400'}">
+                            Total: 0 Pcs NG
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+
+        // Method to dynamically fetch updated NG data inside modal
+        const fetchModalData = async () => {
+            const params = {};
+            if (modalStartDate && modalEndDate) {
+                params.start_date = modalStartDate;
+                params.end_date = modalEndDate;
+            } else if (modalStartDate) {
+                params.start_date = modalStartDate;
+            } else if (modalSingleDate) {
+                params.date = modalSingleDate;
+            } else if (modalActivePeriod === 'today') {
+                params.date = new Date().toISOString().slice(0, 10);
+            } else if (modalActivePeriod === 'yesterday') {
+                const y = new Date();
+                y.setDate(y.getDate() - 1);
+                params.date = y.toISOString().slice(0, 10);
+            } else if (modalActivePeriod === '7days' || modalActivePeriod === '7d') {
+                const d = new Date();
+                d.setDate(d.getDate() - 7);
+                params.start_date = d.toISOString().slice(0, 10);
+                params.end_date = new Date().toISOString().slice(0, 10);
+            } else if (modalActivePeriod === '30days' || modalActivePeriod === '30d') {
+                const d = new Date();
+                d.setDate(d.getDate() - 30);
+                params.start_date = d.toISOString().slice(0, 10);
+                params.end_date = new Date().toISOString().slice(0, 10);
+            } else if (modalActivePeriod === 'this_month') {
+                const now = new Date();
+                params.start_date = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+                params.end_date = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+            }
+
+            if (modalActiveLine) params.line_id = modalActiveLine;
+            if (modalActiveShift) params.shift_id = modalActiveShift;
+            if (modalActiveStatus && modalActiveStatus !== 'all') params.status = modalActiveStatus;
+
+            try {
+                const tbody = document.getElementById('modal-ng-tbody');
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="11" class="p-8 text-center text-slate-400 font-sans">
+                                <div class="w-8 h-8 border-4 border-rose-500/30 border-t-rose-500 rounded-full animate-spin mx-auto mb-2"></div>
+                                <div class="text-xs font-bold">Memuat data rincian NG...</div>
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                const res = await api.getNgQueue(params);
+                modalItems = res.data.data || [];
+                modalSummary = res.data.summary || {
+                    total_reports_with_ng: 0,
+                    pending_count: 0,
+                    completed_count: 0,
+                    total_ng_target_pcs: 0,
+                    total_ng_oee_pcs: 0,
+                    total_ng_non_oee_pcs: 0,
+                    breakdown_oee: { assy: 0, rod: 0, cap: 0 },
+                    breakdown_non_oee: { bolt: 0, bush: 0, nut: 0, pin: 0 },
+                };
+                renderModalRows();
+            } catch (err) {
+                console.error('Error fetching modal NG data:', err);
+                renderModalRows();
+            }
+        };
+
+        // Helper to format component badge style
+        const getComponentBadge = (compType, isLightMode) => {
+            const t = (compType || 'ASSY').toUpperCase();
+            if (t === 'ASSY') {
+                return `<span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-black ${isLightMode ? 'bg-sky-100 text-sky-800 border border-sky-300' : 'bg-cyan-950/90 text-cyan-300 border border-cyan-500/80 shadow-[0_0_8px_rgba(6,182,212,0.25)]'}">ASSY</span>`;
+            }
+            if (t === 'ROD') {
+                return `<span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-black ${isLightMode ? 'bg-indigo-100 text-indigo-800 border border-indigo-300' : 'bg-indigo-950/90 text-indigo-300 border border-indigo-500/80 shadow-[0_0_8px_rgba(99,102,241,0.25)]'}">ROD</span>`;
+            }
+            if (t === 'CAP') {
+                return `<span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-black ${isLightMode ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-rose-950/90 text-rose-300 border border-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.25)]'}">CAP</span>`;
+            }
+            if (t === 'BOLT') {
+                return `<span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-black ${isLightMode ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-950/90 text-amber-300 border border-amber-500/80'}">BOLT</span>`;
+            }
+            if (t === 'BUSH') {
+                return `<span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-black ${isLightMode ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/80'}">BUSH</span>`;
+            }
+            if (t === 'NUT') {
+                return `<span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-black ${isLightMode ? 'bg-violet-100 text-violet-800 border border-violet-300' : 'bg-violet-950/90 text-violet-300 border border-violet-500/80'}">NUT</span>`;
+            }
+            if (t === 'PIN') {
+                return `<span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-black ${isLightMode ? 'bg-teal-100 text-teal-800 border border-teal-300' : 'bg-teal-950/90 text-teal-300 border border-teal-500/80'}">PIN</span>`;
+            }
+            if (t === 'PENDING') {
+                return `<span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-black ${isLightMode ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-950/90 text-amber-300 border border-amber-500'} animate-pulse">PENDING</span>`;
+            }
+            return `<span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-black ${isLightMode ? 'bg-purple-100 text-purple-800 border border-purple-300' : 'bg-purple-950/90 text-purple-300 border border-purple-500/80'}">${t}</span>`;
+        };
+
+        // Render Table Rows in Fullscreen Modal (Pure Detailed Flat View per Component Defect)
+        const renderModalRows = () => {
+            const tbody = document.getElementById('modal-ng-tbody');
+            const countBadge = document.getElementById('modal-ng-count-badge');
+            const chipsContainer = document.getElementById('modal-ng-summary-chips');
+            const totalFooter = document.getElementById('modal-ng-total-footer');
+            if (!tbody) return;
+
+            const q = (modalSearchQuery || '').toLowerCase().trim();
+
+            // 1. Filter original report items first
+            const filteredReports = modalItems.filter(item => {
+                // Status Filter
+                if (modalActiveStatus === 'pending') {
+                    if (item.has_ng_detail && item.is_balanced) return false;
+                } else if (modalActiveStatus === 'completed') {
+                    if (!item.has_ng_detail || !item.is_balanced) return false;
+                }
+
+                // Line Filter
+                if (modalActiveLine) {
+                    if (String(item.production_line_id) !== String(modalActiveLine) && String(item.line_id) !== String(modalActiveLine)) return false;
+                }
+
+                // Shift Filter
+                if (modalActiveShift) {
+                    if (String(item.shift_id) !== String(modalActiveShift)) return false;
+                }
+
+                return true;
+            });
+
+            // 2. Expand reports into granular per-component defect rows
+            let detailRows = [];
+            filteredReports.forEach(item => {
+                const ng = item.ng_detail;
+                const breakdown = (ng && ((ng.items && ng.items.length > 0) ? ng.items : (ng.items_breakdown && ng.items_breakdown.length > 0 ? ng.items_breakdown : null)));
+
+                if (breakdown && breakdown.length > 0) {
+                    breakdown.forEach((b, bIdx) => {
+                        detailRows.push({
+                            recordId: item.production_record_id,
+                            date: item.formatted_date || item.production_date,
+                            shift: item.shift_name,
+                            line: item.line_name || item.line_code,
+                            lineId: item.production_line_id || item.line_id,
+                            machine: item.machine_name || item.machine_code || '-',
+                            product: item.product_name || '-',
+                            sku: item.product_sku || '-',
+                            totalOutput: item.total_output || 0,
+                            goodQty: item.good_quantity || 0,
+                            targetNg: item.total_ng_target || 0,
+                            component: (b.component_type || 'ASSY').toUpperCase(),
+                            quantity: b.quantity || 0,
+                            op_machine: b.op_machine || '-',
+                            section: b.section || '-',
+                            reason: b.reason || '-',
+                            status: item.has_ng_detail ? (item.is_balanced ? 'LENGKAP' : `SELISIH (${item.variance})`) : 'PENDING',
+                            isBalanced: item.is_balanced,
+                            hasDetail: item.has_ng_detail,
+                            variance: item.variance || 0,
+                            itemIndex: bIdx + 1,
+                            parentReport: item
+                        });
+                    });
+                } else if (ng) {
+                    // Fallback to scalar component counts if items breakdown is empty
+                    let hasComponents = false;
+                    const compDefs = [
+                        { key: 'ng_assy', name: 'ASSY', section: 'Komponen Wajib (OEE)' },
+                        { key: 'ng_rod', name: 'ROD', section: 'Komponen Wajib (OEE)' },
+                        { key: 'ng_cap', name: 'CAP', section: 'Komponen Wajib (OEE)' },
+                        { key: 'ng_bolt', name: 'BOLT', section: 'Pelengkap (Non-OEE)' },
+                        { key: 'ng_bush', name: 'BUSH', section: 'Pelengkap (Non-OEE)' },
+                        { key: 'ng_nut', name: 'NUT', section: 'Pelengkap (Non-OEE)' },
+                        { key: 'ng_pin', name: 'PIN', section: 'Pelengkap (Non-OEE)' }
+                    ];
+
+                    compDefs.forEach(c => {
+                        const qty = ng[c.key] || 0;
+                        if (qty > 0) {
+                            hasComponents = true;
+                            detailRows.push({
+                                recordId: item.production_record_id,
+                                date: item.formatted_date || item.production_date,
+                                shift: item.shift_name,
+                                line: item.line_name || item.line_code,
+                                lineId: item.production_line_id || item.line_id,
+                                machine: item.machine_name || item.machine_code || '-',
+                                product: item.product_name || '-',
+                                sku: item.product_sku || '-',
+                                totalOutput: item.total_output || 0,
+                                goodQty: item.good_quantity || 0,
+                                targetNg: item.total_ng_target || 0,
+                                component: c.name,
+                                quantity: qty,
+                                op_machine: '-',
+                                section: c.section,
+                                reason: 'Rincian Defect Belum Ditentukan',
+                                status: item.has_ng_detail ? (item.is_balanced ? 'LENGKAP' : `SELISIH (${item.variance})`) : 'PENDING',
+                                isBalanced: item.is_balanced,
+                                hasDetail: item.has_ng_detail,
+                                variance: item.variance || 0,
+                                itemIndex: 1,
+                                parentReport: item
+                            });
+                        }
+                    });
+
+                    if (!hasComponents) {
+                        detailRows.push({
+                            recordId: item.production_record_id,
+                            date: item.formatted_date || item.production_date,
+                            shift: item.shift_name,
+                            line: item.line_name || item.line_code,
+                            lineId: item.production_line_id || item.line_id,
+                            machine: item.machine_name || item.machine_code || '-',
+                            product: item.product_name || '-',
+                            sku: item.product_sku || '-',
+                            totalOutput: item.total_output || 0,
+                            goodQty: item.good_quantity || 0,
+                            targetNg: item.total_ng_target || 0,
+                            component: 'PENDING',
+                            quantity: item.total_ng_target || 0,
+                            op_machine: '-',
+                            section: '-',
+                            reason: 'Belum Ada Rincian Komponen Terdata',
+                            status: 'PENDING',
+                            isBalanced: false,
+                            hasDetail: false,
+                            variance: item.total_ng_target || 0,
+                            parentReport: item
+                        });
+                    }
+                } else {
+                    // Pending report (no detail at all)
+                    detailRows.push({
+                        recordId: item.production_record_id,
+                        date: item.formatted_date || item.production_date,
+                        shift: item.shift_name,
+                        line: item.line_name || item.line_code,
+                        lineId: item.production_line_id || item.line_id,
+                        machine: item.machine_name || item.machine_code || '-',
+                        product: item.product_name || '-',
+                        sku: item.product_sku || '-',
+                        totalOutput: item.total_output || 0,
+                        goodQty: item.good_quantity || 0,
+                        targetNg: item.total_ng_target || 0,
+                        component: 'PENDING',
+                        quantity: item.total_ng_target || 0,
+                        op_machine: '-',
+                        section: '-',
+                        reason: 'Belum Diisi / Menunggu Input Detail NG',
+                        status: 'PENDING',
+                        isBalanced: false,
+                        hasDetail: false,
+                        variance: item.total_ng_target || 0,
+                        parentReport: item
+                    });
+                }
+            });
+
+            // 3. Filter detail rows by Component and Search query
+            const finalRows = detailRows.filter(row => {
+                // Component Filter
+                if (modalActiveComp === 'assy' && row.component !== 'ASSY') return false;
+                if (modalActiveComp === 'rod' && row.component !== 'ROD') return false;
+                if (modalActiveComp === 'cap' && row.component !== 'CAP') return false;
+                if (modalActiveComp === 'non_oee' && !['BOLT', 'BUSH', 'NUT', 'PIN', 'NON_OEE'].includes(row.component)) return false;
+
+                // Search Query
+                if (q) {
+                    const rowText = `${row.line} ${row.machine} ${row.product} ${row.sku} ${row.component} ${row.section} ${row.op_machine} ${row.reason} ${row.shift} ${row.date}`.toLowerCase();
+                    if (!rowText.includes(q)) return false;
+                }
+
+                return true;
+            });
+
+            // Summary metrics
+            const totalDefectPcs = finalRows.reduce((s, r) => s + (r.quantity || 0), 0);
+            const totalAssyPcs = finalRows.filter(r => r.component === 'ASSY').reduce((s, r) => s + (r.quantity || 0), 0);
+            const totalRodPcs = finalRows.filter(r => r.component === 'ROD').reduce((s, r) => s + (r.quantity || 0), 0);
+            const totalCapPcs = finalRows.filter(r => r.component === 'CAP').reduce((s, r) => s + (r.quantity || 0), 0);
+            const totalNonOeePcs = finalRows.filter(r => ['BOLT', 'BUSH', 'NUT', 'PIN', 'NON_OEE'].includes(r.component)).reduce((s, r) => s + (r.quantity || 0), 0);
+            const pendingRowsCount = finalRows.filter(r => r.status === 'PENDING').length;
+            const completedRowsCount = finalRows.length - pendingRowsCount;
+
+            if (countBadge) {
+                countBadge.textContent = `${finalRows.length} Baris Defect (${totalDefectPcs.toLocaleString()} Pcs)`;
+            }
+
+            if (totalFooter) {
+                totalFooter.textContent = `Total Rincian NG: ${totalDefectPcs.toLocaleString()} Pcs | Wajib OEE: ${(totalAssyPcs + totalRodPcs + totalCapPcs).toLocaleString()} Pcs (Assy: ${totalAssyPcs}, Rod: ${totalRodPcs}, Cap: ${totalCapPcs}) | Non-OEE: ${totalNonOeePcs.toLocaleString()} Pcs`;
+            }
+
+            if (chipsContainer) {
+                chipsContainer.innerHTML = `
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                            <span>Total Baris Defect: <strong class="text-rose-300 font-bold">${finalRows.length} Baris (${totalDefectPcs.toLocaleString()} Pcs)</strong></span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                            <span>OEE Wajib: <strong class="text-cyan-300 font-bold">${(totalAssyPcs + totalRodPcs + totalCapPcs).toLocaleString()} Pcs</strong> (Assy: ${totalAssyPcs} | Rod: ${totalRodPcs} | Cap: ${totalCapPcs})</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                            <span>Non-OEE: <strong class="text-purple-300 font-bold">${totalNonOeePcs.toLocaleString()} Pcs</strong></span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 text-emerald-200 border border-emerald-500/80 font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span>✓ ${completedRowsCount} Lengkap</span>
+                        </span>
+                        ${pendingRowsCount > 0 ? `
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950 text-amber-200 border-2 border-amber-500 font-black shadow-[0_0_14px_rgba(245,158,11,0.5)] animate-pulse">
+                                <span class="relative flex h-2 w-2">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-90"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                </span>
+                                <span>⚠️ ${pendingRowsCount} Perlu Input</span>
+                            </span>
+                        ` : `
+                            <span class="px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 text-[11px]">
+                                0 Pending
+                            </span>
+                        `}
+                    </div>
+                `;
+            }
+
+            if (finalRows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="p-12 text-center text-slate-500 font-sans">
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-500 opacity-70"></i>
+                                <span class="font-bold text-sm">Tidak ada rincian baris defect NG yang cocok dengan filter.</span>
+                                <span class="text-xs text-slate-400">Semua target reject telah teralokasi atau tidak ada data pada periode ini.</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            // Render pure detailed flat table rows
+            tbody.innerHTML = finalRows.map((row, idx) => {
+                return `
+                    <tr class="${isLight ? 'hover:bg-slate-50/90' : 'hover:bg-slate-800/50'} transition-colors ${row.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/15') : ''}">
+                        <!-- 1. No -->
+                        <td class="p-3 text-center font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'} text-[11px]">${idx + 1}</td>
+                        
+                        <!-- 2. Tanggal & Shift -->
+                        <td class="p-3 font-sans">
+                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${row.date}</div>
+                            <div class="text-[10px] ${isLight ? 'text-cyan-700' : 'text-cyan-400'} font-mono">${row.shift}</div>
+                        </td>
+
+                        <!-- 3. Lini & Mesin -->
+                        <td class="p-3 font-sans">
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-2 py-0.5 rounded text-[11px] font-bold ${this.getLineBadgeStyle(row.line || row.lineId, isLight)} border font-mono">
+                                    🏭 ${row.line}
+                                </span>
+                            </div>
+                            <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono mt-0.5">${row.machine}</div>
+                        </td>
+
+                        <!-- 4. Produk & SKU -->
+                        <td class="p-3 font-sans">
+                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate max-w-[220px]" title="${row.product}">${row.product}</div>
+                            <div class="text-[10px] ${isLight ? 'text-amber-700 font-bold' : 'text-amber-400'} font-mono">${row.sku}</div>
+                        </td>
+
+                        <!-- 5. Total Output & Target NG -->
+                        <td class="p-3 text-right">
+                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${row.totalOutput.toLocaleString()} Out</div>
+                            <div class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-mono">
+                                <span class="${isLight ? 'text-emerald-700 font-semibold' : 'text-emerald-400'}">${row.goodQty.toLocaleString()} OK</span> • 
+                                <span class="${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${row.targetNg.toLocaleString()} NG</span>
+                            </div>
+                        </td>
+
+                        <!-- 6. Komponen Badge (Assy, Rod, Cap, Non-OEE) -->
+                        <td class="p-3 text-center">
+                            ${getComponentBadge(row.component, isLight)}
+                        </td>
+
+                        <!-- 7. Jumlah Defect (Pcs) -->
+                        <td class="p-3 text-right">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-black ${isLight ? 'bg-rose-50 text-rose-800 border border-rose-300 shadow-xs' : 'bg-rose-950/90 text-rose-300 border border-rose-800'} font-mono inline-block">
+                                ${row.quantity.toLocaleString()} Pcs
+                            </span>
+                        </td>
+
+                        <!-- 8. Mesin / OP -->
+                        <td class="p-3 text-center font-sans">
+                            ${row.op_machine && row.op_machine !== '-' ? `
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-purple-950 text-purple-300 border border-purple-800'} inline-block">
+                                    ${row.op_machine}
+                                </span>
+                            ` : `<span class="${isLight ? 'text-slate-400' : 'text-slate-600'} font-mono">-</span>`}
+                        </td>
+
+                        <!-- 9. Section / Proses -->
+                        <td class="p-3 font-sans">
+                            <div class="text-xs ${isLight ? 'text-slate-800' : 'text-slate-300'}">${row.section}</div>
+                        </td>
+
+                        <!-- 10. Alasan Defect / Keterangan NG -->
+                        <td class="p-3 font-sans">
+                            <div class="text-xs font-semibold ${isLight ? 'text-amber-800' : 'text-amber-300'}">${row.reason}</div>
+                        </td>
+
+                        <!-- 11. Status -->
+                        <td class="p-3 text-center font-sans">
+                            ${row.hasDetail ? `
+                                ${row.isBalanced ? `
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'}">
+                                        <i data-lucide="check" class="w-3 h-3"></i> Lengkap
+                                    </span>
+                                ` : `
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-rose-950/80 text-rose-300 border border-rose-800'}">
+                                        <i data-lucide="alert-circle" class="w-3 h-3"></i> Selisih ${row.variance}
+                                    </span>
+                                `}
+                            ` : `
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-amber-950/80 text-amber-300 border border-amber-800'}">
+                                    <i data-lucide="clock" class="w-3 h-3"></i> Perlu Input
+                                </span>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        // Initialize First View Render
+        if (!initialItems || initialItems.length === 0) {
+            fetchModalData();
+        } else {
+            renderModalRows();
+        }
+
+        // 1. Close Modal Handler (Button & ESC Key)
+        const closeModal = () => {
+            const wrapper = document.getElementById('ng-fullscreen-modal-wrapper');
+            if (wrapper) wrapper.remove();
+            document.removeEventListener('keydown', handleEsc);
+            
+            // If in TV Mode, stay on TV Dashboard without re-rendering other pages
+            if (this.tvMode) {
+                return;
+            }
+            if (this.currentTab === 'ng-report') {
+                this.renderNgReport();
+            }
+        };
+
+        const handleEsc = (e) => {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                closeModal();
+            }
+        };
+
+        document.getElementById('btn-modal-close-ng-popup')?.addEventListener('click', closeModal);
+        document.addEventListener('keydown', handleEsc);
+
+        // 2. Quick Period Pills inside Modal
+        document.querySelectorAll('.btn-modal-ng-period').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                modalActivePeriod = e.currentTarget.getAttribute('data-period');
+                modalStartDate = '';
+                modalEndDate = '';
+                modalSingleDate = '';
+                const startEl = document.getElementById('modal-ng-start-date');
+                const endEl = document.getElementById('modal-ng-end-date');
+                if (startEl) startEl.value = '';
+                if (endEl) endEl.value = '';
+
+                document.querySelectorAll('.btn-modal-ng-period').forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                    b.classList.add('text-slate-400');
+                });
+                btn.classList.add('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                btn.classList.remove('text-slate-400');
+
+                fetchModalData();
+            });
+        });
+
+        // 3. Date Range Filter in Modal
+        document.getElementById('btn-modal-ng-apply-dates')?.addEventListener('click', () => {
+            modalStartDate = document.getElementById('modal-ng-start-date')?.value || '';
+            modalEndDate = document.getElementById('modal-ng-end-date')?.value || '';
+            modalSingleDate = '';
+            modalActivePeriod = 'custom';
+
+            document.querySelectorAll('.btn-modal-ng-period').forEach(b => {
+                b.classList.remove('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                b.classList.add('text-slate-400');
+            });
+
+            fetchModalData();
+        });
+
+        document.getElementById('btn-modal-ng-reset-dates')?.addEventListener('click', () => {
+            modalStartDate = '';
+            modalEndDate = '';
+            modalSingleDate = '';
+            modalActivePeriod = 'all';
+            const startEl = document.getElementById('modal-ng-start-date');
+            const endEl = document.getElementById('modal-ng-end-date');
+            if (startEl) startEl.value = '';
+            if (endEl) endEl.value = '';
+
+            document.querySelectorAll('.btn-modal-ng-period').forEach(b => {
+                if (b.getAttribute('data-period') === 'all') {
+                    b.classList.add('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                    b.classList.remove('text-slate-400');
+                } else {
+                    b.classList.remove('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                    b.classList.add('text-slate-400');
+                }
+            });
+
+            fetchModalData();
+        });
+
+        // 4. Live Search in Modal
+        document.getElementById('modal-ng-search')?.addEventListener('input', (e) => {
+            modalSearchQuery = e.target.value;
+            renderModalRows();
+        });
+
+        // 5. Status Filter in Modal
+        document.getElementById('modal-ng-status')?.addEventListener('change', (e) => {
+            modalActiveStatus = e.target.value;
+            fetchModalData();
+        });
+
+        // 6. Line Filter in Modal
+        document.getElementById('modal-ng-line')?.addEventListener('change', (e) => {
+            modalActiveLine = e.target.value;
+            fetchModalData();
+        });
+
+        // 7. Shift Filter in Modal
+        document.getElementById('modal-ng-shift')?.addEventListener('change', (e) => {
+            modalActiveShift = e.target.value;
+            fetchModalData();
+        });
+
+        // 8. Component Filter in Modal
+        document.getElementById('modal-ng-comp')?.addEventListener('change', (e) => {
+            modalActiveComp = e.target.value;
+            renderModalRows();
+        });
+
+        // 9. Export Excel from Fullscreen Modal
+        document.getElementById('btn-modal-ng-export-excel')?.addEventListener('click', () => {
+            this.exportNgExcel(modalItems, modalSummary);
+        });
+    }
+
+    // ==========================================
+    // 3E. EXPORT NG REPORT TO EXCEL / CSV (GRANULAR PER-COMPONENT DETAIL)
+    // ==========================================
+    exportNgExcel(items, summary) {
+        if (!items || items.length === 0) {
+            this.showNotification('Info', 'Tidak ada data antrean NG untuk diekspor.', 'info');
+            return;
+        }
+
+        const headers = [
+            'No',
+            'Tanggal Produksi',
+            'Shift',
+            'Lini Produksi',
+            'Mesin / Work Center',
+            'Nama Produk Part',
+            'SKU Part',
+            'Total Output (Pcs)',
+            'Good Output OK (Pcs)',
+            'Total Target Reject NG (Pcs)',
+            'Komponen Defect',
+            'Jumlah Defect (Pcs)',
+            'Mesin / OP',
+            'Section / Proses',
+            'Alasan Defect / Reason',
+            'Status Input Detail',
+            'Variance Selisih'
+        ];
+
+        let exportRowIndex = 1;
+        const csvRows = [];
+
+        items.forEach(it => {
+            const ng = it.ng_detail;
+            const breakdown = (ng && ((ng.items && ng.items.length > 0) ? ng.items : (ng.items_breakdown && ng.items_breakdown.length > 0 ? ng.items_breakdown : null)));
+
+            if (breakdown && breakdown.length > 0) {
+                breakdown.forEach(b => {
+                    csvRows.push([
+                        exportRowIndex++,
+                        `"${it.formatted_date || it.production_date || ''}"`,
+                        `"${it.shift_name || ''}"`,
+                        `"${it.line_name || it.line_code || ''}"`,
+                        `"${it.machine_name || it.machine_code || ''}"`,
+                        `"${(it.product_name || '').replace(/"/g, '""')}"`,
+                        `"${it.product_sku || ''}"`,
+                        it.total_output || 0,
+                        it.good_quantity || 0,
+                        it.total_ng_target || 0,
+                        `"${(b.component_type || 'ASSY').toUpperCase()}"`,
+                        b.quantity || 0,
+                        `"${b.op_machine || '-'}"`,
+                        `"${(b.section || '-').replace(/"/g, '""')}"`,
+                        `"${(b.reason || '-').replace(/"/g, '""')}"`,
+                        it.has_ng_detail ? (it.is_balanced ? 'LENGKAP' : `SELISIH (${it.variance})`) : 'PERLU_INPUT',
+                        it.variance || 0
+                    ].join(','));
+                });
+            } else if (ng) {
+                const compDefs = [
+                    { key: 'ng_assy', name: 'ASSY', section: 'Komponen Wajib (OEE)' },
+                    { key: 'ng_rod', name: 'ROD', section: 'Komponen Wajib (OEE)' },
+                    { key: 'ng_cap', name: 'CAP', section: 'Komponen Wajib (OEE)' },
+                    { key: 'ng_bolt', name: 'BOLT', section: 'Pelengkap (Non-OEE)' },
+                    { key: 'ng_bush', name: 'BUSH', section: 'Pelengkap (Non-OEE)' },
+                    { key: 'ng_nut', name: 'NUT', section: 'Pelengkap (Non-OEE)' },
+                    { key: 'ng_pin', name: 'PIN', section: 'Pelengkap (Non-OEE)' }
+                ];
+
+                let hasComp = false;
+                compDefs.forEach(c => {
+                    const qty = ng[c.key] || 0;
+                    if (qty > 0) {
+                        hasComp = true;
+                        csvRows.push([
+                            exportRowIndex++,
+                            `"${it.formatted_date || it.production_date || ''}"`,
+                            `"${it.shift_name || ''}"`,
+                            `"${it.line_name || it.line_code || ''}"`,
+                            `"${it.machine_name || it.machine_code || ''}"`,
+                            `"${(it.product_name || '').replace(/"/g, '""')}"`,
+                            `"${it.product_sku || ''}"`,
+                            it.total_output || 0,
+                            it.good_quantity || 0,
+                            it.total_ng_target || 0,
+                            `"${c.name}"`,
+                            qty,
+                            '"-"',
+                            `"${c.section}"`,
+                            '"Rincian Defect Belum Ditentukan"',
+                            it.has_ng_detail ? (it.is_balanced ? 'LENGKAP' : `SELISIH (${it.variance})`) : 'PERLU_INPUT',
+                            it.variance || 0
+                        ].join(','));
+                    }
+                });
+
+                if (!hasComp) {
+                    csvRows.push([
+                        exportRowIndex++,
+                        `"${it.formatted_date || it.production_date || ''}"`,
+                        `"${it.shift_name || ''}"`,
+                        `"${it.line_name || it.line_code || ''}"`,
+                        `"${it.machine_name || it.machine_code || ''}"`,
+                        `"${(it.product_name || '').replace(/"/g, '""')}"`,
+                        `"${it.product_sku || ''}"`,
+                        it.total_output || 0,
+                        it.good_quantity || 0,
+                        it.total_ng_target || 0,
+                        '"PENDING"',
+                        it.total_ng_target || 0,
+                        '"-"',
+                        '"-"',
+                        '"Belum Ada Rincian Komponen Terdata"',
+                        'PERLU_INPUT',
+                        it.total_ng_target || 0
+                    ].join(','));
+                }
+            } else {
+                csvRows.push([
+                    exportRowIndex++,
+                    `"${it.formatted_date || it.production_date || ''}"`,
+                    `"${it.shift_name || ''}"`,
+                    `"${it.line_name || it.line_code || ''}"`,
+                    `"${it.machine_name || it.machine_code || ''}"`,
+                    `"${(it.product_name || '').replace(/"/g, '""')}"`,
+                    `"${it.product_sku || ''}"`,
+                    it.total_output || 0,
+                    it.good_quantity || 0,
+                    it.total_ng_target || 0,
+                    '"PENDING"',
+                    it.total_ng_target || 0,
+                    '"-"',
+                    '"-"',
+                    '"Belum Diisi / Menunggu Input Detail NG"',
+                    'PERLU_INPUT',
+                    it.total_ng_target || 0
+                ].join(','));
+            }
+        });
+
+        const csvContent = '\uFEFF' + headers.join(',') + '\n' + csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const filename = `Data_Rincian_NG_Defect_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        this.showNotification('Export Berhasil', `File ${filename} (${csvRows.length} baris defect) berhasil diunduh.`, 'status');
+    }
+
     /**
      * Interactive Modal for Entering & Balancing NG Component Breakdown
      * Supports Dynamic Multi-Row Input with '+' Button per NG Breakdown Instance
      */
-    async showNgDetailModal(productionRecordId) {
+    async showNgDetailModal(productionRecordId, forceDesktop = false) {
+        // Auto switch to mobile layout on small screens unless explicitly requested
+        if (!forceDesktop && window.innerWidth <= 768) {
+            return this.showMobileNgDetailModal(productionRecordId);
+        }
+
         const modalContainer = document.getElementById('modal-container');
         if (!modalContainer) return;
 
@@ -7498,9 +9240,15 @@ tbody.innerHTML = '';
                                     <p class="text-xs ${isLightModal ? 'text-slate-500' : 'text-slate-400'}">${item.formatted_date} • ${item.shift_name} • ${item.line_name} (${item.machine_name})</p>
                                 </div>
                             </div>
-                            <button type="button" id="btn-close-ng-modal" class="p-1.5 rounded-lg ${isLightModal ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} transition-colors cursor-pointer" title="Tutup">
-                                <i data-lucide="x" class="w-5 h-5"></i>
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btn-switch-to-mobile-ng-modal" class="px-2.5 py-1.5 rounded-lg text-xs font-bold ${isLightModal ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'bg-indigo-950/80 text-indigo-300 border-indigo-800 hover:bg-indigo-900'} border flex items-center gap-1.5 transition-colors cursor-pointer" title="Beralih ke Tampilan Layar HP / Touchscreen">
+                                    <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+                                    <span class="hidden sm:inline">Mode HP 📱</span>
+                                </button>
+                                <button type="button" id="btn-close-ng-modal" class="p-1.5 rounded-lg ${isLightModal ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} transition-colors cursor-pointer" title="Tutup">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- MODAL BODY FORM WRAPPER -->
@@ -7696,6 +9444,11 @@ tbody.innerHTML = '';
             if (this.currentLang === 'ja') {
                 i18n.localizeDom(modalContainer);
             }
+
+            // Bind Switch to Mobile Layout
+            document.getElementById('btn-switch-to-mobile-ng-modal')?.addEventListener('click', () => {
+                this.showMobileNgDetailModal(productionRecordId);
+            });
 
             // 1. Dynamic Multi-Row Table Renderer & Calculator
             const tbody = document.getElementById('ng-dynamic-rows-tbody');
@@ -7982,11 +9735,11 @@ tbody.innerHTML = '';
                         }
 
                         if (!it.section || String(it.section).trim() === '') {
-                            markRowInvalid(`select[data-row-idx="${idx}"][data-field="section"]`, `<strong>Baris #${rowNum}:</strong> Bagian NG wajib dipilih.`);
+                            markRowInvalid(`input[data-row-idx="${idx}"][data-field="section"]`, `<strong>Baris #${rowNum}:</strong> Bagian NG wajib dipilih.`);
                         }
 
                         if (!it.reason || String(it.reason).trim() === '') {
-                            markRowInvalid(`select[data-row-idx="${idx}"][data-field="reason"]`, `<strong>Baris #${rowNum}:</strong> Penyebab / Remark defect wajib dipilih.`);
+                            markRowInvalid(`input[data-row-idx="${idx}"][data-field="reason"]`, `<strong>Baris #${rowNum}:</strong> Penyebab / Remark defect wajib dipilih.`);
                         }
                     });
 
@@ -8051,103 +9804,898 @@ tbody.innerHTML = '';
         }
     }
 
+    /**
+     * Mobile & Tablet Touch-Optimized Modal for NG Component Breakdown Entry
+     * Features card-based defect builder, steppers, sticky headers & footers, and live balance
+     */
+    async showMobileNgDetailModal(productionRecordId) {
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) return;
+
+        modalContainer.innerHTML = `
+            <div class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-cyan-950/80 border border-cyan-800/80 text-cyan-400 flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="smartphone" class="w-6 h-6 animate-pulse"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-white mb-1">Memuat Form Mobile NG...</h3>
+                    <p class="text-xs text-slate-400 font-mono">Menyiapkan layout layar sentuh & data...</p>
+                </div>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+
+        try {
+            const detailRes = await api.getNgDetail(productionRecordId);
+            const item = detailRes.data.data;
+            const ng = item.ng_record || {};
+            const targetNg = item.total_ng_target || 0;
+
+            const sectionsBank = detailRes.data.bank_data?.sections || [
+                'Small End (Pin Bore)',
+                'Big End (Crank Bore)',
+                'Rod Body (I-Beam)',
+                'Cap Body',
+                'Joint Face / Serration',
+                'Side Face / Thrust Width',
+                'Bolt Hole & Thread',
+                'Oil Hole (Lubrication)',
+                'Bushing Press Fit Area',
+                'Assembly Fitment / Rakitan',
+            ];
+
+            const reasonsBank = detailRes.data.bank_data?.reasons || [];
+            const opMachinesBank = detailRes.data.bank_data?.op_machines || this.masterData?.machines?.map(m => ({
+                id: m.id,
+                name: m.name,
+                code: m.code,
+                line_id: m.line_id,
+                label: m.name + (m.code ? ` (${m.code})` : '')
+            })) || [];
+
+            // Initialize Dynamic NG Breakdown Items State
+            let ngItemsState = [];
+            if (ng.items && Array.isArray(ng.items) && ng.items.length > 0) {
+                ngItemsState = ng.items.map(it => ({
+                    component_type: it.component_type || 'ASSY',
+                    quantity: parseInt(it.quantity || 1),
+                    op_machine: it.op_machine || '',
+                    section: it.section || '',
+                    reason: it.reason || ''
+                }));
+            } else if (ng.items_breakdown && Array.isArray(ng.items_breakdown) && ng.items_breakdown.length > 0) {
+                ngItemsState = ng.items_breakdown.map(it => ({
+                    component_type: it.component_type || 'ASSY',
+                    quantity: parseInt(it.quantity || 1),
+                    op_machine: it.op_machine || '',
+                    section: it.section || '',
+                    reason: it.reason || ''
+                }));
+            } else if (ng.ng_assy > 0 || ng.ng_rod > 0 || ng.ng_cap > 0) {
+                if (ng.ng_assy > 0) {
+                    ngItemsState.push({
+                        component_type: 'ASSY',
+                        quantity: parseInt(ng.ng_assy),
+                        op_machine: ng.op_machine || '',
+                        section: ng.assy_section || '',
+                        reason: ng.assy_reason || ''
+                    });
+                }
+                if (ng.ng_rod > 0) {
+                    ngItemsState.push({
+                        component_type: 'ROD',
+                        quantity: parseInt(ng.ng_rod),
+                        op_machine: ng.op_machine || '',
+                        section: ng.rod_section || '',
+                        reason: ng.rod_reason || ''
+                    });
+                }
+                if (ng.ng_cap > 0) {
+                    ngItemsState.push({
+                        component_type: 'CAP',
+                        quantity: parseInt(ng.ng_cap),
+                        op_machine: ng.op_machine || '',
+                        section: ng.cap_section || '',
+                        reason: ng.cap_reason || ''
+                    });
+                }
+            }
+
+            if (ngItemsState.length === 0) {
+                ngItemsState.push({
+                    component_type: 'ASSY',
+                    quantity: targetNg > 0 ? targetNg : 1,
+                    op_machine: '',
+                    section: '',
+                    reason: ''
+                });
+            }
+
+            const existingBolt = ng.ng_bolt || 0;
+            const existingBush = ng.ng_bush || 0;
+            const existingNut = ng.ng_nut || 0;
+            const existingPin = ng.ng_pin || 0;
+            const isLightModal = this.theme === 'light' || document.documentElement.classList.contains('light');
+
+            modalContainer.innerHTML = `
+                <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col md:items-center md:justify-center z-50 overflow-hidden font-sans p-0 md:p-3">
+                    <div class="w-full md:max-w-xl h-full md:h-auto md:max-h-[94vh] flex flex-col ${isLightModal ? 'bg-white text-slate-900' : 'bg-slate-900 text-slate-100'} md:rounded-3xl shadow-2xl border ${isLightModal ? 'border-slate-200' : 'border-slate-800'} overflow-hidden">
+                        
+                        <!-- STICKY TOP HEADER -->
+                        <div class="shrink-0 px-4 py-3 ${isLightModal ? 'bg-slate-50/95 border-slate-200' : 'bg-slate-950/95 border-slate-800'} border-b flex items-center justify-between z-30">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-9 h-9 rounded-xl ${isLightModal ? 'bg-rose-100 text-rose-600 border-rose-200' : 'bg-rose-950/80 text-rose-400 border-rose-800/80'} border flex items-center justify-center shrink-0">
+                                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-bold truncate flex items-center gap-2">
+                                        <span>Input Detail NG</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${isLightModal ? 'bg-rose-100 text-rose-700' : 'bg-rose-950 text-rose-300 border border-rose-800'}">${targetNg} Pcs</span>
+                                    </h3>
+                                    <p class="text-[11px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} truncate">${item.formatted_date} • ${item.shift_name}</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <!-- SWITCH TO DESKTOP BUTTON -->
+                                <button type="button" id="btn-mobile-to-desktop-ng" class="px-2.5 py-1.5 rounded-xl text-xs font-bold ${isLightModal ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'} border flex items-center gap-1.5 cursor-pointer transition-all" title="Beralih ke Tampilan Desktop">
+                                    <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+                                    <span class="text-[11px]">Desktop</span>
+                                </button>
+                                <!-- CLOSE BUTTON -->
+                                <button type="button" id="btn-close-mobile-ng-modal" class="p-1.5 rounded-xl ${isLightModal ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-slate-800'} transition-colors cursor-pointer" title="Tutup">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- FORM WRAPPER -->
+                        <form id="form-mobile-ng-detail" class="flex flex-col flex-1 overflow-hidden min-h-0">
+                            <input type="hidden" name="production_record_id" value="${item.production_record_id}" />
+
+                            <!-- SCROLLABLE BODY -->
+                            <div class="p-3.5 sm:p-4 space-y-3.5 overflow-y-auto flex-1 custom-scrollbar">
+                                
+                                <!-- SUMMARY STATS CARD -->
+                                <div class="rounded-2xl p-3 border ${isLightModal ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} space-y-2.5">
+                                    <div class="flex items-center justify-between gap-2 border-b ${isLightModal ? 'border-slate-200' : 'border-slate-800'} pb-2">
+                                        <div class="min-w-0">
+                                            <span class="text-[10px] ${isLightModal ? 'text-slate-500' : 'text-slate-500'} block uppercase font-bold tracking-wider">Produk & Lini</span>
+                                            <div class="font-bold text-xs truncate ${isLightModal ? 'text-slate-900' : 'text-white'}">
+                                                ${item.product_name} <span class="${isLightModal ? 'text-amber-700' : 'text-amber-400'} font-mono font-bold">(${item.product_sku})</span>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${this.getLineBadgeStyle(item.line_name || item.line_id, isLightModal)} border shrink-0">
+                                            ${item.line_name} - ${item.machine_name}
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-3 gap-2 text-center font-mono text-xs">
+                                        <div class="p-2 rounded-xl border ${isLightModal ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
+                                            <span class="text-[9px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} font-sans block">Measuring</span>
+                                            <strong class="text-cyan-500 font-bold">${(item.total_output || 0).toLocaleString()}</strong>
+                                        </div>
+                                        <div class="p-2 rounded-xl border ${isLightModal ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
+                                            <span class="text-[9px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} font-sans block">Finish Good</span>
+                                            <strong class="text-emerald-500 font-bold">${(item.good_quantity || 0).toLocaleString()}</strong>
+                                        </div>
+                                        <div class="p-2 rounded-xl border ${isLightModal ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
+                                            <span class="text-[9px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} font-sans block">Target Reject</span>
+                                            <strong class="text-rose-500 font-black">${targetNg.toLocaleString()}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SEKSI 1: KOMPONEN UTAMA NG (WAJIB OEE) -->
+                                <div class="rounded-2xl p-3.5 border ${isLightModal ? 'bg-cyan-50/40 border-cyan-200' : 'bg-slate-950/70 border-cyan-500/30'} space-y-3">
+                                    <div class="flex items-center justify-between gap-2 border-b ${isLightModal ? 'border-cyan-100' : 'border-slate-800'} pb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-5 h-5 rounded-full ${isLightModal ? 'bg-cyan-100 text-cyan-800 border-cyan-300' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'} font-bold text-xs flex items-center justify-center border">1</span>
+                                            <h4 class="font-bold text-xs ${isLightModal ? 'text-cyan-900' : 'text-cyan-300'} uppercase tracking-wider">Komponen Utama NG</h4>
+                                        </div>
+                                        <div id="mobile-ng-balance-indicator" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">
+                                            <!-- Dynamic balance badge -->
+                                        </div>
+                                    </div>
+
+                                    <!-- SUB-TOTALS 3 COLUMNS -->
+                                    <div class="grid grid-cols-3 gap-1.5 text-center font-mono text-xs">
+                                        <div class="py-1.5 px-1 rounded-xl border ${isLightModal ? 'bg-white border-cyan-200' : 'bg-slate-900 border-slate-800'}">
+                                            <span class="text-[9px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} font-sans block">Assy NG</span>
+                                            <strong id="mobile-badge-sub-assy" class="text-cyan-400 font-bold text-xs">0 Pcs</strong>
+                                        </div>
+                                        <div class="py-1.5 px-1 rounded-xl border ${isLightModal ? 'bg-white border-cyan-200' : 'bg-slate-900 border-slate-800'}">
+                                            <span class="text-[9px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} font-sans block">Rod NG</span>
+                                            <strong id="mobile-badge-sub-rod" class="text-cyan-400 font-bold text-xs">0 Pcs</strong>
+                                        </div>
+                                        <div class="py-1.5 px-1 rounded-xl border ${isLightModal ? 'bg-white border-cyan-200' : 'bg-slate-900 border-slate-800'}">
+                                            <span class="text-[9px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} font-sans block">Cap NG</span>
+                                            <strong id="mobile-badge-sub-cap" class="text-cyan-400 font-bold text-xs">0 Pcs</strong>
+                                        </div>
+                                    </div>
+
+                                    <!-- DATALISTS FOR AUTOCOMPLETE -->
+                                    <datalist id="mobile-ng-op-machines-datalist">
+                                        ${opMachinesBank.map(m => {
+                                            const val = typeof m === 'object' ? (m.name || m.label) : m;
+                                            const label = typeof m === 'object' ? (m.label || m.name) : m;
+                                            return `<option value="${val}">${label !== val ? label : ''}</option>`;
+                                        }).join('')}
+                                    </datalist>
+                                    <datalist id="mobile-ng-sections-datalist">
+                                        ${sectionsBank.map(s => `<option value="${s}">${s}</option>`).join('')}
+                                    </datalist>
+                                    <datalist id="mobile-ng-reasons-datalist">
+                                        ${reasonsBank.map(r => `<option value="${r.name}">${r.category ? `[${r.category}] ` : ''}${r.name}</option>`).join('')}
+                                    </datalist>
+
+                                    <!-- DYNAMIC CARDS CONTAINER -->
+                                    <div id="mobile-ng-cards-container" class="space-y-3">
+                                        <!-- Dynamic Item Cards -->
+                                    </div>
+
+                                    <!-- ADD ROW BUTTON -->
+                                    <button type="button" id="btn-mobile-add-ng-row" class="w-full py-2.5 rounded-xl text-xs font-bold ${isLightModal ? 'bg-cyan-600 hover:bg-cyan-700 text-white' : 'bg-cyan-600 hover:bg-cyan-500 text-white'} shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]">
+                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                        <span>+ Tambah Baris Rincian NG</span>
+                                    </button>
+                                </div>
+
+                                <!-- SEKSI 2: KOMPONEN PELENGKAP (OPSIONAL) -->
+                                <div class="rounded-2xl p-3.5 border ${isLightModal ? 'bg-purple-50/40 border-purple-200' : 'bg-slate-950/70 border-purple-500/30'} space-y-3">
+                                    <div class="flex items-center justify-between border-b ${isLightModal ? 'border-purple-100' : 'border-slate-800'} pb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-5 h-5 rounded-full ${isLightModal ? 'bg-purple-100 text-purple-800 border-purple-300' : 'bg-purple-500/20 text-purple-400 border-purple-500/40'} font-bold text-xs flex items-center justify-center border">2</span>
+                                            <h4 class="font-bold text-xs ${isLightModal ? 'text-purple-900' : 'text-purple-300'} uppercase tracking-wider">Fasteners & Pelengkap (Opsional)</h4>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-mono font-bold ${isLightModal ? 'bg-purple-100 text-purple-800' : 'bg-purple-950 text-purple-300 border border-purple-800'}">Non-OEE</span>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <div class="p-2.5 rounded-xl border ${isLightModal ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
+                                            <label class="block text-[10px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Bolt (Baut)</label>
+                                            <input type="number" name="ng_bolt" value="${existingBolt}" min="0" class="w-full ${isLightModal ? 'bg-slate-50 text-purple-900 border-slate-200' : 'bg-slate-950 text-purple-300 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-purple-500" />
+                                        </div>
+                                        <div class="p-2.5 rounded-xl border ${isLightModal ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
+                                            <label class="block text-[10px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Bush (Bushing)</label>
+                                            <input type="number" name="ng_bush" value="${existingBush}" min="0" class="w-full ${isLightModal ? 'bg-slate-50 text-purple-900 border-slate-200' : 'bg-slate-950 text-purple-300 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-purple-500" />
+                                        </div>
+                                        <div class="p-2.5 rounded-xl border ${isLightModal ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
+                                            <label class="block text-[10px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Nut (Mur)</label>
+                                            <input type="number" name="ng_nut" value="${existingNut}" min="0" class="w-full ${isLightModal ? 'bg-slate-50 text-purple-900 border-slate-200' : 'bg-slate-950 text-purple-300 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-purple-500" />
+                                        </div>
+                                        <div class="p-2.5 rounded-xl border ${isLightModal ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
+                                            <label class="block text-[10px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Pin (Dowel Pin)</label>
+                                            <input type="number" name="ng_pin" value="${existingPin}" min="0" class="w-full ${isLightModal ? 'bg-slate-50 text-purple-900 border-slate-200' : 'bg-slate-950 text-purple-300 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-purple-500" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SEKSI 3: ANALISA QC & DISPOSISI -->
+                                <div class="rounded-2xl p-3.5 border ${isLightModal ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} space-y-3">
+                                    <div class="flex items-center gap-2 border-b ${isLightModal ? 'border-slate-200' : 'border-slate-800'} pb-2">
+                                        <span class="w-5 h-5 rounded-full ${isLightModal ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-slate-800 text-slate-300 border-slate-700'} font-bold text-xs flex items-center justify-center border">3</span>
+                                        <h4 class="font-bold text-xs ${isLightModal ? 'text-slate-900' : 'text-slate-200'} uppercase tracking-wider">Analisa Defect & Disposisi QC</h4>
+                                    </div>
+
+                                    <div class="space-y-2.5 text-xs">
+                                        <div>
+                                            <label class="block text-[11px] ${isLightModal ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Gejala Defect (Symptom)</label>
+                                            <input type="text" name="defect_symptom" value="${ng.defect_symptom || ''}" placeholder="Cth: Scratch, Dimension Out, Dent, Porosity" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500" />
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[11px] ${isLightModal ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Disposisi Part</label>
+                                                <select name="action_taken" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-cyan-500 font-bold">
+                                                    <option value="SCRAP" ${ng.action_taken === 'SCRAP' ? 'selected' : ''}>SCRAP (Afkir)</option>
+                                                    <option value="REWORK" ${ng.action_taken === 'REWORK' ? 'selected' : ''}>REWORK (Ulang)</option>
+                                                    <option value="HOLD" ${ng.action_taken === 'HOLD' ? 'selected' : ''}>HOLD (Karantina)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[11px] ${isLightModal ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Inspector QC</label>
+                                                <input type="text" name="inspector_name" value="${ng.inspector_name || (this.user?.name || 'QC Inspector')}" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-cyan-800' : 'bg-slate-900 border-slate-800 text-cyan-300'} border rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-cyan-500" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[11px] ${isLightModal ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Catatan / Tindakan Perbaikan</label>
+                                            <textarea name="notes" rows="2" placeholder="Catatan analisa akar masalah atau tindakan perbaikan..." class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500">${ng.notes || ''}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- STICKY BOTTOM ACTION BAR -->
+                            <div class="shrink-0 px-4 py-3 ${isLightModal ? 'bg-slate-50/95 border-slate-200' : 'bg-slate-950/95 border-slate-800'} border-t flex items-center justify-between gap-2 z-30">
+                                ${ng.id ? `
+                                    <button type="button" id="btn-mobile-delete-ng-detail" class="px-3 py-2.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-500/10 border border-rose-500/30 transition-colors flex items-center gap-1.5 cursor-pointer">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        <span class="hidden sm:inline">Reset</span>
+                                    </button>
+                                ` : `
+                                    <button type="button" id="btn-mobile-cancel-ng-modal" class="px-3 py-2.5 rounded-xl text-xs font-medium ${isLightModal ? 'text-slate-600 hover:bg-slate-200' : 'text-slate-400 hover:bg-slate-800'} transition-colors cursor-pointer">
+                                        Batal
+                                    </button>
+                                `}
+
+                                <div class="flex items-center gap-2 flex-1 justify-end">
+                                    ${ng.id ? `
+                                        <button type="button" id="btn-mobile-cancel-ng-modal" class="px-3 py-2.5 rounded-xl text-xs font-medium ${isLightModal ? 'text-slate-600 hover:bg-slate-200' : 'text-slate-400 hover:bg-slate-800'} transition-colors cursor-pointer">
+                                            Batal
+                                        </button>
+                                    ` : ''}
+                                    <button type="submit" id="btn-mobile-submit-ng-detail" class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95">
+                                        <i data-lucide="save" class="w-4 h-4"></i>
+                                        <span>Simpan Detail Laporan NG</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            if (window.lucide) window.lucide.createIcons();
+            if (this.currentLang === 'ja') {
+                i18n.localizeDom(modalContainer);
+            }
+
+            // Bind Switch to Desktop Layout
+            document.getElementById('btn-mobile-to-desktop-ng')?.addEventListener('click', () => {
+                this.showNgDetailModal(productionRecordId, true);
+            });
+
+            // 1. Dynamic Touch-Friendly Cards Renderer & Calculator
+            const cardsContainer = document.getElementById('mobile-ng-cards-container');
+            const balanceIndicator = document.getElementById('mobile-ng-balance-indicator');
+            const badgeSubAssy = document.getElementById('mobile-badge-sub-assy');
+            const badgeSubRod = document.getElementById('mobile-badge-sub-rod');
+            const badgeSubCap = document.getElementById('mobile-badge-sub-cap');
+
+            const renderMobileCards = () => {
+                if (!cardsContainer) return;
+
+                cardsContainer.innerHTML = ngItemsState.map((row, idx) => {
+                    return `
+                        <div class="rounded-2xl p-3.5 border ${isLightModal ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800 shadow-md'} space-y-2.5 relative transition-all">
+                            <!-- CARD HEADER: ROW NUMBER + COMPONENT TOGGLE + DELETE -->
+                            <div class="flex items-center justify-between gap-2 border-b ${isLightModal ? 'border-slate-100' : 'border-slate-800/80'} pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-md ${isLightModal ? 'bg-slate-100 text-slate-700' : 'bg-slate-800 text-slate-300'} text-[10px] font-mono font-bold flex items-center justify-center">#${idx + 1}</span>
+                                    
+                                    <!-- SEGMENTED TOUCH BUTTONS FOR COMPONENT TYPE -->
+                                    <div class="flex items-center p-0.5 rounded-lg ${isLightModal ? 'bg-slate-100 border border-slate-200' : 'bg-slate-950 border border-slate-800'}">
+                                        ${['ASSY', 'ROD', 'CAP'].map(t => {
+                                            const isSel = (row.component_type || 'ASSY') === t;
+                                            return `
+                                                <button type="button" data-touch-comp="${t}" data-row-idx="${idx}" class="px-2 py-0.5 rounded text-[10px] font-bold font-mono transition-all cursor-pointer ${isSel ? (isLightModal ? 'bg-cyan-600 text-white shadow-xs' : 'bg-cyan-500 text-slate-950 shadow-xs') : (isLightModal ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200')}">
+                                                    ${t}
+                                                </button>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+
+                                <button type="button" data-delete-mobile-row-idx="${idx}" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer" title="Hapus Baris">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+
+                            <!-- CARD INPUTS -->
+                            <div class="space-y-2 text-xs">
+                                <!-- JUMLAH QTY & OP MESIN -->
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Jumlah (Pcs) <span class="text-rose-500">*</span></label>
+                                        <div class="flex items-center">
+                                            <button type="button" data-step-qty="-1" data-row-idx="${idx}" class="w-8 h-8 rounded-l-lg border-y border-l ${isLightModal ? 'bg-slate-100 border-slate-300 text-slate-700 active:bg-slate-200' : 'bg-slate-800 border-slate-700 text-slate-200 active:bg-slate-700'} flex items-center justify-center font-bold text-sm cursor-pointer select-none">-</button>
+                                            <input type="number" min="1" value="${row.quantity}" data-row-idx="${idx}" data-field="quantity" required class="w-full text-center ${isLightModal ? 'bg-slate-50 border-slate-300 text-cyan-900' : 'bg-slate-950 border-slate-700 text-cyan-400'} border-y py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-cyan-500" />
+                                            <button type="button" data-step-qty="1" data-row-idx="${idx}" class="w-8 h-8 rounded-r-lg border-y border-r ${isLightModal ? 'bg-slate-100 border-slate-300 text-slate-700 active:bg-slate-200' : 'bg-slate-800 border-slate-700 text-slate-200 active:bg-slate-700'} flex items-center justify-center font-bold text-sm cursor-pointer select-none">+</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">OP Mesin</label>
+                                        <input 
+                                            type="text" 
+                                            list="mobile-ng-op-machines-datalist" 
+                                            data-row-idx="${idx}" 
+                                            data-field="op_machine" 
+                                            value="${row.op_machine || ''}" 
+                                            placeholder="Pilih/Ketik Mesin..." 
+                                            autocomplete="off"
+                                            class="w-full ${isLightModal ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-1.5 text-xs font-sans focus:outline-none focus:border-cyan-500" 
+                                        />
+                                    </div>
+                                </div>
+
+                                <!-- BAGIAN NG -->
+                                <div>
+                                    <label class="block text-[10px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Bagian NG <span class="text-rose-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        list="mobile-ng-sections-datalist" 
+                                        data-row-idx="${idx}" 
+                                        data-field="section" 
+                                        value="${row.section || ''}" 
+                                        placeholder="Pilih/Ketik Bagian Komponen..." 
+                                        autocomplete="off"
+                                        class="w-full ${isLightModal ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-1.5 text-xs font-sans focus:outline-none focus:border-cyan-500" 
+                                    />
+                                </div>
+
+                                <!-- PENYEBAB / REMARK -->
+                                <div>
+                                    <label class="block text-[10px] ${isLightModal ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Penyebab / Remark <span class="text-rose-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        list="mobile-ng-reasons-datalist" 
+                                        data-row-idx="${idx}" 
+                                        data-field="reason" 
+                                        value="${row.reason || ''}" 
+                                        placeholder="Pilih/Ketik Penyebab Defect..." 
+                                        autocomplete="off"
+                                        class="w-full ${isLightModal ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-1.5 text-xs font-sans focus:outline-none focus:border-cyan-500" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                if (window.lucide) window.lucide.createIcons();
+                if (this.currentLang === 'ja') {
+                    i18n.localizeDom(cardsContainer);
+                }
+
+                // Bind Row Inputs Event Listeners
+                cardsContainer.querySelectorAll('input').forEach(el => {
+                    const handleUpdate = (e) => {
+                        const idx = parseInt(e.target.getAttribute('data-row-idx'));
+                        const field = e.target.getAttribute('data-field');
+                        if (ngItemsState[idx]) {
+                            if (field === 'quantity') {
+                                ngItemsState[idx][field] = parseInt(e.target.value || 0);
+                            } else {
+                                ngItemsState[idx][field] = e.target.value;
+                            }
+                            updateLiveBalances();
+                        }
+                    };
+                    el.addEventListener('input', handleUpdate);
+                    el.addEventListener('change', handleUpdate);
+                });
+
+                // Bind Segmented Component Type Buttons
+                cardsContainer.querySelectorAll('[data-touch-comp]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(e.currentTarget.getAttribute('data-row-idx'));
+                        const comp = e.currentTarget.getAttribute('data-touch-comp');
+                        if (ngItemsState[idx]) {
+                            ngItemsState[idx].component_type = comp;
+                            renderMobileCards();
+                        }
+                    });
+                });
+
+                // Bind Quantity Steppers (- / +)
+                cardsContainer.querySelectorAll('[data-step-qty]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(e.currentTarget.getAttribute('data-row-idx'));
+                        const step = parseInt(e.currentTarget.getAttribute('data-step-qty'));
+                        if (ngItemsState[idx]) {
+                            const cur = parseInt(ngItemsState[idx].quantity || 1);
+                            const next = Math.max(1, cur + step);
+                            ngItemsState[idx].quantity = next;
+                            renderMobileCards();
+                        }
+                    });
+                });
+
+                // Bind Delete Row Buttons
+                cardsContainer.querySelectorAll('[data-delete-mobile-row-idx]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(e.currentTarget.getAttribute('data-delete-mobile-row-idx'));
+                        if (ngItemsState.length <= 1) {
+                            alert('Minimal harus memiliki 1 baris rincian NG.');
+                            return;
+                        }
+                        ngItemsState.splice(idx, 1);
+                        renderMobileCards();
+                    });
+                });
+
+                updateLiveBalances();
+            };
+
+            const updateLiveBalances = () => {
+                let sumAssy = 0;
+                let sumRod = 0;
+                let sumCap = 0;
+
+                ngItemsState.forEach(it => {
+                    const q = parseInt(it.quantity || 0);
+                    const type = (it.component_type || 'ASSY').toUpperCase();
+                    if (type === 'ASSY') sumAssy += q;
+                    else if (type === 'ROD') sumRod += q;
+                    else if (type === 'CAP') sumCap += q;
+                });
+
+                const totalOeeSum = sumAssy + sumRod + sumCap;
+                const variance = totalOeeSum - targetNg;
+
+                if (badgeSubAssy) badgeSubAssy.textContent = `${sumAssy} Pcs`;
+                if (badgeSubRod) badgeSubRod.textContent = `${sumRod} Pcs`;
+                if (badgeSubCap) badgeSubCap.textContent = `${sumCap} Pcs`;
+
+                if (balanceIndicator) {
+                    if (totalOeeSum === targetNg) {
+                        balanceIndicator.className = 'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
+                        balanceIndicator.innerHTML = `
+                            <i data-lucide="check" class="w-3 h-3"></i>
+                            <span>${totalOeeSum}/${targetNg} (SEIMBANG ✓)</span>
+                        `;
+                    } else if (totalOeeSum < targetNg) {
+                        balanceIndicator.className = 'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
+                        balanceIndicator.innerHTML = `
+                            <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+                            <span>${totalOeeSum}/${targetNg} (-${Math.abs(variance)})</span>
+                        `;
+                    } else {
+                        balanceIndicator.className = 'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950 text-rose-400 border border-rose-800';
+                        balanceIndicator.innerHTML = `
+                            <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                            <span>${totalOeeSum}/${targetNg} (+${variance})</span>
+                        `;
+                    }
+                    if (window.lucide) window.lucide.createIcons();
+                    if (this.currentLang === 'ja') {
+                        i18n.localizeDom(balanceIndicator);
+                    }
+                }
+            };
+
+            // Bind Add Row Button
+            const addRowBtn = document.getElementById('btn-mobile-add-ng-row');
+            if (addRowBtn) {
+                addRowBtn.addEventListener('click', () => {
+                    ngItemsState.push({
+                        component_type: 'ASSY',
+                        quantity: 1,
+                        op_machine: '',
+                        section: '',
+                        reason: ''
+                    });
+                    renderMobileCards();
+                    setTimeout(() => {
+                        const scrollContainer = cardsContainer?.closest('.overflow-y-auto');
+                        if (scrollContainer) {
+                            scrollContainer.scrollTo({
+                                top: scrollContainer.scrollHeight,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 50);
+                });
+            }
+
+            renderMobileCards();
+
+            // 2. Close Handlers
+            const closeModal = () => {
+                modalContainer.innerHTML = '';
+            };
+            document.getElementById('btn-close-mobile-ng-modal')?.addEventListener('click', closeModal);
+            document.getElementById('btn-mobile-cancel-ng-modal')?.addEventListener('click', closeModal);
+
+            // 3. Delete / Reset Detail Handler
+            const deleteBtn = document.getElementById('btn-mobile-delete-ng-detail');
+            if (deleteBtn && ng.id) {
+                deleteBtn.addEventListener('click', async () => {
+                    const confirmed = await this.showConfirmModal({
+                        title: 'Reset & Hapus Detail NG',
+                        subtitle: 'Apakah Anda yakin ingin menghapus / mereset rincian detail NG untuk laporan ini?',
+                        confirmText: 'Ya, Hapus Data',
+                        cancelText: 'Batal',
+                        type: 'danger'
+                    });
+
+                    if (confirmed) {
+                        try {
+                            await api.deleteNgDetail(ng.id);
+                            this.showNotification('Data Dihapus', 'Detail NG berhasil direset.', 'delete');
+                            closeModal();
+                            this.renderNgReport();
+                        } catch (err) {
+                            this.showNotification('Gagal Menghapus', err.response?.data?.message || err.message, 'delete');
+                        }
+                    }
+                });
+            }
+
+            // 4. Submit Form Handler
+            const form = document.getElementById('form-mobile-ng-detail');
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const payload = Object.fromEntries(formData.entries());
+
+                    // Reset previous validation borders
+                    form.querySelectorAll('input, select').forEach(el => {
+                        el.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50', 'bg-rose-500/10');
+                    });
+
+                    // STRICT VALIDATION
+                    const errors = [];
+                    let firstInvalidEl = null;
+
+                    const markRowInvalid = (selector, msg) => {
+                        errors.push(msg);
+                        const el = form.querySelector(selector);
+                        if (el) {
+                            el.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50', 'bg-rose-500/10');
+                            if (!firstInvalidEl) firstInvalidEl = el;
+
+                            const clearErr = () => {
+                                el.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50', 'bg-rose-500/10');
+                                el.removeEventListener('input', clearErr);
+                                el.removeEventListener('change', clearErr);
+                            };
+                            el.addEventListener('input', clearErr);
+                            el.addEventListener('change', clearErr);
+                        }
+                    };
+
+                    if (!ngItemsState || ngItemsState.length === 0) {
+                        await this.showAlertModal({
+                            title: 'Data Tidak Dapat Disimpan',
+                            subtitle: 'Minimal harus mengisi 1 baris rincian komponen NG.',
+                            buttonText: 'Saya Mengerti'
+                        });
+                        return;
+                    }
+
+                    ngItemsState.forEach((it, idx) => {
+                        const rowNum = idx + 1;
+                        const qty = parseInt(it.quantity || 0);
+
+                        if (!it.component_type || String(it.component_type).trim() === '') {
+                            errors.push(`<strong>Baris #${rowNum}:</strong> Komponen OEE wajib dipilih.`);
+                        }
+
+                        if (isNaN(qty) || qty <= 0) {
+                            markRowInvalid(`input[data-row-idx="${idx}"][data-field="quantity"]`, `<strong>Baris #${rowNum}:</strong> Jumlah Qty NG tidak boleh 0 atau kosong.`);
+                        }
+
+                        if (!it.section || String(it.section).trim() === '') {
+                            markRowInvalid(`input[data-row-idx="${idx}"][data-field="section"]`, `<strong>Baris #${rowNum}:</strong> Bagian NG wajib dipilih.`);
+                        }
+
+                        if (!it.reason || String(it.reason).trim() === '') {
+                            markRowInvalid(`input[data-row-idx="${idx}"][data-field="reason"]`, `<strong>Baris #${rowNum}:</strong> Penyebab / Remark defect wajib dipilih.`);
+                        }
+                    });
+
+                    if (errors.length > 0) {
+                        this.showNotification('Data Tidak Dapat Disimpan', 'Isi data detail yang masih kosong!', 'delete');
+                        
+                        await this.showAlertModal({
+                            title: 'Data Belum Lengkap',
+                            subtitle: 'Isi data detail rincian NG yang masih kosong (Komponen, Jumlah, Bagian NG, Penyebab tidak boleh kosong):',
+                            errors: errors,
+                            buttonText: 'Perbaiki Isian Sekarang'
+                        });
+
+                        if (firstInvalidEl) {
+                            firstInvalidEl.focus();
+                            firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        return;
+                    }
+
+                    // Balance confirmation
+                    let totalSum = 0;
+                    ngItemsState.forEach(it => {
+                        totalSum += parseInt(it.quantity || 0);
+                    });
+
+                    if (totalSum !== targetNg) {
+                        const selisih = totalSum - targetNg;
+                        const msg = selisih > 0 
+                            ? `Total rincian komponen OEE (${totalSum} Pcs) melebihi target (${targetNg} Pcs) sebanyak +${selisih} Pcs.`
+                            : `Total rincian komponen OEE (${totalSum} Pcs) masih kurang ${Math.abs(selisih)} Pcs dari target (${targetNg} Pcs).`;
+                        
+                        const proceed = await this.showConfirmModal({
+                            title: 'Konfirmasi Keseimbangan Target NG',
+                            subtitle: `${msg}\nApakah Anda tetap ingin melanjutkan penyimpanan data ini?`,
+                            confirmText: 'Tetap Simpan',
+                            cancelText: 'Periksa Ulang'
+                        });
+
+                        if (!proceed) {
+                            return;
+                        }
+                    }
+
+                    payload.items = ngItemsState;
+
+                    try {
+                        await api.saveNgDetail(payload);
+                        this.playClingSound();
+                        this.showNotification('Detail NG Tersimpan', `Rincian ${ngItemsState.length} baris NG (${totalSum} Pcs OEE) berhasil disimpan.`, 'create');
+                        closeModal();
+                        this.renderNgReport();
+                    } catch (err) {
+                        const errMsg = err.response?.data?.message || err.message || 'Gagal menyimpan detail NG.';
+                        this.showNotification('⚠️ Gagal Menyimpan', errMsg, 'delete');
+                    }
+                });
+            }
+        } catch (err) {
+            this.showNotification('Gagal Memuat Data', err.response?.data?.message || err.message, 'delete');
+            modalContainer.innerHTML = '';
+        }
+    }
+
     // ==========================================
-    // 4. PRODUCTION LINES PAGE
+    // 4. PRODUCTION LINES PAGE (FIT-TO-PROPER & DYNAMIC COMPACT CARDS)
     // ==========================================
     async renderLines() {
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
         const res = await api.getLineRanking(this.filters);
         const lines = res.data.data || [];
 
+        // Summary calculations
+        const totalLines = lines.length;
+        const avgOee = totalLines > 0 ? (lines.reduce((acc, l) => acc + Number(l.oee || 0), 0) / totalLines).toFixed(1) : '0.0';
+        const totalActual = lines.reduce((acc, l) => acc + (Number(l.actual_quantity) || 0), 0);
+        const totalTarget = lines.reduce((acc, l) => acc + (Number(l.target_quantity) || 0), 0);
+        const overallAchieve = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) : '0.0';
+        const activeLinesCount = lines.filter(l => (Number(l.actual_quantity) || 0) > 0 || Number(l.oee || 0) > 0).length;
+
         const content = document.getElementById('content-body');
         content.innerHTML = `
-            <!-- HEADER -->
-            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <div class="flex items-center gap-3">
-                        <h2 class="text-xl font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                            <i data-lucide="git-fork" class="w-6 h-6 text-cyan-400"></i>
-                            <span>Production Lines</span>
-                        </h2>
-                        <span class="px-2.5 py-0.5 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border font-mono font-bold text-xs">
-                            Total ${lines.length} Lini
-                        </span>
+            <!-- HEADER & SUMMARY STRIP -->
+            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-xl mb-4">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-lg font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                <i data-lucide="git-fork" class="w-5 h-5 text-cyan-400"></i>
+                                <span>Production Lines</span>
+                            </h2>
+                            <span class="px-2.5 py-0.5 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border font-mono font-bold text-xs">
+                                Total ${totalLines} Lini
+                            </span>
+                            <span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80'} border">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                ${activeLinesCount} Aktif
+                            </span>
+                        </div>
+                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">
+                            Ringkasan efisiensi OEE, ketersediaan mesin, kualitas produksi, dan rasio pencapaian per lini.
+                        </p>
                     </div>
-                    <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">
-                        Efisiensi OEE, ketersediaan, performa, mutu kualitas, dan produk yang diproduksi per lini produksi.
-                    </p>
+
+                    <!-- COMPACT KPI STRIP -->
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                            <span class="text-slate-400">Rata-rata OEE:</span>
+                            <strong class="font-mono text-cyan-400 font-bold">${avgOee}%</strong>
+                        </div>
+                        <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                            <span class="text-slate-400">Total Output:</span>
+                            <strong class="font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'} font-bold">${totalActual.toLocaleString()} pcs</strong>
+                        </div>
+                        <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                            <span class="text-slate-400">Pencapaian:</span>
+                            <strong class="font-mono text-emerald-400 font-bold">${overallAchieve}%</strong>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- LINES GRID -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- COMPACT & HIGH-DENSITY LINES GRID (4 COLUMNS) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5">
                 ${lines.map(line => {
                     const oeeNum = Number(line.oee || 0);
-                    const oeeColor = oeeNum >= 85 ? 'text-emerald-400 font-extrabold' : (oeeNum >= 65 ? 'text-amber-400 font-bold' : (oeeNum > 0 ? 'text-rose-400 font-bold' : 'text-slate-500'));
+                    const oeeColor = oeeNum >= 85 ? 'text-emerald-400' : (oeeNum >= 65 ? 'text-amber-400' : (oeeNum > 0 ? 'text-rose-400' : 'text-slate-500'));
+                    const statusBorderTop = oeeNum >= 85 ? 'bg-emerald-500' : (oeeNum >= 65 ? 'bg-amber-500' : (oeeNum > 0 ? 'bg-rose-500' : 'bg-slate-700'));
+                    const achieveNum = Number(line.achievement || 0);
+                    const progressBarColor = achieveNum >= 95 ? 'from-cyan-500 to-emerald-500' : (achieveNum >= 80 ? 'from-cyan-500 to-blue-500' : 'from-amber-500 to-rose-500');
+
                     const prodList = (line.products_produced && line.products_produced.length > 0) 
                         ? line.products_produced 
                         : (line.products_assigned || []);
                     
+                    const visibleProds = prodList.slice(0, 3);
+                    const remainingProds = prodList.length - visibleProds.length;
+                    
                     return `
-                        <div class="${isLight ? 'bg-white border-slate-200 hover:border-cyan-400 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-cyan-500/60 shadow-xl'} border rounded-2xl p-5 transition-all flex flex-col justify-between">
+                        <div class="${isLight ? 'bg-white border-slate-200 hover:border-cyan-400/80 shadow-md hover:shadow-xl' : 'bg-slate-900/90 border-slate-800 hover:border-cyan-500/70 shadow-lg hover:shadow-2xl'} group relative border rounded-xl p-3.5 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
+                            <!-- TOP ACCENT COLOR BAR -->
+                            <div class="absolute top-0 left-0 right-0 h-1 ${statusBorderTop} opacity-80 group-hover:opacity-100 transition-opacity"></div>
+
                             <div>
                                 <!-- LINE HEADER -->
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs font-mono font-bold text-cyan-400">${line.code}</span>
-                                        <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">${line.name}</h3>
+                                <div class="flex items-center justify-between gap-2 mb-2.5 pt-0.5">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border shrink-0">
+                                            ${line.code}
+                                        </span>
+                                        <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate" title="${line.name}">${line.name}</h3>
                                     </div>
-                                    <span class="px-2.5 py-0.5 rounded text-[10px] font-bold border ${this.getStatusBadge(line.oee_status)}">
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wide uppercase border shrink-0 ${this.getStatusBadge(line.oee_status)}">
                                         ${line.oee_status || 'CRITICAL'}
                                     </span>
                                 </div>
 
-                                <!-- DYNAMIC PRODUCT DISPLAY (REPLACES STATIC AREA LABEL) -->
-                                <div class="mb-4 p-2.5 rounded-xl ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border">
-                                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 mb-1.5">
-                                        <i data-lucide="package" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                        <span>Type yang diproduksi:</span>
+                                <!-- PRODUCT TYPE CHIPS (COMPACT & UNIFORM) -->
+                                <div class="mb-3 p-2 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-950/60 border-slate-800/70'} border">
+                                    <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="box" class="w-3 h-3 text-cyan-400"></i>
+                                            Type Produk:
+                                        </span>
+                                        <span class="font-mono text-[9px] text-slate-500 font-semibold">${prodList.length} Model</span>
                                     </div>
-                                    <div class="flex flex-wrap gap-1.5">
+                                    <div class="flex flex-wrap gap-1 items-center min-h-[22px]">
                                         ${prodList.length === 0 ? `
-                                            <span class="text-[11px] text-slate-500 italic">Belum ada produk</span>
-                                        ` : prodList.map(p => `
-                                            <span class="px-2 py-0.5 rounded-md text-[11px] font-bold font-mono ${isLight ? 'bg-cyan-100/70 text-cyan-800 border-cyan-300/80' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border shadow-2xs">
+                                            <span class="text-[10px] text-slate-500 italic">Standby (0 produk)</span>
+                                        ` : visibleProds.map(p => `
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono ${isLight ? 'bg-white text-cyan-800 border-cyan-200' : 'bg-cyan-950/90 text-cyan-300 border-cyan-800/70'} border shadow-2xs">
                                                 ${p}
                                             </span>
                                         `).join('')}
+                                        ${remainingProds > 0 ? `
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono text-slate-400 bg-slate-800/60 border border-slate-700" title="${prodList.slice(3).join(', ')}">
+                                                +${remainingProds}
+                                            </span>
+                                        ` : ''}
                                     </div>
                                 </div>
 
-                                <!-- OEE PILLARS METRICS -->
-                                <div class="space-y-2 font-mono text-xs border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} pt-3">
-                                    <div class="flex justify-between items-center">
-                                        <span class="${isLight ? 'text-slate-600' : 'text-slate-400'} font-sans font-medium">Overall OEE:</span>
-                                        <span class="${oeeColor} text-sm">${line.oee}%</span>
+                                <!-- HERO OEE SCORE ROW -->
+                                <div class="flex items-center justify-between mb-2.5 pb-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
+                                    <span class="text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-slate-400'}">Overall OEE</span>
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="${oeeColor} text-lg font-black font-mono leading-none">${line.oee}%</span>
                                     </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="${isLight ? 'text-slate-600' : 'text-slate-400'} font-sans font-medium">Availability:</span>
-                                        <span class="text-cyan-400 font-bold">${line.availability}%</span>
+                                </div>
+
+                                <!-- 3-PILLARS COMPACT MICRO GRID -->
+                                <div class="grid grid-cols-3 gap-1.5 font-mono text-center mb-3">
+                                    <div class="p-1.5 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/70' : 'bg-slate-950/50 border-slate-800/60'} border">
+                                        <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Avail</div>
+                                        <div class="text-xs font-bold text-cyan-400 mt-0.5">${line.availability}%</div>
                                     </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="${isLight ? 'text-slate-600' : 'text-slate-400'} font-sans font-medium">Performance:</span>
-                                        <span class="text-amber-400 font-bold">${line.performance}%</span>
+                                    <div class="p-1.5 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/70' : 'bg-slate-950/50 border-slate-800/60'} border">
+                                        <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Perf</div>
+                                        <div class="text-xs font-bold text-amber-400 mt-0.5">${line.performance}%</div>
                                     </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="${isLight ? 'text-slate-600' : 'text-slate-400'} font-sans font-medium">Quality:</span>
-                                        <span class="text-emerald-400 font-bold">${line.quality}%</span>
+                                    <div class="p-1.5 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/70' : 'bg-slate-950/50 border-slate-800/60'} border">
+                                        <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Qual</div>
+                                        <div class="text-xs font-bold text-emerald-400 mt-0.5">${line.quality}%</div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS -->
-                            <div class="mt-4 pt-3 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
-                                <div class="flex justify-between text-xs font-mono mb-1.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}">
-                                    <span class="font-sans">Output vs Target:</span>
-                                    <span class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${(line.actual_quantity || 0).toLocaleString()} / ${(line.target_quantity || 0).toLocaleString()} pcs (${line.achievement}%)</span>
+                            <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
+                                <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}">
+                                    <span class="text-[10px] text-slate-400 font-sans font-medium">Output:</span>
+                                    <span class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">
+                                        ${(line.actual_quantity || 0).toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ ${(line.target_quantity || 0).toLocaleString()}</span>
+                                    </span>
                                 </div>
-                                <div class="w-full ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'} rounded-full h-2 overflow-hidden border">
-                                    <div class="bg-cyan-500 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, line.achievement)}%"></div>
+                                <div class="relative w-full ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'} rounded-full h-2 overflow-hidden border">
+                                    <div class="bg-gradient-to-r ${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, achieveNum)}%"></div>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] font-mono text-slate-400 mt-1">
+                                    <span>Pencapaian:</span>
+                                    <span class="font-bold ${achieveNum >= 95 ? 'text-emerald-400' : (achieveNum >= 80 ? 'text-cyan-400' : 'text-amber-400')}">${line.achievement}%</span>
                                 </div>
                             </div>
                         </div>
@@ -8163,7 +10711,7 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 5. SHIFT PERFORMANCE PAGE
+    // 5. SHIFT PERFORMANCE PAGE (COMPACT & DYNAMIC CARDS)
     // ==========================================
     async renderShifts() {
         this.shiftFilters = this.shiftFilters || { date: '', production_line_id: '', machine_id: '' };
@@ -8176,52 +10724,58 @@ tbody.innerHTML = '';
             1: { 
                 cardGradient: 'bg-gradient-to-br from-sky-50/90 via-white to-slate-50/90', 
                 border: 'border-sky-200 shadow-sm', 
+                topBar: 'bg-sky-500',
                 badge: 'bg-sky-100 text-sky-800 border-sky-300 font-bold', 
                 text: 'text-sky-700', 
                 bar: 'bg-sky-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
             2: { 
                 cardGradient: 'bg-gradient-to-br from-amber-50/90 via-white to-slate-50/90', 
                 border: 'border-amber-200 shadow-sm', 
+                topBar: 'bg-amber-500',
                 badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold', 
                 text: 'text-amber-700', 
                 bar: 'bg-amber-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
             3: { 
                 cardGradient: 'bg-gradient-to-br from-emerald-50/90 via-white to-slate-50/90', 
                 border: 'border-emerald-200 shadow-sm', 
+                topBar: 'bg-emerald-500',
                 badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold', 
                 text: 'text-emerald-700', 
                 bar: 'bg-emerald-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
             4: { 
                 cardGradient: 'bg-gradient-to-br from-purple-50/90 via-white to-slate-50/90', 
                 border: 'border-purple-200 shadow-sm', 
+                topBar: 'bg-purple-500',
                 badge: 'bg-purple-100 text-purple-800 border-purple-300 font-bold', 
                 text: 'text-purple-700', 
                 bar: 'bg-purple-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
             5: { 
                 cardGradient: 'bg-gradient-to-br from-rose-50/90 via-white to-slate-50/90', 
                 border: 'border-rose-200 shadow-sm', 
+                topBar: 'bg-rose-500',
                 badge: 'bg-rose-100 text-rose-800 border-rose-300 font-bold', 
                 text: 'text-rose-700', 
                 bar: 'bg-rose-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
         } : {
             1: { 
                 cardGradient: 'bg-gradient-to-br from-sky-500/10 via-slate-900 to-slate-900', 
                 border: 'border-sky-500/40', 
+                topBar: 'bg-sky-400',
                 badge: 'bg-sky-950/80 text-sky-400 border-sky-800', 
                 text: 'text-sky-400', 
                 bar: 'bg-sky-400',
@@ -8231,6 +10785,7 @@ tbody.innerHTML = '';
             2: { 
                 cardGradient: 'bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900', 
                 border: 'border-amber-500/40', 
+                topBar: 'bg-amber-400',
                 badge: 'bg-amber-950/80 text-amber-400 border-amber-800', 
                 text: 'text-amber-400', 
                 bar: 'bg-amber-400',
@@ -8240,6 +10795,7 @@ tbody.innerHTML = '';
             3: { 
                 cardGradient: 'bg-gradient-to-br from-emerald-500/10 via-slate-900 to-slate-900', 
                 border: 'border-emerald-500/40', 
+                topBar: 'bg-emerald-400',
                 badge: 'bg-emerald-950/80 text-emerald-400 border-emerald-800', 
                 text: 'text-emerald-400', 
                 bar: 'bg-emerald-400',
@@ -8249,6 +10805,7 @@ tbody.innerHTML = '';
             4: { 
                 cardGradient: 'bg-gradient-to-br from-purple-500/10 via-slate-900 to-slate-900', 
                 border: 'border-purple-500/40', 
+                topBar: 'bg-purple-400',
                 badge: 'bg-purple-950/80 text-purple-400 border-purple-800', 
                 text: 'text-purple-400', 
                 bar: 'bg-purple-400',
@@ -8258,6 +10815,7 @@ tbody.innerHTML = '';
             5: { 
                 cardGradient: 'bg-gradient-to-br from-rose-500/10 via-slate-900 to-slate-900', 
                 border: 'border-rose-500/40', 
+                topBar: 'bg-rose-400',
                 badge: 'bg-rose-950/80 text-rose-400 border-rose-800', 
                 text: 'text-rose-400', 
                 bar: 'bg-rose-400',
@@ -8277,15 +10835,15 @@ tbody.innerHTML = '';
         const content = document.getElementById('content-body');
         content.innerHTML = `
             <!-- HEADER CONTEXT & TAB SWITCHER (SHIFT VS TEAM) -->
-            <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-xl mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-3">
-                    <h2 class="text-xl font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                        <i data-lucide="clock" class="w-5 h-5 text-cyan-500"></i>
+                    <h2 class="text-lg font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                        <i data-lucide="clock" class="w-5 h-5 text-cyan-400"></i>
                         <span>Shift & Team Perform</span>
                     </h2>
 
-                    <!-- 2-TAB SEGMENTED CONTROLLER (SHIFT & TEAM PERFORMANCES) -->
-                    <div class="flex items-center gap-1 p-1 ${isLight ? 'bg-slate-200/80 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl shadow-xs">
+                    <!-- 2-TAB SEGMENTED CONTROLLER -->
+                    <div class="flex items-center gap-1 p-0.5 ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl">
                         <button type="button" data-perf-tab="shifts" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'bg-white text-cyan-800 shadow-sm' : 'bg-cyan-950 text-cyan-300 border border-cyan-800/80'}">
                             <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-500"></i> Shift Performance
                         </button>
@@ -8296,111 +10854,112 @@ tbody.innerHTML = '';
                 </div>
 
                 <!-- REALTIME FILTER CONTROLS -->
-                <div class="flex flex-wrap items-center gap-2 bg-transparent text-xs">
-                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl px-2.5 py-1.5 text-slate-400">
                         <i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan-500"></i>
                         <input type="date" id="shift-filter-date" value="${this.shiftFilters?.date || ''}" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans" />
                     </div>
-                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl px-2.5 py-1.5 text-slate-400">
                         <i data-lucide="git-branch" class="w-3.5 h-3.5 text-emerald-500"></i>
                         <select id="shift-filter-line" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans">
                             <option value="">Semua Lini</option>
                             ${lineOptions}
                         </select>
                     </div>
-                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl px-2.5 py-1.5 text-slate-400">
                         <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-500"></i>
                         <select id="shift-filter-machine" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans">
                             <option value="">Semua Mesin</option>
                             ${machineOptions}
                         </select>
                     </div>
-                    <button id="btn-reset-shift-filters" class="p-2 ${isLight ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} border rounded-lg transition-colors cursor-pointer" title="Reset Filter">
+                    <button id="btn-reset-shift-filters" class="p-1.5 ${isLight ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} border rounded-xl transition-colors cursor-pointer" title="Reset Filter">
                         <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- COMPACT, SLEEK & INFORMATIVE SHIFT CARDS -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
+            <!-- COMPACT, SLEEK & INFORMATIVE SHIFT CARDS (DYNAMIC SMALL CARDS) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 mb-4">
                 ${shifts.map((shift, sIdx) => {
                     const theme = shiftColors[shift.shift_id] || shiftColors[(sIdx % 5) + 1];
                     const bestBadge = shift.is_best_performer ? `
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border text-[10px] font-bold shadow-xs animate-pulse">
-                            🏆 Best Performer
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border text-[9px] font-bold shadow-xs">
+                            🏆 Best
                         </span>
                     ` : '';
 
                     return `
-                        <div class="${theme.cardGradient} border ${shift.is_best_performer ? (isLight ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-amber-500/60 ring-2 ring-amber-500/20') : theme.border} rounded-2xl p-4.5 shadow-lg relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group">
-                            <!-- TOP BAR: BADGE, WORKING HOURS & STATUS -->
-                            <div class="flex items-start justify-between gap-2 mb-3">
-                                <div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${theme.badge} font-mono shadow-xs">
-                                            🕒 ${shift.shift_name}
+                        <div class="${theme.cardGradient} border ${shift.is_best_performer ? (isLight ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-amber-500/60 ring-2 ring-amber-500/20') : theme.border} rounded-xl p-3.5 shadow-md relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group flex flex-col justify-between">
+                            <!-- TOP ACCENT BAR -->
+                            <div class="absolute top-0 left-0 right-0 h-1 ${theme.topBar} opacity-80 group-hover:opacity-100 transition-opacity"></div>
+
+                            <div>
+                                <!-- TOP BAR: BADGE, WORKING HOURS & STATUS -->
+                                <div class="flex items-start justify-between gap-2 mb-2 pt-0.5">
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${theme.badge} font-mono shadow-xs">
+                                                🕒 ${shift.shift_name}
+                                            </span>
+                                        </div>
+                                        <span class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono block mt-1">
+                                            ${shift.working_hours}
                                         </span>
                                     </div>
-                                    <span class="text-[10.5px] ${isLight ? 'text-slate-600 font-medium' : 'text-slate-400'} font-mono block mt-1">
-                                        ${shift.working_hours}
-                                    </span>
+                                    <div class="flex flex-col items-end gap-1">
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${this.getStatusBadge(shift.oee_status)}">
+                                            ${shift.oee_status}
+                                        </span>
+                                        ${bestBadge}
+                                    </div>
                                 </div>
-                                <div class="flex flex-col items-end gap-1">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${this.getStatusBadge(shift.oee_status)}">
-                                        ${shift.oee_status}
-                                    </span>
-                                    ${bestBadge}
+
+                                <!-- OEE HERO ROW & PROGRESS BAR -->
+                                <div class="mb-2.5 pb-2 border-b ${isLight ? 'border-slate-200/80' : 'border-slate-800'}">
+                                    <div class="flex items-baseline justify-between">
+                                        <span class="text-2xl font-black ${theme.text} font-mono tracking-tight">${shift.oee}%</span>
+                                        <span class="text-[10px] font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase font-sans">Shift OEE</span>
+                                    </div>
+                                    <div class="w-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} rounded-full h-1.5 mt-1 overflow-hidden">
+                                        <div class="${theme.bar} h-full rounded-full transition-all duration-700" style="width: ${Math.min(100, shift.oee)}%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- 3 PILLARS (AVAILABILITY, PERFORMANCE, QUALITY) -->
+                                <div class="grid grid-cols-3 gap-1.5 mb-2.5 text-center font-mono">
+                                    <div class="${theme.subCardBg} border rounded-lg p-1.5">
+                                        <div class="text-[9px] ${isLight ? 'text-slate-500 font-semibold' : 'text-slate-400'} font-sans">Avail</div>
+                                        <div class="${isLight ? 'text-emerald-700' : 'text-emerald-400'} font-bold text-xs mt-0.5">${shift.availability}%</div>
+                                    </div>
+                                    <div class="${theme.subCardBg} border rounded-lg p-1.5">
+                                        <div class="text-[9px] ${isLight ? 'text-slate-500 font-semibold' : 'text-slate-400'} font-sans">Perf</div>
+                                        <div class="${isLight ? 'text-amber-700' : 'text-amber-400'} font-bold text-xs mt-0.5">${shift.performance}%</div>
+                                    </div>
+                                    <div class="${theme.subCardBg} border rounded-lg p-1.5">
+                                        <div class="text-[9px] ${isLight ? 'text-slate-500 font-semibold' : 'text-slate-400'} font-sans">Qual</div>
+                                        <div class="${isLight ? 'text-purple-700' : 'text-purple-400'} font-bold text-xs mt-0.5">${shift.quality}%</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- OEE HERO ROW & PROGRESS BAR -->
-                            <div class="mb-3.5 pb-2.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
-                                <div class="flex items-baseline justify-between">
-                                    <span class="text-3xl font-black ${theme.text} font-mono tracking-tight">${shift.oee}%</span>
-                                    <span class="text-[11px] font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} uppercase font-sans">Overall OEE</span>
-                                </div>
-                                <div class="w-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} rounded-full h-1.5 mt-1.5 overflow-hidden">
-                                    <div class="${theme.bar} h-full rounded-full transition-all duration-700" style="width: ${Math.min(100, shift.oee)}%"></div>
-                                </div>
-                            </div>
-
-                            <!-- 3 PILLARS (AVAILABILITY, PERFORMANCE, QUALITY) -->
-                            <div class="grid grid-cols-3 gap-1.5 mb-3 text-center font-mono">
-                                <div class="${theme.subCardBg} border rounded-xl p-2">
-                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Avail</div>
-                                    <div class="${isLight ? 'text-emerald-700' : 'text-emerald-400'} font-bold text-xs mt-0.5">${shift.availability}%</div>
-                                </div>
-                                <div class="${theme.subCardBg} border rounded-xl p-2">
-                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Perf</div>
-                                    <div class="${isLight ? 'text-amber-700' : 'text-amber-400'} font-bold text-xs mt-0.5">${shift.performance}%</div>
-                                </div>
-                                <div class="${theme.subCardBg} border rounded-xl p-2">
-                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Qual</div>
-                                    <div class="${isLight ? 'text-purple-700' : 'text-purple-400'} font-bold text-xs mt-0.5">${shift.quality}%</div>
-                                </div>
-                            </div>
-
-                            <!-- COMPACT PRODUCTION QUANTITIES -->
-                            <div class="space-y-1.5 text-[11px] font-mono ${theme.bottomBoxBg} rounded-xl p-3 border">
+                            <!-- COMPACT PRODUCTION QUANTITIES STRIP -->
+                            <div class="space-y-1 text-[10.5px] font-mono ${theme.bottomBoxBg} rounded-lg p-2.5 border">
                                 <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}">
-                                    <span class="font-sans text-[10.5px]">Target / Actual:</span>
-                                    <strong class="${isLight ? 'text-slate-900' : 'text-white'} font-bold">${shift.target_quantity.toLocaleString()} / <span class="text-cyan-500">${shift.total_quantity.toLocaleString()}</span></strong>
+                                    <span class="font-sans text-[10px] text-slate-400">Target / Actual:</span>
+                                    <strong class="${isLight ? 'text-slate-900' : 'text-white'} font-bold">${shift.target_quantity.toLocaleString()} / <span class="text-cyan-400">${shift.total_quantity.toLocaleString()}</span></strong>
                                 </div>
                                 <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}">
-                                    <span class="font-sans text-[10.5px]">Good / NG:</span>
+                                    <span class="font-sans text-[10px] text-slate-400">Good / NG:</span>
                                     <span>
                                         <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${shift.good_quantity.toLocaleString()} OK</strong>
                                         <span class="text-slate-400 mx-0.5">•</span>
                                         <strong class="${isLight ? 'text-rose-700' : 'text-rose-400'}">${shift.reject_quantity.toLocaleString()} NG</strong>
                                     </span>
                                 </div>
-                                <div class="pt-1.5 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} flex justify-between items-center text-[10.5px]">
-                                    <span class="font-sans text-slate-500">Yield / Reject:</span>
-                                    <span>
-                                        <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${shift.yield_rate}%</strong>
-                                        <span class="text-slate-400 mx-0.5">/</span>
-                                        <strong class="${isLight ? 'text-rose-700' : 'text-rose-400'}">${shift.rejection_rate}%</strong>
-                                    </span>
+                                <div class="pt-1 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} flex justify-between items-center text-[10px]">
+                                    <span class="font-sans text-slate-400">Yield Rate:</span>
+                                    <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${shift.yield_rate}%</strong>
                                 </div>
                             </div>
                         </div>
@@ -8409,42 +10968,38 @@ tbody.innerHTML = '';
             </div>
 
             <!-- ANIMATED SHIFT COMPARISON CHART -->
-            <div class="${isLight ? 'bg-white border-slate-200 shadow-lg' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5">
-                <div class="flex items-center justify-between mb-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
-                    <div>
-                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
-                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan-500"></i>
-                            Shift OEE & Pillars Comparative Metrics
-                        </h3>
-                    </div>
+            <div class="${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-4 mb-4">
+                <div class="flex items-center justify-between mb-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800'} pb-2">
+                    <h3 class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2 uppercase tracking-wide">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan-500"></i>
+                        Shift OEE & Pillars Comparative Metrics
+                    </h3>
                 </div>
-                <div id="chart-shift-comparison" class="w-full h-72"></div>
+                <div id="chart-shift-comparison" class="w-full h-64"></div>
             </div>
 
             <!-- DAILY BREAKDOWN PER PRODUCTION DATE TABLE -->
-            <div class="${isLight ? 'bg-white border-slate-200 shadow-lg' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5">
-                <div class="flex items-center justify-between mb-4 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
-                    <div>
-                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
-                            <i data-lucide="calendar-range" class="w-4 h-4 text-amber-500"></i>
-                            Daily Production Shift Breakdown
-                        </h3>
-                    </div>
+            <div class="${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3 border-b ${isLight ? 'border-slate-100' : 'border-slate-800'} pb-2">
+                    <h3 class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2 uppercase tracking-wide">
+                        <i data-lucide="calendar-range" class="w-4 h-4 text-amber-500"></i>
+                        Daily Production Shift Breakdown
+                    </h3>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead class="${isLight ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-950 text-slate-400 border-slate-800'} uppercase font-semibold text-[10px] border-b">
                             <tr>
-                                <th class="p-3">Tanggal Produksi</th>
-                                <th class="p-3">Shift Name</th>
-                                <th class="p-3 text-center">OEE %</th>
-                                <th class="p-3 text-center">Availability</th>
-                                <th class="p-3 text-center">Performance</th>
-                                <th class="p-3 text-center">Quality</th>
-                                <th class="p-3 text-right">Total Measuring</th>
-                                <th class="p-3 text-right">Finish Good</th>
-                                <th class="p-3 text-right">Not Good (NG)</th>
+                                <th class="p-2.5">Tanggal Produksi</th>
+                                <th class="p-2.5">Shift Name</th>
+                                <th class="p-2.5 text-center">OEE %</th>
+                                <th class="p-2.5 text-center">Availability</th>
+                                <th class="p-2.5 text-center">Performance</th>
+                                <th class="p-2.5 text-center">Quality</th>
+                                <th class="p-2.5 text-right">Total Measuring</th>
+                                <th class="p-2.5 text-right">Finish Good</th>
+                                <th class="p-2.5 text-right">Not Good (NG)</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y ${isLight ? 'divide-slate-200 text-slate-800' : 'divide-slate-800/60 text-slate-200'} font-mono">
@@ -8453,15 +11008,15 @@ tbody.innerHTML = '';
                             ` : dailyBreakdown.map(day => {
                                 return day.shifts.map((s, idx) => `
                                     <tr class="${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors">
-                                        ${idx === 0 ? `<td rowspan="${day.shifts.length}" class="p-3 ${isLight ? 'text-cyan-800 bg-slate-50 border-slate-200 font-bold' : 'text-cyan-400 bg-slate-950/40 border-slate-800 font-bold'} font-sans align-middle border-r">${day.date}</td>` : ''}
-                                        <td class="p-3 font-sans font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${s.shift_name}</td>
-                                        <td class="p-3 text-center ${isLight ? 'text-cyan-800' : 'text-cyan-400'} font-bold">${s.oee}%</td>
-                                        <td class="p-3 text-center ${isLight ? 'text-emerald-800' : 'text-emerald-400'} font-semibold">${s.availability}%</td>
-                                        <td class="p-3 text-center ${isLight ? 'text-amber-800' : 'text-amber-400'} font-semibold">${s.performance}%</td>
-                                        <td class="p-3 text-center ${isLight ? 'text-purple-800' : 'text-purple-400'} font-semibold">${s.quality}%</td>
-                                        <td class="p-3 text-right ${isLight ? 'text-slate-800' : 'text-slate-200'} font-semibold">${(s.total_quantity ?? 0).toLocaleString()} pcs</td>
-                                        <td class="p-3 text-right ${isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400 font-bold'}">${(s.good_quantity ?? 0).toLocaleString()} pcs</td>
-                                        <td class="p-3 text-right ${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${(s.reject_quantity ?? 0).toLocaleString()} pcs</td>
+                                        ${idx === 0 ? `<td rowspan="${day.shifts.length}" class="p-2.5 ${isLight ? 'text-cyan-800 bg-slate-50 border-slate-200 font-bold' : 'text-cyan-400 bg-slate-950/40 border-slate-800 font-bold'} font-sans align-middle border-r">${day.date}</td>` : ''}
+                                        <td class="p-2.5 font-sans font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${s.shift_name}</td>
+                                        <td class="p-2.5 text-center ${isLight ? 'text-cyan-800' : 'text-cyan-400'} font-bold">${s.oee}%</td>
+                                        <td class="p-2.5 text-center ${isLight ? 'text-emerald-800' : 'text-emerald-400'} font-semibold">${s.availability}%</td>
+                                        <td class="p-2.5 text-center ${isLight ? 'text-amber-800' : 'text-amber-400'} font-semibold">${s.performance}%</td>
+                                        <td class="p-2.5 text-center ${isLight ? 'text-purple-800' : 'text-purple-400'} font-semibold">${s.quality}%</td>
+                                        <td class="p-2.5 text-right ${isLight ? 'text-slate-800' : 'text-slate-200'} font-semibold">${(s.total_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-2.5 text-right ${isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400 font-bold'}">${(s.good_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-2.5 text-right ${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${(s.reject_quantity ?? 0).toLocaleString()} pcs</td>
                                     </tr>
                                 `).join('');
                             }).join('')}
@@ -8531,7 +11086,7 @@ tbody.innerHTML = '';
         const options = {
             chart: {
                 type: 'bar',
-                height: 280,
+                height: 250,
                 background: 'transparent',
                 toolbar: { show: false },
                 animations: {
@@ -8545,8 +11100,8 @@ tbody.innerHTML = '';
             plotOptions: {
                 bar: {
                     horizontal: false,
-                    columnWidth: '40%',
-                    borderRadius: 6,
+                    columnWidth: '35%',
+                    borderRadius: 5,
                     dataLabels: { position: 'top' }
                 }
             },
@@ -8585,7 +11140,7 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 5B. TEAM PERFORMANCE PAGE
+    // 5B. TEAM PERFORMANCE PAGE (COMPACT & DYNAMIC CARDS)
     // ==========================================
     async renderTeams() {
         this.teamFilters = this.teamFilters || { date: '', production_line_id: '', machine_id: '' };
@@ -8598,43 +11153,48 @@ tbody.innerHTML = '';
             1: { 
                 cardGradient: 'bg-gradient-to-br from-indigo-50/90 via-white to-slate-50/90', 
                 border: 'border-indigo-200 shadow-sm', 
+                topBar: 'bg-indigo-500',
                 badge: 'bg-indigo-100 text-indigo-800 border-indigo-300 font-bold', 
                 text: 'text-indigo-700', 
                 bar: 'bg-indigo-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
             2: { 
                 cardGradient: 'bg-gradient-to-br from-emerald-50/90 via-white to-slate-50/90', 
                 border: 'border-emerald-200 shadow-sm', 
+                topBar: 'bg-emerald-500',
                 badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold', 
                 text: 'text-emerald-700', 
                 bar: 'bg-emerald-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
             3: { 
                 cardGradient: 'bg-gradient-to-br from-amber-50/90 via-white to-slate-50/90', 
                 border: 'border-amber-200 shadow-sm', 
+                topBar: 'bg-amber-500',
                 badge: 'bg-amber-100 text-amber-900 border-amber-300 font-bold', 
                 text: 'text-amber-700', 
                 bar: 'bg-amber-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
             4: { 
                 cardGradient: 'bg-gradient-to-br from-purple-50/90 via-white to-slate-50/90', 
                 border: 'border-purple-200 shadow-sm', 
+                topBar: 'bg-purple-500',
                 badge: 'bg-purple-100 text-purple-800 border-purple-300 font-bold', 
                 text: 'text-purple-700', 
                 bar: 'bg-purple-500',
-                subCardBg: 'bg-white/90 border-slate-200/90 shadow-2xs',
-                bottomBoxBg: 'bg-slate-50/90 border-slate-200/80 shadow-inner'
+                subCardBg: 'bg-slate-50/90 border-slate-200/90',
+                bottomBoxBg: 'bg-slate-50/80 border-slate-200/80'
             },
         } : {
             1: { 
                 cardGradient: 'bg-gradient-to-br from-indigo-500/10 via-slate-900 to-slate-900', 
                 border: 'border-indigo-500/40', 
+                topBar: 'bg-indigo-400',
                 badge: 'bg-indigo-950/80 text-indigo-300 border-indigo-800', 
                 text: 'text-indigo-400', 
                 bar: 'bg-indigo-400',
@@ -8644,6 +11204,7 @@ tbody.innerHTML = '';
             2: { 
                 cardGradient: 'bg-gradient-to-br from-emerald-500/10 via-slate-900 to-slate-900', 
                 border: 'border-emerald-500/40', 
+                topBar: 'bg-emerald-400',
                 badge: 'bg-emerald-950/80 text-emerald-300 border-emerald-800', 
                 text: 'text-emerald-400', 
                 bar: 'bg-emerald-400',
@@ -8653,6 +11214,7 @@ tbody.innerHTML = '';
             3: { 
                 cardGradient: 'bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900', 
                 border: 'border-amber-500/40', 
+                topBar: 'bg-amber-400',
                 badge: 'bg-amber-950/80 text-amber-300 border-amber-800', 
                 text: 'text-amber-400', 
                 bar: 'bg-amber-400',
@@ -8662,6 +11224,7 @@ tbody.innerHTML = '';
             4: { 
                 cardGradient: 'bg-gradient-to-br from-purple-500/10 via-slate-900 to-slate-900', 
                 border: 'border-purple-500/40', 
+                topBar: 'bg-purple-400',
                 badge: 'bg-purple-950/80 text-purple-300 border-purple-800', 
                 text: 'text-purple-400', 
                 bar: 'bg-purple-400',
@@ -8681,15 +11244,15 @@ tbody.innerHTML = '';
         const content = document.getElementById('content-body');
         content.innerHTML = `
             <!-- HEADER CONTEXT & TAB SWITCHER (SHIFT VS TEAM) -->
-            <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-xl mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-3">
-                    <h2 class="text-xl font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                    <h2 class="text-lg font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                         <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
                         <span>Shift & Team Perform</span>
                     </h2>
 
-                    <!-- 2-TAB SEGMENTED CONTROLLER (SHIFT & TEAM PERFORMANCES) -->
-                    <div class="flex items-center gap-1 p-1 ${isLight ? 'bg-slate-200/80 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl shadow-xs">
+                    <!-- 2-TAB SEGMENTED CONTROLLER -->
+                    <div class="flex items-center gap-1 p-0.5 ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl">
                         <button type="button" data-perf-tab="shifts" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}">
                             <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-500"></i> Shift Performance
                         </button>
@@ -8700,111 +11263,112 @@ tbody.innerHTML = '';
                 </div>
 
                 <!-- REALTIME FILTER CONTROLS -->
-                <div class="flex flex-wrap items-center gap-2 bg-transparent text-xs">
-                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl px-2.5 py-1.5 text-slate-400">
                         <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500"></i>
                         <input type="date" id="team-filter-date" value="${this.teamFilters?.date || ''}" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans" />
                     </div>
-                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl px-2.5 py-1.5 text-slate-400">
                         <i data-lucide="git-branch" class="w-3.5 h-3.5 text-emerald-500"></i>
                         <select id="team-filter-line" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans">
                             <option value="">Semua Lini</option>
                             ${lineOptions}
                         </select>
                     </div>
-                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border rounded-lg px-2.5 py-1.5 text-slate-400">
+                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl px-2.5 py-1.5 text-slate-400">
                         <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-500"></i>
                         <select id="team-filter-machine" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans">
                             <option value="">Semua Mesin</option>
                             ${machineOptions}
                         </select>
                     </div>
-                    <button id="btn-reset-team-filters" class="p-2 ${isLight ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} border rounded-lg transition-colors cursor-pointer" title="Reset Filter">
+                    <button id="btn-reset-team-filters" class="p-1.5 ${isLight ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} border rounded-xl transition-colors cursor-pointer" title="Reset Filter">
                         <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- COMPACT, SLEEK & INFORMATIVE TEAM CARDS -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
+            <!-- COMPACT, SLEEK & INFORMATIVE TEAM CARDS (DYNAMIC SMALL CARDS) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 mb-4">
                 ${teams.map((team, tIdx) => {
                     const theme = teamColors[team.team_id] || teamColors[(tIdx % 4) + 1];
                     const bestBadge = team.is_best_performer ? `
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border text-[10px] font-bold shadow-xs animate-pulse">
-                            🏆 Best Team
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800'} border text-[9px] font-bold shadow-xs">
+                            👑 Best
                         </span>
                     ` : '';
 
                     return `
-                        <div class="${theme.cardGradient} border ${team.is_best_performer ? (isLight ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-amber-500/60 ring-2 ring-amber-500/20') : theme.border} rounded-2xl p-4.5 shadow-lg relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group">
-                            <!-- TOP BAR: BADGE, LEADER/SPV & STATUS -->
-                            <div class="flex items-start justify-between gap-2 mb-3">
-                                <div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${theme.badge} font-mono shadow-xs">
-                                            👥 ${team.team_name}
+                        <div class="${theme.cardGradient} border ${team.is_best_performer ? (isLight ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-amber-500/60 ring-2 ring-amber-500/20') : theme.border} rounded-xl p-3.5 shadow-md relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group flex flex-col justify-between">
+                            <!-- TOP ACCENT BAR -->
+                            <div class="absolute top-0 left-0 right-0 h-1 ${theme.topBar} opacity-80 group-hover:opacity-100 transition-opacity"></div>
+
+                            <div>
+                                <!-- TOP BAR: BADGE, LEADER/SPV & STATUS -->
+                                <div class="flex items-start justify-between gap-2 mb-2 pt-0.5">
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${theme.badge} font-mono shadow-xs">
+                                                👥 ${team.team_name}
+                                            </span>
+                                        </div>
+                                        <span class="text-[10px] ${isLight ? 'text-slate-500 font-medium' : 'text-slate-400'} font-sans block mt-1 truncate max-w-[160px]" title="Leader: ${team.leader_name} • SPV: ${team.supervisor_name}">
+                                            👤 ${team.leader_name}
                                         </span>
                                     </div>
-                                    <span class="text-[10.5px] ${isLight ? 'text-slate-600 font-medium' : 'text-slate-400'} font-sans block mt-1 truncate max-w-[200px]" title="Leader: ${team.leader_name} • SPV: ${team.supervisor_name}">
-                                        👤 ${team.leader_name}
-                                    </span>
+                                    <div class="flex flex-col items-end gap-1">
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${this.getStatusBadge(team.oee_status)}">
+                                            ${team.oee_status}
+                                        </span>
+                                        ${bestBadge}
+                                    </div>
                                 </div>
-                                <div class="flex flex-col items-end gap-1">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${this.getStatusBadge(team.oee_status)}">
-                                        ${team.oee_status}
-                                    </span>
-                                    ${bestBadge}
+
+                                <!-- OEE HERO ROW & PROGRESS BAR -->
+                                <div class="mb-2.5 pb-2 border-b ${isLight ? 'border-slate-200/80' : 'border-slate-800'}">
+                                    <div class="flex items-baseline justify-between">
+                                        <span class="text-2xl font-black ${theme.text} font-mono tracking-tight">${team.oee}%</span>
+                                        <span class="text-[10px] font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase font-sans">Team OEE</span>
+                                    </div>
+                                    <div class="w-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} rounded-full h-1.5 mt-1 overflow-hidden">
+                                        <div class="${theme.bar} h-full rounded-full transition-all duration-700" style="width: ${Math.min(100, team.oee)}%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- 3 PILLARS (AVAILABILITY, PERFORMANCE, QUALITY) -->
+                                <div class="grid grid-cols-3 gap-1.5 mb-2.5 text-center font-mono">
+                                    <div class="${theme.subCardBg} border rounded-lg p-1.5">
+                                        <div class="text-[9px] ${isLight ? 'text-slate-500 font-semibold' : 'text-slate-400'} font-sans">Avail</div>
+                                        <div class="${isLight ? 'text-emerald-700' : 'text-emerald-400'} font-bold text-xs mt-0.5">${team.availability}%</div>
+                                    </div>
+                                    <div class="${theme.subCardBg} border rounded-lg p-1.5">
+                                        <div class="text-[9px] ${isLight ? 'text-slate-500 font-semibold' : 'text-slate-400'} font-sans">Perf</div>
+                                        <div class="${isLight ? 'text-amber-700' : 'text-amber-400'} font-bold text-xs mt-0.5">${team.performance}%</div>
+                                    </div>
+                                    <div class="${theme.subCardBg} border rounded-lg p-1.5">
+                                        <div class="text-[9px] ${isLight ? 'text-slate-500 font-semibold' : 'text-slate-400'} font-sans">Qual</div>
+                                        <div class="${isLight ? 'text-purple-700' : 'text-purple-400'} font-bold text-xs mt-0.5">${team.quality}%</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- OEE HERO ROW & PROGRESS BAR -->
-                            <div class="mb-3.5 pb-2.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
-                                <div class="flex items-baseline justify-between">
-                                    <span class="text-3xl font-black ${theme.text} font-mono tracking-tight">${team.oee}%</span>
-                                    <span class="text-[11px] font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} uppercase font-sans">Team OEE</span>
-                                </div>
-                                <div class="w-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} rounded-full h-1.5 mt-1.5 overflow-hidden">
-                                    <div class="${theme.bar} h-full rounded-full transition-all duration-700" style="width: ${Math.min(100, team.oee)}%"></div>
-                                </div>
-                            </div>
-
-                            <!-- 3 PILLARS (AVAILABILITY, PERFORMANCE, QUALITY) -->
-                            <div class="grid grid-cols-3 gap-1.5 mb-3 text-center font-mono">
-                                <div class="${theme.subCardBg} border rounded-xl p-2">
-                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Avail</div>
-                                    <div class="${isLight ? 'text-emerald-700' : 'text-emerald-400'} font-bold text-xs mt-0.5">${team.availability}%</div>
-                                </div>
-                                <div class="${theme.subCardBg} border rounded-xl p-2">
-                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Perf</div>
-                                    <div class="${isLight ? 'text-amber-700' : 'text-amber-400'} font-bold text-xs mt-0.5">${team.performance}%</div>
-                                </div>
-                                <div class="${theme.subCardBg} border rounded-xl p-2">
-                                    <div class="text-[9.5px] ${isLight ? 'text-slate-600 font-semibold' : 'text-slate-400'} font-sans">Qual</div>
-                                    <div class="${isLight ? 'text-purple-700' : 'text-purple-400'} font-bold text-xs mt-0.5">${team.quality}%</div>
-                                </div>
-                            </div>
-
-                            <!-- COMPACT PRODUCTION QUANTITIES -->
-                            <div class="space-y-1.5 text-[11px] font-mono ${theme.bottomBoxBg} rounded-xl p-3 border">
+                            <!-- COMPACT PRODUCTION QUANTITIES STRIP -->
+                            <div class="space-y-1 text-[10.5px] font-mono ${theme.bottomBoxBg} rounded-lg p-2.5 border">
                                 <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}">
-                                    <span class="font-sans text-[10.5px]">Target / Actual:</span>
-                                    <strong class="${isLight ? 'text-slate-900' : 'text-white'} font-bold">${team.target_quantity.toLocaleString()} / <span class="text-indigo-500">${team.total_quantity.toLocaleString()}</span></strong>
+                                    <span class="font-sans text-[10px] text-slate-400">Target / Actual:</span>
+                                    <strong class="${isLight ? 'text-slate-900' : 'text-white'} font-bold">${team.target_quantity.toLocaleString()} / <span class="text-indigo-400">${team.total_quantity.toLocaleString()}</span></strong>
                                 </div>
                                 <div class="flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}">
-                                    <span class="font-sans text-[10.5px]">Good / NG:</span>
+                                    <span class="font-sans text-[10px] text-slate-400">Good / NG:</span>
                                     <span>
                                         <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${team.good_quantity.toLocaleString()} OK</strong>
                                         <span class="text-slate-400 mx-0.5">•</span>
                                         <strong class="${isLight ? 'text-rose-700' : 'text-rose-400'}">${team.reject_quantity.toLocaleString()} NG</strong>
                                     </span>
                                 </div>
-                                <div class="pt-1.5 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} flex justify-between items-center text-[10.5px]">
-                                    <span class="font-sans text-slate-500">Yield / Reject:</span>
-                                    <span>
-                                        <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${team.yield_rate}%</strong>
-                                        <span class="text-slate-400 mx-0.5">/</span>
-                                        <strong class="${isLight ? 'text-rose-700' : 'text-rose-400'}">${team.rejection_rate}%</strong>
-                                    </span>
+                                <div class="pt-1 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} flex justify-between items-center text-[10px]">
+                                    <span class="font-sans text-slate-400">Yield Rate:</span>
+                                    <strong class="${isLight ? 'text-emerald-700' : 'text-emerald-400'}">${team.yield_rate}%</strong>
                                 </div>
                             </div>
                         </div>
@@ -8813,42 +11377,38 @@ tbody.innerHTML = '';
             </div>
 
             <!-- ANIMATED TEAM COMPARISON CHART -->
-            <div class="${isLight ? 'bg-white border-slate-200 shadow-lg' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5">
-                <div class="flex items-center justify-between mb-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
-                    <div>
-                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
-                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-400"></i>
-                            Team OEE & Pillars Comparative Metrics
-                        </h3>
-                    </div>
+            <div class="${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-4 mb-4">
+                <div class="flex items-center justify-between mb-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800'} pb-2">
+                    <h3 class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2 uppercase tracking-wide">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-400"></i>
+                        Team OEE & Pillars Comparative Metrics
+                    </h3>
                 </div>
-                <div id="chart-team-comparison" class="w-full h-72"></div>
+                <div id="chart-team-comparison" class="w-full h-64"></div>
             </div>
 
             <!-- DAILY BREAKDOWN PER PRODUCTION DATE TABLE FOR TEAMS -->
-            <div class="${isLight ? 'bg-white border-slate-200 shadow-lg' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5">
-                <div class="flex items-center justify-between mb-4 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
-                    <div>
-                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
-                            <i data-lucide="calendar-range" class="w-4 h-4 text-amber-500"></i>
-                            Daily Production Team Breakdown
-                        </h3>
-                    </div>
+            <div class="${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3 border-b ${isLight ? 'border-slate-100' : 'border-slate-800'} pb-2">
+                    <h3 class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2 uppercase tracking-wide">
+                        <i data-lucide="calendar-range" class="w-4 h-4 text-amber-500"></i>
+                        Daily Production Team Breakdown
+                    </h3>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead class="${isLight ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-950 text-slate-400 border-slate-800'} uppercase font-semibold text-[10px] border-b">
                             <tr>
-                                <th class="p-3">Tanggal Produksi</th>
-                                <th class="p-3">Team Name</th>
-                                <th class="p-3 text-center">OEE %</th>
-                                <th class="p-3 text-center">Availability</th>
-                                <th class="p-3 text-center">Performance</th>
-                                <th class="p-3 text-center">Quality</th>
-                                <th class="p-3 text-right">Total Measuring</th>
-                                <th class="p-3 text-right">Finish Good</th>
-                                <th class="p-3 text-right">Not Good (NG)</th>
+                                <th class="p-2.5">Tanggal Produksi</th>
+                                <th class="p-2.5">Team Name</th>
+                                <th class="p-2.5 text-center">OEE %</th>
+                                <th class="p-2.5 text-center">Availability</th>
+                                <th class="p-2.5 text-center">Performance</th>
+                                <th class="p-2.5 text-center">Quality</th>
+                                <th class="p-2.5 text-right">Total Measuring</th>
+                                <th class="p-2.5 text-right">Finish Good</th>
+                                <th class="p-2.5 text-right">Not Good (NG)</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y ${isLight ? 'divide-slate-200 text-slate-800' : 'divide-slate-800/60 text-slate-200'} font-mono">
@@ -8857,15 +11417,15 @@ tbody.innerHTML = '';
                             ` : dailyBreakdown.map(day => {
                                 return day.teams.map((t, idx) => `
                                     <tr class="${isLight ? 'hover:bg-slate-50/80' : 'hover:bg-slate-800/40'} transition-colors">
-                                        ${idx === 0 ? `<td rowspan="${day.teams.length}" class="p-3 ${isLight ? 'text-indigo-800 bg-slate-50 border-slate-200 font-bold' : 'text-indigo-400 bg-slate-950/40 border-slate-800 font-bold'} font-sans align-middle border-r">${day.date}</td>` : ''}
-                                        <td class="p-3 font-sans font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${t.team_name}</td>
-                                        <td class="p-3 text-center ${isLight ? 'text-indigo-800' : 'text-indigo-400'} font-bold">${t.oee}%</td>
-                                        <td class="p-3 text-center ${isLight ? 'text-emerald-800' : 'text-emerald-400'} font-semibold">${t.availability}%</td>
-                                        <td class="p-3 text-center ${isLight ? 'text-amber-800' : 'text-amber-400'} font-semibold">${t.performance}%</td>
-                                        <td class="p-3 text-center ${isLight ? 'text-purple-800' : 'text-purple-400'} font-semibold">${t.quality}%</td>
-                                        <td class="p-3 text-right ${isLight ? 'text-slate-800' : 'text-slate-200'} font-semibold">${(t.total_quantity ?? 0).toLocaleString()} pcs</td>
-                                        <td class="p-3 text-right ${isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400 font-bold'}">${(t.good_quantity ?? 0).toLocaleString()} pcs</td>
-                                        <td class="p-3 text-right ${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${(t.reject_quantity ?? 0).toLocaleString()} pcs</td>
+                                        ${idx === 0 ? `<td rowspan="${day.teams.length}" class="p-2.5 ${isLight ? 'text-indigo-800 bg-slate-50 border-slate-200 font-bold' : 'text-indigo-400 bg-slate-950/40 border-slate-800 font-bold'} font-sans align-middle border-r">${day.date}</td>` : ''}
+                                        <td class="p-2.5 font-sans font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${t.team_name}</td>
+                                        <td class="p-2.5 text-center ${isLight ? 'text-indigo-800' : 'text-indigo-400'} font-bold">${t.oee}%</td>
+                                        <td class="p-2.5 text-center ${isLight ? 'text-emerald-800' : 'text-emerald-400'} font-semibold">${t.availability}%</td>
+                                        <td class="p-2.5 text-center ${isLight ? 'text-amber-800' : 'text-amber-400'} font-semibold">${t.performance}%</td>
+                                        <td class="p-2.5 text-center ${isLight ? 'text-purple-800' : 'text-purple-400'} font-semibold">${t.quality}%</td>
+                                        <td class="p-2.5 text-right ${isLight ? 'text-slate-800' : 'text-slate-200'} font-semibold">${(t.total_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-2.5 text-right ${isLight ? 'text-emerald-700 font-bold' : 'text-emerald-400 font-bold'}">${(t.good_quantity ?? 0).toLocaleString()} pcs</td>
+                                        <td class="p-2.5 text-right ${isLight ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${(t.reject_quantity ?? 0).toLocaleString()} pcs</td>
                                     </tr>
                                 `).join('');
                             }).join('')}
@@ -8935,7 +11495,7 @@ tbody.innerHTML = '';
         const options = {
             chart: {
                 type: 'bar',
-                height: 280,
+                height: 250,
                 background: 'transparent',
                 toolbar: { show: false },
                 animations: {
@@ -8945,12 +11505,12 @@ tbody.innerHTML = '';
                 }
             },
             theme: { mode: isLight ? 'light' : 'dark' },
-            colors: ['#6366f1', '#10b981', '#f59e0b', '#ec4899'],
+            colors: ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'],
             plotOptions: {
                 bar: {
                     horizontal: false,
-                    columnWidth: '40%',
-                    borderRadius: 6,
+                    columnWidth: '35%',
+                    borderRadius: 5,
                     dataLabels: { position: 'top' }
                 }
             },
@@ -8991,23 +11551,27 @@ tbody.innerHTML = '';
     // ==========================================
     // 6. DOWNTIME ANALYSIS PAGE
     // ==========================================
+    // ==========================================
+    // 6. DOWNTIME ANALYSIS PAGE
+    // ==========================================
     async renderDowntime() {
         this.currentView = 'downtime';
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const content = document.getElementById('content-body');
+        if (!content) return;
 
-        const [dtListRes, dtParetoRes] = await Promise.all([
-            api.getDowntimes(this.filters),
-            api.getParetoDowntime(this.filters),
-        ]);
+        // Ensure filters default or match active filters
+        if (!this.filters.period) {
+            this.filters.period = '30days';
+        }
 
-        const downtimes = dtListRes.data.data || [];
-        const paretoData = dtParetoRes.data;
-        const pareto = paretoData.data || [];
-        const summary = paretoData.summary || {};
-
-        const totalDowntime = summary.total_downtime !== undefined ? Number(summary.total_downtime) : pareto.reduce((sum, i) => sum + Number(i.duration_minutes || 0), 0);
-        const totalStops = summary.total_stops !== undefined ? Number(summary.total_stops) : pareto.reduce((sum, i) => sum + Number(i.stop_count || 0), 0);
-        const totalHours = (totalDowntime / 60).toFixed(1);
+        // Local state for instant table search/filtering
+        let rawDowntimes = [];
+        let rawPareto = [];
+        let rawSummary = {};
+        let activeStatusFilter = 'all';
+        let activeProblemTypeFilter = 'all';
+        let activeSearchQuery = '';
 
         const getCategoryMeta = (catName) => {
             const name = String(catName || '').toLowerCase();
@@ -9074,146 +11638,130 @@ tbody.innerHTML = '';
             };
         };
 
-        const content = document.getElementById('content-body');
+        // Render Base Page Shell with Interactive Filter Controls
         content.innerHTML = `
-            <!-- HEADER SECTION -->
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <!-- 1. TOP HEADER & DATE PATTERN FILTER CONTROL STRIP -->
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <div>
                     <h2 class="text-xl font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                         <i data-lucide="clock-alert" class="w-5 h-5 text-amber-500"></i>
-                        <span>Downtime Analysis</span>
+                        <span>Downtime & Loss Trouble Analysis</span>
                     </h2>
+                    <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Analisis losstime, riwayat stoppage problem mesin, dan Pareto klasifikasi downtime</p>
+                </div>
+
+                <!-- ACTION BUTTONS & PERIOD QUICK SELECT -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Date Pattern Quick Buttons -->
+                    <div class="inline-flex ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'} border p-1 rounded-xl text-xs font-medium">
+                        <button id="btn-dt-period-all" class="btn-dt-period px-3 py-1.5 rounded-lg transition-all cursor-pointer ${this.filters.period === 'all' ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/30' : (isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800')}" data-period="all">Semua</button>
+                        <button id="btn-dt-period-today" class="btn-dt-period px-3 py-1.5 rounded-lg transition-all cursor-pointer ${this.filters.period === 'today' ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/30' : (isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800')}" data-period="today">Hari Ini</button>
+                        <button id="btn-dt-period-7d" class="btn-dt-period px-3 py-1.5 rounded-lg transition-all cursor-pointer ${this.filters.period === '7days' || this.filters.period === '7d' ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/30' : (isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800')}" data-period="7days">Minggu Ini</button>
+                        <button id="btn-dt-period-30d" class="btn-dt-period px-3 py-1.5 rounded-lg transition-all cursor-pointer ${this.filters.period === '30days' || this.filters.period === '30d' ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/30' : (isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800')}" data-period="30days">30 Hari</button>
+                        <button id="btn-dt-period-thismonth" class="btn-dt-period px-3 py-1.5 rounded-lg transition-all cursor-pointer ${this.filters.period === 'this_month' ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/30' : (isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800')}" data-period="this_month">Bulan Ini</button>
+                        <button id="btn-dt-period-custom" class="btn-dt-period px-3 py-1.5 rounded-lg transition-all cursor-pointer ${this.filters.period === 'custom' ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/30' : (isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800')}" data-period="custom">Custom...</button>
+                    </div>
+
+                    <!-- Export Excel & Refresh Buttons -->
+                    <button id="btn-export-downtime-excel" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer" title="Export Log Trouble ke File Excel">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        <span>Export Excel</span>
+                    </button>
+                    <button id="btn-refresh-downtime" class="p-2 rounded-xl ${isLight ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300'} border transition-all cursor-pointer" title="Refresh Data Realtime">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- 1. OVERALL KPI SUMMARY STRIP (TOTAL DOWNTIME & FREKUENSI STOPS) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-rose-500/40">
-                    <div class="flex items-center justify-between">
-                        <div class="space-y-1">
-                            <span class="text-[11px] font-bold uppercase tracking-wider text-rose-400 font-mono flex items-center gap-1.5">
-                                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i>
-                                Total Downtime
-                            </span>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}">${totalDowntime.toFixed(1)}</span>
-                                <span class="text-sm font-bold text-rose-500 font-mono">mins</span>
-                                <span class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} font-sans">(${totalHours} jam)</span>
-                            </div>
-                            <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Total akumulasi durasi losstime produksi</p>
-                        </div>
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-rose-50 text-rose-600' : 'bg-rose-950/60 text-rose-400 border border-rose-800/60'}">
-                            <i data-lucide="clock" class="w-6 h-6"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-amber-500/40">
-                    <div class="flex items-center justify-between">
-                        <div class="space-y-1">
-                            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-mono flex items-center gap-1.5">
-                                <i data-lucide="pause-circle" class="w-4 h-4 text-amber-500"></i>
-                                Total Kejadian Stop
-                            </span>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}">${totalStops}</span>
-                                <span class="text-sm font-bold text-amber-500 font-mono">stops</span>
-                                <span class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} font-sans">(${pareto.length} Kategori Problem)</span>
-                            </div>
-                            <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Total frekuensi insiden / breakdown</p>
-                        </div>
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-950/60 text-amber-400 border border-amber-800/60'}">
-                            <i data-lucide="activity" class="w-6 h-6"></i>
-                        </div>
-                    </div>
-                </div>
+            <!-- Custom Date Range Bar (Conditional) -->
+            <div id="dt-custom-date-strip" class="${this.filters.period === 'custom' ? 'flex' : 'hidden'} items-center gap-2 mb-4 p-3 rounded-xl ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'} border flex-wrap">
+                <span class="text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'} flex items-center gap-1.5">
+                    <i data-lucide="calendar-range" class="w-4 h-4 text-cyan-500"></i>
+                    Pilih Rentang Tanggal:
+                </span>
+                <input type="date" id="dt-filter-start" value="${this.filters.start_date || ''}" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-cyan-500 font-sans" />
+                <span class="text-xs text-slate-500">s/d</span>
+                <input type="date" id="dt-filter-end" value="${this.filters.end_date || ''}" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-cyan-500 font-sans" />
+                <button id="btn-apply-dt-custom" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow cursor-pointer transition-all">Terapkan Tanggal</button>
             </div>
 
-            <!-- 2. TOTAL DOWNTIME PER KATEGORI PROBLEM (DASHBOARD CARDS) -->
-            <div class="${isLight ? 'bg-slate-100/80 border-slate-200' : 'bg-slate-900/60 border-slate-800'} border rounded-2xl p-4 shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-3 px-1">
-                    <div>
-                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                            <i data-lucide="layers" class="w-4 h-4 text-cyan-500"></i>
-                            <span>Total Downtime Berdasarkan Kategori Problem</span>
-                        </h3>
-                    </div>
-                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${isLight ? 'bg-cyan-100 text-cyan-800' : 'bg-cyan-950 text-cyan-300 border border-cyan-800'}">
-                        ${pareto.length} Kategori Aktif
-                    </span>
-                </div>
-
-                ${pareto.length === 0 ? `
-                    <div class="p-8 text-center text-slate-500 font-sans text-xs">
-                        <i data-lucide="check-circle" class="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-60"></i>
-                        Tidak ada catatan downtime pada periode filter yang dipilih.
-                    </div>
-                ` : `
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                        ${pareto.map(cat => {
-                            const meta = getCategoryMeta(cat.category || cat.reason);
-                            const dur = Number(cat.duration_minutes || 0);
-                            const pct = Number(cat.percentage || 0);
-                            const stops = Number(cat.stop_count || 0);
-                            return `
-                                <div class="relative flex flex-col justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-3.5 shadow-xs transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-                                    <!-- TOP BADGE & STOP COUNT -->
-                                    <div class="flex items-start justify-between gap-2 mb-2">
-                                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold border ${meta.badgeColor} max-w-[70%] truncate">
-                                            <i data-lucide="${meta.icon}" class="w-3.5 h-3.5 flex-shrink-0"></i>
-                                            <span class="truncate">${cat.category || cat.reason}</span>
-                                        </div>
-                                        <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-800 text-slate-300'}">
-                                            ${stops} ${stops === 1 ? 'stop' : 'stops'}
-                                        </span>
-                                    </div>
-
-                                    <!-- DURATION DISPLAY -->
-                                    <div class="my-1">
-                                        <div class="flex items-baseline gap-1.5">
-                                            <span class="text-2xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dur.toFixed(1)}</span>
-                                            <span class="text-xs font-bold ${meta.textColor} font-mono">mins</span>
-                                        </div>
-                                        <div class="flex items-center justify-between text-[10px] font-sans ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">
-                                            <span>Share Kontribusi</span>
-                                            <span class="font-bold font-mono ${meta.textColor}">${pct}%</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- PROGRESS BAR -->
-                                    <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden mt-1.5">
-                                        <div class="${meta.barGradient} h-1.5 rounded-full transition-all duration-500" style="width: ${Math.min(pct, 100)}%"></div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `}
+            <!-- 2. EXECUTIVE 4-KPI SUMMARY STRIP (DYNAMIC) -->
+            <div id="dt-kpi-strip-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                <!-- Skeleton / Dynamic KPI Cards -->
             </div>
 
-            <!-- 3. PROBLEM CATEGORY DOWNTIME PARETO CHART -->
-            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <!-- 3. TOTAL DOWNTIME PER KATEGORI PROBLEM (DASHBOARD CARDS) -->
+            <div id="dt-categories-section" class="${isLight ? 'bg-slate-100/80 border-slate-200' : 'bg-slate-900/60 border-slate-800'} border rounded-2xl p-4 shadow-sm mb-5">
+                <!-- Dynamic Category Cards -->
+            </div>
+
+            <!-- 4. PROBLEM CATEGORY DOWNTIME PARETO CHART -->
+            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-sm mb-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                     <div>
                         <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                             <i data-lucide="bar-chart-2" class="w-4 h-4 text-amber-500"></i>
                             <span>Problem Category Downtime Pareto Chart</span>
                         </h3>
+                        <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Prinsip Pareto 80/20: Menampilkan problem dominan penyebab mayoritas kehilangan jam produksi</p>
                     </div>
+                    <span id="dt-pareto-status-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
+                        Pareto 80% Threshold
+                    </span>
                 </div>
                 <div id="chart-pareto-downtime" class="h-72"></div>
             </div>
 
-            <!-- 4. DOWNTIME & LOSS TROUBLE HISTORY LOGS TABLE -->
+            <!-- 5. DOWNTIME & LOSS TROUBLE HISTORY LOGS TABLE -->
             <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-sm">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <div>
                         <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                             <i data-lucide="history" class="w-4 h-4 text-cyan-500"></i>
                             <span>Downtime & Loss Trouble History Logs</span>
                         </h3>
+                        <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Detail catatan waktu, akar masalah, CAPA perbaikan, status dan PIC penanggung jawab</p>
+                    </div>
+
+                    <!-- Live Filters & Fullscreen Action on Table -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Fullscreen Popup Meeting Mode Button -->
+                        <button id="btn-dt-fullscreen-popup" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all cursor-pointer" title="Buka Tampilan Pop-up Fullscreen Fit to Display untuk Meeting Lantai Produksi">
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                            <span>Pop-up Fullscreen Focus</span>
+                        </button>
+
+                        <!-- Live Search Input -->
+                        <div class="relative min-w-[180px] sm:min-w-[220px]">
+                            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="dt-table-search" placeholder="Cari masalah, PIC, CAPA, mesin..." class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-sans" />
+                        </div>
+
+                        <!-- Status Filter -->
+                        <select id="dt-table-status-filter" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-sans cursor-pointer">
+                            <option value="all">Semua Status</option>
+                            <option value="CLOSED">CLOSED (Selesai)</option>
+                            <option value="OPEN">OPEN (Ongoing)</option>
+                        </select>
+
+                        <!-- Problem Type Filter -->
+                        <select id="dt-table-type-filter" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-sans cursor-pointer max-w-[160px] truncate">
+                            <option value="all">Semua Kategori Problem</option>
+                            <option value="Problem Mesin Mekanik">Problem Mesin Mekanik</option>
+                            <option value="Problem Mesin Elektrik">Problem Mesin Elektrik</option>
+                            <option value="Problem Tool">Problem Tool</option>
+                            <option value="Inventory">Inventory</option>
+                            <option value="Planning Downtime">Planning Downtime</option>
+                            <option value="Others">Others</option>
+                        </select>
+
+                        <!-- Row Counter Badge -->
+                        <span id="dt-table-count-badge" class="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
+                            0 Records
+                        </span>
                     </div>
                 </div>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
@@ -9222,64 +11770,1093 @@ tbody.innerHTML = '';
                                 <th class="p-3">Waktu Trouble</th>
                                 <th class="p-3">Line & Mesin</th>
                                 <th class="p-3">Shift & Team</th>
-                                <th class="p-3">Product</th>
+                                <th class="p-3">Product / Part</th>
                                 <th class="p-3">Jenis Problem</th>
                                 <th class="p-3">Masalah / Kendala (Trouble)</th>
+                                <th class="p-3">Penyebab (Root Cause)</th>
                                 <th class="p-3">Durasi</th>
                                 <th class="p-3">Tindakan Perbaikan (CAPA)</th>
+                                <th class="p-3">PIC / Leader</th>
+                                <th class="p-3 text-center">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
-                            ${downtimes.length === 0 ? `
-                                <tr><td colspan="9" class="p-6 text-center text-slate-500 font-sans">Belum ada riwayat log trouble downtime</td></tr>
-                            ` : downtimes.map((dt, idx) => {
-                                const catMeta = getCategoryMeta(dt.problem_type);
-                                return `
-                                <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
-                                    <td class="p-3 text-center font-bold text-slate-500 font-mono">${idx + 1}</td>
-                                    <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} text-[11px]">
-                                        <div>${dt.start_time ? dt.start_time.slice(0,16).replace('T', ' ') : '-'}</div>
-                                        <div class="text-slate-500 text-[10px]">s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-500 font-bold">ONGOING</span>'}</div>
-                                    </td>
-                                    <td class="p-3 font-sans">
-                                        <div class="font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-400'}">${dt.production_line ? dt.production_line.name : (dt.production_line_id ? 'Line #' + dt.production_line_id : 'FX Line')}</div>
-                                        <div class="text-[10px] text-slate-400 font-mono">${dt.machine ? dt.machine.name : 'MC-MEASURING'}</div>
-                                    </td>
-                                    <td class="p-3 font-sans">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-800 text-slate-200 border border-slate-700'}">
-                                            ${dt.shift ? dt.shift.name : 'Shift 1'}
-                                        </span>
-                                        ${dt.team ? `<div class="text-[10px] text-amber-500 font-bold mt-1">👥 ${dt.team}</div>` : ''}
-                                    </td>
-                                    <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} font-sans text-xs">
-                                        ${dt.product ? dt.product.name : '-'}
-                                    </td>
-                                    <td class="p-3 font-sans">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${catMeta.badgeColor}">
-                                            ${dt.problem_type || 'Mesin'}
-                                        </span>
-                                    </td>
-                                    <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
-                                        <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dt.description || (dt.downtime_reason ? dt.downtime_reason.name : 'Trouble Operasional')}</div>
-                                        ${dt.description && dt.downtime_reason && dt.downtime_reason.name !== dt.description && dt.downtime_reason.name !== 'Mechanical Jam & Motor Overheat' ? `<div class="text-[10px] text-slate-400 truncate max-w-xs">${dt.downtime_reason.name}</div>` : ''}
-                                    </td>
-                                    <td class="p-3 font-bold text-rose-500 font-mono">${dt.calculated_duration_minutes || dt.duration_minutes} mins</td>
-                                    <td class="p-3 font-sans text-xs">
-                                        <div class="text-emerald-500 font-medium">${dt.action_taken || '-'}</div>
-                                    </td>
-                                </tr>
-                            `;}).join('')}
+                        <tbody id="dt-table-tbody" class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
+                            <!-- Table Rows rendered dynamically -->
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Table Summary Footer -->
+                <div id="dt-table-footer" class="flex flex-wrap items-center justify-between text-xs pt-3 mt-3 border-t ${isLight ? 'border-slate-200 text-slate-600' : 'border-slate-800 text-slate-400'}">
+                    <div>Menampilkan data realtime sesuai filter pola tanggal terpilih.</div>
+                    <div id="dt-table-total-mins" class="font-mono font-bold text-rose-500">Total: 0 Menit</div>
                 </div>
             </div>
         `;
 
-        this.renderParetoDowntimeChart(pareto);
         if (window.lucide) window.lucide.createIcons();
-        if (this.currentLang === 'ja') {
-            i18n.localizeDom(document.getElementById('content-body') || document.body);
+
+        // Dynamic Table Row Renderer with Client-Side Filtering
+        const renderTableRows = () => {
+            const tbody = document.getElementById('dt-table-tbody');
+            const countBadge = document.getElementById('dt-table-count-badge');
+            const totalMinsEl = document.getElementById('dt-table-total-mins');
+            if (!tbody) return;
+
+            const q = activeSearchQuery.toLowerCase().trim();
+            const filtered = rawDowntimes.filter(dt => {
+                // Status Filter
+                if (activeStatusFilter !== 'all') {
+                    const st = (dt.status || (dt.end_time ? 'CLOSED' : 'OPEN')).toUpperCase();
+                    if (activeStatusFilter === 'OPEN' && st !== 'OPEN' && dt.end_time) return false;
+                    if (activeStatusFilter === 'CLOSED' && (st !== 'CLOSED' || !dt.end_time)) return false;
+                }
+
+                // Problem Type Filter
+                if (activeProblemTypeFilter !== 'all') {
+                    const prob = (dt.problem_type || '').toLowerCase();
+                    if (!prob.includes(activeProblemTypeFilter.toLowerCase())) return false;
+                }
+
+                // Keyword Search
+                if (q) {
+                    const lineName = (dt.production_line?.name || '').toLowerCase();
+                    const mcName = (dt.machine?.name || dt.machine?.code || '').toLowerCase();
+                    const prodName = (dt.product?.name || dt.product?.sku || '').toLowerCase();
+                    const probType = (dt.problem_type || '').toLowerCase();
+                    const desc = (dt.description || dt.downtime_reason?.name || '').toLowerCase();
+                    const cause = (dt.cause || '').toLowerCase();
+                    const capa = (dt.action_taken || '').toLowerCase();
+                    const pic = (dt.pic || '').toLowerCase();
+                    const team = (dt.team || '').toLowerCase();
+
+                    const match = lineName.includes(q) || mcName.includes(q) || prodName.includes(q) ||
+                                  probType.includes(q) || desc.includes(q) || cause.includes(q) ||
+                                  capa.includes(q) || pic.includes(q) || team.includes(q);
+                    if (!match) return false;
+                }
+
+                return true;
+            });
+
+            if (countBadge) {
+                countBadge.textContent = `${filtered.length} dari ${rawDowntimes.length} Records`;
+            }
+
+            const totalFilteredMinutes = filtered.reduce((sum, d) => sum + Number(d.calculated_duration_minutes || d.duration_minutes || 0), 0);
+            if (totalMinsEl) {
+                totalMinsEl.textContent = `Total Durasi: ${totalFilteredMinutes.toFixed(1)} Menit (${(totalFilteredMinutes / 60).toFixed(1)} Jam)`;
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="p-8 text-center text-slate-500 font-sans">
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <i data-lucide="inbox" class="w-8 h-8 text-slate-400 opacity-60"></i>
+                                <span class="font-medium text-xs">Tidak ada data trouble yang cocok dengan kriteria filter saat ini.</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((dt, idx) => {
+                const catMeta = getCategoryMeta(dt.problem_type);
+                const isOngoing = !dt.end_time || dt.status === 'OPEN';
+                const isClosed = dt.status === 'CLOSED' || (dt.end_time && dt.status !== 'OPEN');
+                
+                let statusBadge = '';
+                if (isOngoing) {
+                    statusBadge = `
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 text-rose-200 border border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse select-none">
+                            <span class="relative flex h-2.5 w-2.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white/70"></span>
+                            </span>
+                            <span class="tracking-wide text-rose-100 font-extrabold drop-shadow">OPEN / ONGOING</span>
+                        </div>
+                    `;
+                } else if (isClosed) {
+                    statusBadge = `
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-emerald-200 border border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.35)] select-none hover:scale-105 transition-all">
+                            <span class="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500 text-slate-950 font-black">
+                                <i data-lucide="check" class="w-2.5 h-2.5 stroke-[4]"></i>
+                            </span>
+                            <span class="tracking-wide text-emerald-100 font-extrabold drop-shadow">CLOSED</span>
+                        </div>
+                    `;
+                } else {
+                    statusBadge = `
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-amber-950 text-amber-200 border border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)] animate-pulse select-none">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                            </span>
+                            <span>${dt.status || 'PENDING'}</span>
+                        </div>
+                    `;
+                }
+
+                const durationMins = Number(dt.calculated_duration_minutes || dt.duration_minutes || 0);
+
+                return `
+                    <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                        <td class="p-3 text-center font-bold text-slate-500 font-mono">${idx + 1}</td>
+                        <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} text-[11px]">
+                            <div class="font-bold">${dt.start_time ? dt.start_time.slice(0,10) : '-'}</div>
+                            <div class="text-slate-400 text-[10px] font-mono">
+                                ${dt.start_time ? dt.start_time.slice(11,16) : '00:00'} s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-500 font-bold">ONGOING</span>'}
+                            </div>
+                        </td>
+                        <td class="p-3 font-sans">
+                            <div class="font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-400'}">${dt.production_line ? dt.production_line.name : (dt.production_line_id ? 'Line #' + dt.production_line_id : 'FX Line')}</div>
+                            <div class="text-[10px] text-slate-400 font-mono truncate max-w-[140px]" title="${dt.machine ? dt.machine.name : 'Measuring Machine'}">${dt.machine ? dt.machine.name : 'MC-MEASURING'}</div>
+                        </td>
+                        <td class="p-3 font-sans">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-800 text-slate-200 border border-slate-700'}">
+                                ${dt.shift ? dt.shift.name : 'Shift 1'}
+                            </span>
+                            ${dt.team ? `<div class="text-[10px] text-amber-500 font-bold mt-1 flex items-center gap-1"><span>👥</span> <span>${dt.team}</span></div>` : ''}
+                        </td>
+                        <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} font-sans text-xs">
+                            <div class="font-medium">${dt.product ? dt.product.name : '-'}</div>
+                            ${dt.product && dt.product.sku ? `<div class="text-[10px] text-slate-400 font-mono">${dt.product.sku}</div>` : ''}
+                        </td>
+                        <td class="p-3 font-sans">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${catMeta.badgeColor} max-w-[150px] truncate" title="${dt.problem_type || 'Mesin'}">
+                                <i data-lucide="${catMeta.icon}" class="w-3 h-3 flex-shrink-0"></i>
+                                <span class="truncate">${dt.problem_type || 'Mesin'}</span>
+                            </span>
+                        </td>
+                        <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'} max-w-[180px]">
+                            <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dt.description || (dt.downtime_reason ? dt.downtime_reason.name : 'Trouble Operasional')}</div>
+                            ${dt.description && dt.downtime_reason && dt.downtime_reason.name !== dt.description ? `<div class="text-[10px] text-slate-400 truncate mt-0.5">${dt.downtime_reason.name}</div>` : ''}
+                        </td>
+                        <td class="p-3 font-sans text-xs max-w-[160px]">
+                            <div class="${isLight ? 'text-slate-700' : 'text-slate-300'}">${dt.cause || '<span class="text-slate-500 italic">-</span>'}</div>
+                        </td>
+                        <td class="p-3 font-bold text-rose-500 font-mono text-xs whitespace-nowrap">
+                            <div>${durationMins.toFixed(1)} mins</div>
+                            <div class="text-[10px] text-slate-400 font-normal">(${(durationMins / 60).toFixed(1)} jam)</div>
+                        </td>
+                        <td class="p-3 font-sans text-xs max-w-[180px]">
+                            <div class="text-emerald-500 font-medium">${dt.action_taken || '<span class="text-slate-500 italic">-</span>'}</div>
+                        </td>
+                        <td class="p-3 font-sans text-xs whitespace-nowrap">
+                            <div class="flex items-center gap-1 text-cyan-400 font-medium">
+                                <i data-lucide="user-check" class="w-3 h-3 text-cyan-500 flex-shrink-0"></i>
+                                <span>${dt.pic || (dt.team ? `${dt.team} Leader` : (dt.creator ? dt.creator.name : 'Leader Shift'))}</span>
+                            </div>
+                        </td>
+                        <td class="p-3 text-center whitespace-nowrap">
+                            ${statusBadge}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        // Realtime Data Fetcher & Section Updaters
+        const fetchAndRenderData = async () => {
+            const kpiContainer = document.getElementById('dt-kpi-strip-container');
+            const catSection = document.getElementById('dt-categories-section');
+            const paretoStatus = document.getElementById('dt-pareto-status-badge');
+
+            if (kpiContainer) {
+                kpiContainer.innerHTML = `
+                    <div class="col-span-full flex items-center justify-center p-8 text-cyan-500">
+                        <div class="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="ml-2 text-xs font-mono">Memuat data realtime...</span>
+                    </div>
+                `;
+            }
+
+            try {
+                const queryParams = { ...this.filters, all: true };
+                const [dtListRes, dtParetoRes] = await Promise.all([
+                    api.getDowntimes(queryParams),
+                    api.getParetoDowntime(this.filters),
+                ]);
+
+                rawDowntimes = dtListRes.data.data || [];
+                rawPareto = dtParetoRes.data.data || [];
+                rawSummary = dtParetoRes.data.summary || {};
+
+                const totalDowntime = rawSummary.total_downtime !== undefined ? Number(rawSummary.total_downtime) : rawPareto.reduce((sum, i) => sum + Number(i.duration_minutes || 0), 0);
+                const totalStops = rawSummary.total_stops !== undefined ? Number(rawSummary.total_stops) : rawPareto.reduce((sum, i) => sum + Number(i.stop_count || 0), 0);
+                const totalHours = (totalDowntime / 60).toFixed(1);
+                const openCount = rawDowntimes.filter(d => d.status === 'OPEN' || !d.end_time).length;
+                const closedCount = rawDowntimes.filter(d => d.status === 'CLOSED' || d.end_time).length;
+                const topCategory = rawSummary.top_category || (rawPareto.length > 0 ? (rawPareto[0].category || rawPareto[0].reason) : '-');
+
+                // 1. Update 4 KPI Cards
+                if (kpiContainer) {
+                    kpiContainer.innerHTML = `
+                        <!-- KPI 1: TOTAL DOWNTIME -->
+                        <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-rose-500/40">
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <span class="text-[11px] font-bold uppercase tracking-wider text-rose-400 font-mono flex items-center gap-1.5">
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i>
+                                        Total Downtime
+                                    </span>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-3xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}">${totalDowntime.toFixed(1)}</span>
+                                        <span class="text-sm font-bold text-rose-500 font-mono">mins</span>
+                                        <span class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} font-sans">(${totalHours} jam)</span>
+                                    </div>
+                                    <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Total akumulasi durasi losstime produksi</p>
+                                </div>
+                                <div class="w-12 h-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-rose-50 text-rose-600' : 'bg-rose-950/60 text-rose-400 border border-rose-800/60'}">
+                                    <i data-lucide="clock" class="w-6 h-6"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 2: TOTAL KEJADIAN STOP -->
+                        <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-amber-500/40">
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-mono flex items-center gap-1.5">
+                                        <i data-lucide="pause-circle" class="w-4 h-4 text-amber-500"></i>
+                                        Total Kejadian Stop
+                                    </span>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-3xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}">${totalStops}</span>
+                                        <span class="text-sm font-bold text-amber-500 font-mono">stops</span>
+                                        <span class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} font-sans">(${rawPareto.length} Kategori)</span>
+                                    </div>
+                                    <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Total frekuensi insiden stoppage mesin</p>
+                                </div>
+                                <div class="w-12 h-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-amber-50 text-amber-600' : 'bg-amber-950/60 text-amber-400 border border-amber-800/60'}">
+                                    <i data-lucide="activity" class="w-6 h-6"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 3: STATUS DISTRIBUSI LOG -->
+                        <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-emerald-500/40">
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 font-mono flex items-center gap-1.5">
+                                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
+                                        Status Trouble Log
+                                    </span>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-3xl font-black font-mono tracking-tight text-emerald-400">${closedCount}</span>
+                                        <span class="text-xs font-bold text-slate-400">Closed</span>
+                                        ${openCount > 0 ? `
+                                            <span class="ml-2 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-950 text-rose-300 border border-rose-800 animate-pulse">
+                                                ${openCount} Ongoing
+                                            </span>
+                                        ` : `
+                                            <span class="text-xs text-slate-500">(0 Open)</span>
+                                        `}
+                                    </div>
+                                    <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Status penyelesaian tindakan CAPA</p>
+                                </div>
+                                <div class="w-12 h-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60'}">
+                                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 4: TOP DOMINANT PROBLEM -->
+                        <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-cyan-500/40">
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-1 max-w-[70%]">
+                                    <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400 font-mono flex items-center gap-1.5">
+                                        <i data-lucide="target" class="w-4 h-4 text-cyan-500"></i>
+                                        Dominant Problem
+                                    </span>
+                                    <div class="text-lg font-extrabold ${isLight ? 'text-slate-900' : 'text-white'} truncate" title="${topCategory}">
+                                        ${topCategory}
+                                    </div>
+                                    <p class="text-[11px] text-cyan-500 font-mono font-semibold">Kontributor terbesar Pareto</p>
+                                </div>
+                                <div class="w-12 h-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-cyan-50 text-cyan-600' : 'bg-cyan-950/60 text-cyan-400 border border-cyan-800/60'}">
+                                    <i data-lucide="flame" class="w-6 h-6"></i>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 2. Update Category Cards
+                if (catSection) {
+                    catSection.innerHTML = `
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3 px-1">
+                            <div>
+                                <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                    <i data-lucide="layers" class="w-4 h-4 text-cyan-500"></i>
+                                    <span>Total Downtime Berdasarkan Kategori Problem</span>
+                                </h3>
+                            </div>
+                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${isLight ? 'bg-cyan-100 text-cyan-800' : 'bg-cyan-950 text-cyan-300 border border-cyan-800'}">
+                                ${rawPareto.length} Kategori Aktif
+                            </span>
+                        </div>
+
+                        ${rawPareto.length === 0 ? `
+                            <div class="p-8 text-center text-slate-500 font-sans text-xs">
+                                <i data-lucide="check-circle" class="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-60"></i>
+                                Tidak ada catatan downtime pada periode filter yang dipilih.
+                            </div>
+                        ` : `
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                                ${rawPareto.map(cat => {
+                                    const meta = getCategoryMeta(cat.category || cat.reason);
+                                    const dur = Number(cat.duration_minutes || 0);
+                                    const pct = Number(cat.percentage || 0);
+                                    const stops = Number(cat.stop_count || 0);
+                                    return `
+                                        <div class="relative flex flex-col justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-3.5 shadow-xs transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                                            <!-- TOP BADGE & STOP COUNT -->
+                                            <div class="flex items-start justify-between gap-2 mb-2">
+                                                <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold border ${meta.badgeColor} max-w-[70%] truncate">
+                                                    <i data-lucide="${meta.icon}" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                                                    <span class="truncate">${cat.category || cat.reason}</span>
+                                                </div>
+                                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-800 text-slate-300'}">
+                                                    ${stops} ${stops === 1 ? 'stop' : 'stops'}
+                                                </span>
+                                            </div>
+
+                                            <!-- DURATION DISPLAY -->
+                                            <div class="my-1">
+                                                <div class="flex items-baseline gap-1.5">
+                                                    <span class="text-2xl font-black font-mono tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-100'}">${dur.toFixed(1)}</span>
+                                                    <span class="text-xs font-bold ${meta.textColor} font-mono">mins</span>
+                                                </div>
+                                                <div class="flex items-center justify-between text-[10px] font-sans ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">
+                                                    <span>Share Kontribusi</span>
+                                                    <span class="font-bold font-mono ${meta.textColor}">${pct}%</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- PROGRESS BAR -->
+                                            <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden mt-1.5">
+                                                <div class="${meta.barGradient} h-1.5 rounded-full transition-all duration-500" style="width: ${Math.min(pct, 100)}%"></div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `}
+                    `;
+                }
+
+                // 3. Render Pareto Chart
+                this.renderParetoDowntimeChart(rawPareto);
+
+                // 4. Render Table Rows
+                renderTableRows();
+
+                if (window.lucide) window.lucide.createIcons();
+            } catch (err) {
+                console.error('Error fetching downtime data:', err);
+                if (kpiContainer) {
+                    kpiContainer.innerHTML = `
+                        <div class="col-span-full p-4 bg-rose-900/20 border border-rose-800/50 rounded-xl text-rose-300 text-xs">
+                            Gagal memuat data downtime: ${err.message}
+                        </div>
+                    `;
+                }
+            }
+        };
+
+        // Initial Data Load
+        await fetchAndRenderData();
+
+        // Bind Interactive Event Handlers
+        // 1. Period Button Clicks (Realtime Dynamic Updates)
+        document.querySelectorAll('.btn-dt-period').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetPeriod = e.currentTarget.getAttribute('data-period');
+                this.filters.period = targetPeriod;
+
+                const customStrip = document.getElementById('dt-custom-date-strip');
+                if (targetPeriod === 'custom') {
+                    if (customStrip) {
+                        customStrip.classList.remove('hidden');
+                        customStrip.classList.add('flex');
+                    }
+                } else {
+                    if (customStrip) {
+                        customStrip.classList.remove('flex');
+                        customStrip.classList.add('hidden');
+                    }
+                    this.filters.start_date = '';
+                    this.filters.end_date = '';
+                }
+
+                // Sync header period select
+                const headerPeriodSelect = document.getElementById('filter-period');
+                if (headerPeriodSelect) {
+                    headerPeriodSelect.value = targetPeriod;
+                }
+
+                // Update UI button active states
+                document.querySelectorAll('.btn-dt-period').forEach(b => {
+                    const isCur = b.getAttribute('data-period') === targetPeriod;
+                    if (isCur) {
+                        b.className = 'btn-dt-period px-3 py-1.5 rounded-lg transition-all cursor-pointer bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/30';
+                    } else {
+                        b.className = `btn-dt-period px-3 py-1.5 rounded-lg transition-all cursor-pointer ${isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`;
+                    }
+                });
+
+                if (targetPeriod !== 'custom') {
+                    fetchAndRenderData();
+                }
+            });
+        });
+
+        // 2. Custom Date Range Apply Button
+        const btnApplyCustom = document.getElementById('btn-apply-dt-custom');
+        if (btnApplyCustom) {
+            btnApplyCustom.addEventListener('click', () => {
+                const sDate = document.getElementById('dt-filter-start')?.value;
+                const eDate = document.getElementById('dt-filter-end')?.value;
+                if (!sDate) {
+                    alert('Silakan pilih tanggal mulai.');
+                    return;
+                }
+                this.filters.period = 'custom';
+                this.filters.start_date = sDate;
+                this.filters.end_date = eDate || sDate;
+                fetchAndRenderData();
+            });
         }
+
+        // 3. Live Search Input
+        const searchInput = document.getElementById('dt-table-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                activeSearchQuery = e.target.value;
+                renderTableRows();
+            });
+        }
+
+        // 4. Status Filter Select
+        const statusSelect = document.getElementById('dt-table-status-filter');
+        if (statusSelect) {
+            statusSelect.addEventListener('change', (e) => {
+                activeStatusFilter = e.target.value;
+                renderTableRows();
+            });
+        }
+
+        // 5. Problem Type Filter Select
+        const typeSelect = document.getElementById('dt-table-type-filter');
+        if (typeSelect) {
+            typeSelect.addEventListener('change', (e) => {
+                activeProblemTypeFilter = e.target.value;
+                renderTableRows();
+            });
+        }
+
+        // 6. Refresh Button
+        const btnRefresh = document.getElementById('btn-refresh-downtime');
+        if (btnRefresh) {
+            btnRefresh.addEventListener('click', () => fetchAndRenderData());
+        }
+
+        // 7. Export Excel Button
+        const btnExportExcel = document.getElementById('btn-export-downtime-excel');
+        if (btnExportExcel) {
+            btnExportExcel.addEventListener('click', () => {
+                this.exportDowntimeExcel(rawDowntimes, rawPareto, rawSummary);
+            });
+        }
+
+        // 8. Fullscreen Pop-up Focus Mode Button
+        const btnFullscreen = document.getElementById('btn-dt-fullscreen-popup');
+        if (btnFullscreen) {
+            btnFullscreen.addEventListener('click', () => {
+                this.showDowntimeFullscreenModal(rawDowntimes, rawPareto, rawSummary);
+            });
+        }
+
+        if (this.currentLang === 'ja') {
+            i18n.localizeDom(content);
+        }
+    }
+
+    // ==========================================
+    // 6.1 DOWNTIME FULLSCREEN POPUP MODAL (MEETING FLOOR FOCUS MODE)
+    // ==========================================
+    showDowntimeFullscreenModal(initialDowntimes, initialPareto, initialSummary) {
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) return;
+
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        let modalDowntimes = [...(initialDowntimes || [])];
+        let modalPareto = [...(initialPareto || [])];
+        let modalSummary = { ...(initialSummary || {}) };
+        let modalActivePeriod = this.filters.period || '30days';
+        let modalStartDate = this.filters.start_date || '';
+        let modalEndDate = this.filters.end_date || '';
+        let modalActiveStatus = 'all';
+        let modalActiveType = 'all';
+        let modalActiveLine = '';
+        let modalActiveShift = '';
+        let modalSearchQuery = '';
+
+        const getCategoryMeta = (catName) => {
+            const name = String(catName || '').toLowerCase();
+            if (name.includes('mekanik') || name.includes('mechanical')) {
+                return { icon: 'wrench', badgeColor: isLight ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-rose-950/80 text-rose-300 border-rose-800/80' };
+            }
+            if (name.includes('elektrik') || name.includes('electric') || name.includes('sensor') || name.includes('power')) {
+                return { icon: 'zap', badgeColor: isLight ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-amber-950/80 text-amber-300 border-amber-800/80' };
+            }
+            if (name.includes('tool') || name.includes('dies') || name.includes('jig') || name.includes('mold')) {
+                return { icon: 'settings-2', badgeColor: isLight ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-orange-950/80 text-orange-300 border-orange-800/80' };
+            }
+            if (name.includes('material') || name.includes('inventory') || name.includes('part') || name.includes('supply')) {
+                return { icon: 'package-search', badgeColor: isLight ? 'bg-cyan-100 text-cyan-800 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80' };
+            }
+            if (name.includes('planning') || name.includes('rencana') || name.includes('setup') || name.includes('dandori')) {
+                return { icon: 'calendar-clock', badgeColor: isLight ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-blue-950/80 text-blue-300 border-blue-800/80' };
+            }
+            if (name.includes('mesin') || name.includes('machine')) {
+                return { icon: 'cpu', badgeColor: isLight ? 'bg-red-100 text-red-800 border-red-200' : 'bg-red-950/80 text-red-300 border-red-800/80' };
+            }
+            return { icon: 'alert-circle', badgeColor: isLight ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80' };
+        };
+
+        const linesOptions = (this.masterData.productionLines || []).map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+        const shiftsOptions = (this.masterData.shifts || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+        modalContainer.innerHTML = `
+            <div id="dt-fullscreen-modal-wrapper" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col p-2 sm:p-3 md:p-4 animate-fadeIn">
+                <div class="w-full h-full flex flex-col rounded-2xl border ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} shadow-2xl overflow-hidden">
+                    
+                    <!-- 1. POPUP TOP HEADER -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b ${isLight ? 'bg-slate-50/90 border-slate-200' : 'bg-slate-950/70 border-slate-800'}">
+                        <div class="flex items-center gap-2.5">
+                            <h2 class="text-base sm:text-lg font-black tracking-tight ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                <span>Data Histori Problem & Losstime</span>
+                            </h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isLight ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'}">
+                                Management Floor Meeting Mode
+                            </span>
+                        </div>
+
+                        <!-- Header Actions & Close -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Quick Period Pills -->
+                            <div class="inline-flex ${isLight ? 'bg-white border-slate-200 shadow-xs' : 'bg-slate-900 border-slate-800'} border p-0.5 rounded-xl text-xs font-medium">
+                                <button class="btn-modal-dt-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'all' && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-slate-200'}" data-period="all">Semua</button>
+                                <button class="btn-modal-dt-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'today' && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-slate-200'}" data-period="today">Hari Ini</button>
+                                <button class="btn-modal-dt-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${(modalActivePeriod === '7days' || modalActivePeriod === '7d') && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-slate-200'}" data-period="7days">Minggu</button>
+                                <button class="btn-modal-dt-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${(modalActivePeriod === '30days' || modalActivePeriod === '30d') && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-slate-200'}" data-period="30days">30 Hari</button>
+                                <button class="btn-modal-dt-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'this_month' && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-slate-200'}" data-period="this_month">Bulan Ini</button>
+                            </div>
+
+                            <!-- Dynamic Date Range Filter (Dari Tanggal - Sampai Tanggal) -->
+                            <div class="flex items-center gap-1.5 ${isLight ? 'bg-white border-slate-200 shadow-xs' : 'bg-slate-950 border-slate-800'} border px-2.5 py-1 rounded-xl text-xs">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                    <i data-lucide="calendar" class="w-3 h-3 text-cyan-400"></i>
+                                    <span>Dari:</span>
+                                </span>
+                                <input type="date" id="modal-dt-start-date" value="${modalStartDate || ''}" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-mono" />
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">s/d</span>
+                                <input type="date" id="modal-dt-end-date" value="${modalEndDate || ''}" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-mono" />
+                                <button id="btn-modal-apply-dates" class="px-2.5 py-1 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-lg text-[11px] font-bold transition-all shadow-md shadow-cyan-600/20 cursor-pointer flex items-center gap-1" title="Terapkan Filter Rentang Tanggal">
+                                    <i data-lucide="filter" class="w-3 h-3"></i>
+                                    <span>Terapkan</span>
+                                </button>
+                                <button id="btn-modal-reset-dates" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] transition-all cursor-pointer" title="Reset Rentang Tanggal">
+                                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+
+                            <!-- Export Excel -->
+                            <button id="btn-modal-export-excel" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition-all cursor-pointer" title="Export Log ke File Excel">
+                                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                                <span class="hidden sm:inline">Export Excel</span>
+                            </button>
+
+                            <!-- Close Button -->
+                            <button id="btn-modal-close-popup" class="p-1.5 rounded-xl ${isLight ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'} transition-colors cursor-pointer" title="Tutup Popup (Esc)">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 2. SUMMARY KPI CHIPS STRIP -->
+                    <div id="modal-dt-summary-chips" class="flex flex-wrap items-center justify-between gap-3 px-4 py-2 border-b ${isLight ? 'bg-slate-100/70 border-slate-200 text-slate-700' : 'bg-slate-950/40 border-slate-800/80 text-slate-300'} text-xs font-mono">
+                        <!-- Summary metrics populated dynamically -->
+                    </div>
+
+                    <!-- 3. DYNAMIC FILTER TOOLBAR -->
+                    <div class="flex flex-wrap items-center justify-between gap-2.5 p-3 border-b ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
+                        <!-- Search Box -->
+                        <div class="relative flex-1 min-w-[220px] max-w-md">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="modal-dt-search" placeholder="Cari masalah, PIC, mesin, line, produk, tindakan..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-sans placeholder:text-slate-500" />
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Status Filter -->
+                            <select id="modal-dt-status" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-sans cursor-pointer">
+                                <option value="all">Semua Status</option>
+                                <option value="CLOSED">CLOSED (Selesai)</option>
+                                <option value="OPEN">OPEN (Ongoing)</option>
+                            </select>
+
+                            <!-- Problem Type Filter -->
+                            <select id="modal-dt-type" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-sans cursor-pointer max-w-[160px] truncate">
+                                <option value="all">Semua Jenis Problem</option>
+                                <option value="Problem Mesin Mekanik">Problem Mesin Mekanik</option>
+                                <option value="Problem Mesin Elektrik">Problem Mesin Elektrik</option>
+                                <option value="Problem Tool">Problem Tool</option>
+                                <option value="Inventory">Inventory</option>
+                                <option value="Planning Downtime">Planning Downtime</option>
+                                <option value="Others">Others</option>
+                            </select>
+
+                            <!-- Line Filter -->
+                            <select id="modal-dt-line" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-sans cursor-pointer max-w-[130px] truncate">
+                                <option value="">Semua Line</option>
+                                ${linesOptions}
+                            </select>
+
+                            <!-- Shift Filter -->
+                            <select id="modal-dt-shift" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-sans cursor-pointer max-w-[120px] truncate">
+                                <option value="">Semua Shift</option>
+                                ${shiftsOptions}
+                            </select>
+
+                            <!-- Count Indicator -->
+                            <span id="modal-dt-count-badge" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-indigo-950/80 text-indigo-300 border border-indigo-800">
+                                0 Records
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 4. FULLSCREEN FIT-TO-DISPLAY TABLE CONTAINER -->
+                    <div class="flex-1 overflow-y-auto overflow-x-auto min-h-0">
+                        <table class="w-full text-left text-xs">
+                            <thead class="sticky top-0 z-10 ${isLight ? 'bg-slate-100 text-slate-700 shadow-xs' : 'bg-slate-950 text-slate-300 shadow-sm'} uppercase font-bold text-[11px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} tracking-wider">
+                                <tr>
+                                    <th class="p-3.5 text-center w-12 bg-inherit">No</th>
+                                    <th class="p-3.5 bg-inherit">Waktu Trouble</th>
+                                    <th class="p-3.5 bg-inherit">Line & Mesin</th>
+                                    <th class="p-3.5 bg-inherit">Shift & Team</th>
+                                    <th class="p-3.5 bg-inherit">Product / Part</th>
+                                    <th class="p-3.5 bg-inherit">Jenis Problem</th>
+                                    <th class="p-3.5 bg-inherit">Masalah / Kendala</th>
+                                    <th class="p-3.5 bg-inherit">Penyebab (Root Cause)</th>
+                                    <th class="p-3.5 bg-inherit">Durasi</th>
+                                    <th class="p-3.5 bg-inherit">Tindakan Perbaikan (CAPA)</th>
+                                    <th class="p-3.5 bg-inherit">PIC / Leader</th>
+                                    <th class="p-3.5 text-center bg-inherit">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-dt-tbody" class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 5. POPUP FOOTER -->
+                    <div class="flex flex-wrap items-center justify-between text-xs px-4 py-2.5 border-t ${isLight ? 'bg-slate-50 border-slate-200 text-slate-600' : 'bg-slate-950 border-slate-800 text-slate-400'} font-sans">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono text-[10px]">
+                                ⌨️ Tekan <kbd class="font-bold text-white">ESC</kbd> untuk menutup
+                            </span>
+                            <span class="hidden sm:inline text-slate-500">| Mode fokus meeting lantai produksi (Fit to Display)</span>
+                        </div>
+                        <div id="modal-dt-total-footer" class="font-mono font-bold text-rose-400">
+                            Total: 0 Menit
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+
+        // Render Table Rows in Modal
+        const renderModalRows = () => {
+            const tbody = document.getElementById('modal-dt-tbody');
+            const countBadge = document.getElementById('modal-dt-count-badge');
+            const chipsContainer = document.getElementById('modal-dt-summary-chips');
+            const totalFooter = document.getElementById('modal-dt-total-footer');
+            if (!tbody) return;
+
+            const q = modalSearchQuery.toLowerCase().trim();
+            const filtered = modalDowntimes.filter(dt => {
+                // Status Filter
+                if (modalActiveStatus !== 'all') {
+                    const st = (dt.status || (dt.end_time ? 'CLOSED' : 'OPEN')).toUpperCase();
+                    if (modalActiveStatus === 'OPEN' && st !== 'OPEN' && dt.end_time) return false;
+                    if (modalActiveStatus === 'CLOSED' && (st !== 'CLOSED' || !dt.end_time)) return false;
+                }
+
+                // Problem Type Filter
+                if (modalActiveType !== 'all') {
+                    const prob = (dt.problem_type || '').toLowerCase();
+                    if (!prob.includes(modalActiveType.toLowerCase())) return false;
+                }
+
+                // Line Filter
+                if (modalActiveLine) {
+                    if (String(dt.production_line_id) !== String(modalActiveLine) && String(dt.production_line?.id) !== String(modalActiveLine)) return false;
+                }
+
+                // Shift Filter
+                if (modalActiveShift) {
+                    if (String(dt.shift_id) !== String(modalActiveShift) && String(dt.shift?.id) !== String(modalActiveShift)) return false;
+                }
+
+                // Search Query
+                if (q) {
+                    const lineName = (dt.production_line?.name || '').toLowerCase();
+                    const mcName = (dt.machine?.name || dt.machine?.code || '').toLowerCase();
+                    const prodName = (dt.product?.name || dt.product?.sku || '').toLowerCase();
+                    const probType = (dt.problem_type || '').toLowerCase();
+                    const desc = (dt.description || dt.downtime_reason?.name || '').toLowerCase();
+                    const cause = (dt.cause || '').toLowerCase();
+                    const capa = (dt.action_taken || '').toLowerCase();
+                    const pic = (dt.pic || '').toLowerCase();
+                    const team = (dt.team || '').toLowerCase();
+
+                    const match = lineName.includes(q) || mcName.includes(q) || prodName.includes(q) ||
+                                  probType.includes(q) || desc.includes(q) || cause.includes(q) ||
+                                  capa.includes(q) || pic.includes(q) || team.includes(q);
+                    if (!match) return false;
+                }
+
+                return true;
+            });
+
+            const totalFilteredMinutes = filtered.reduce((sum, d) => sum + Number(d.calculated_duration_minutes || d.duration_minutes || 0), 0);
+            const totalHours = (totalFilteredMinutes / 60).toFixed(1);
+            const openCount = filtered.filter(d => d.status === 'OPEN' || !d.end_time).length;
+            const closedCount = filtered.filter(d => d.status === 'CLOSED' || d.end_time).length;
+
+            if (countBadge) {
+                countBadge.textContent = `${filtered.length} dari ${modalDowntimes.length} Records`;
+            }
+
+            if (totalFooter) {
+                totalFooter.textContent = `Total Losstime Terfilter: ${totalFilteredMinutes.toFixed(1)} Menit (${totalHours} Jam)`;
+            }
+
+            if (chipsContainer) {
+                chipsContainer.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                            <span>Total Insiden: <strong class="text-cyan-300 font-bold">${filtered.length}</strong></span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                            <span>Total Durasi: <strong class="text-rose-400 font-bold">${totalFilteredMinutes.toFixed(1)} Mins (${totalHours} Jam)</strong></span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 text-emerald-200 border border-emerald-500/80 font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span>✓ ${closedCount} Closed</span>
+                        </span>
+                        ${openCount > 0 ? `
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950 text-rose-200 border-2 border-rose-500 font-black shadow-[0_0_14px_rgba(244,63,94,0.6)] animate-pulse">
+                                <span class="relative flex h-2 w-2">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                </span>
+                                <span>⚠️ ${openCount} Ongoing Trouble</span>
+                            </span>
+                        ` : `
+                            <span class="px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 text-[11px]">
+                                0 Ongoing
+                            </span>
+                        `}
+                    </div>
+                `;
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="p-12 text-center text-slate-500 font-sans">
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <i data-lucide="inbox" class="w-10 h-10 text-slate-400 opacity-60"></i>
+                                <span class="font-bold text-sm">Tidak ada data trouble yang cocok dengan kriteria filter saat ini.</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((dt, idx) => {
+                const catMeta = getCategoryMeta(dt.problem_type);
+                const isOngoing = !dt.end_time || dt.status === 'OPEN';
+                const isClosed = dt.status === 'CLOSED' || (dt.end_time && dt.status !== 'OPEN');
+                
+                let statusBadge = '';
+                if (isOngoing) {
+                    statusBadge = `
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black tracking-wider bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 text-rose-200 border border-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.65)] animate-pulse select-none">
+                            <span class="relative flex h-2.5 w-2.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white/70"></span>
+                            </span>
+                            <span class="tracking-wide text-rose-100 font-extrabold drop-shadow">OPEN / ONGOING</span>
+                        </div>
+                    `;
+                } else if (isClosed) {
+                    statusBadge = `
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black tracking-wider bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-emerald-200 border border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.35)] select-none hover:scale-105 transition-all">
+                            <span class="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500 text-slate-950 font-black">
+                                <i data-lucide="check" class="w-2.5 h-2.5 stroke-[4]"></i>
+                            </span>
+                            <span class="tracking-wide text-emerald-100 font-extrabold drop-shadow">CLOSED</span>
+                        </div>
+                    `;
+                } else {
+                    statusBadge = `
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-black tracking-wider bg-amber-950 text-amber-200 border border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)] animate-pulse select-none">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                            </span>
+                            <span>${dt.status || 'PENDING'}</span>
+                        </div>
+                    `;
+                }
+
+                const durationMins = Number(dt.calculated_duration_minutes || dt.duration_minutes || 0);
+
+                return `
+                    <tr class="${isLight ? 'hover:bg-indigo-50/40' : 'hover:bg-slate-800/60'} transition-colors">
+                        <td class="p-3 text-center font-bold text-slate-500 font-mono text-xs">${idx + 1}</td>
+                        <td class="p-3 ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs">
+                            <div class="font-bold">${dt.start_time ? dt.start_time.slice(0,10) : '-'}</div>
+                            <div class="text-slate-400 text-[11px] font-mono mt-0.5">
+                                ${dt.start_time ? dt.start_time.slice(11,16) : '00:00'} s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-500 font-bold">ONGOING</span>'}
+                            </div>
+                        </td>
+                        <td class="p-3 font-sans">
+                            <div class="font-bold ${isLight ? 'text-cyan-700' : 'text-cyan-400'} text-xs">${dt.production_line ? dt.production_line.name : (dt.production_line_id ? 'Line #' + dt.production_line_id : 'FX Line')}</div>
+                            <div class="text-[11px] text-slate-400 font-mono truncate max-w-[160px]" title="${dt.machine ? dt.machine.name : 'Measuring Machine'}">${dt.machine ? dt.machine.name : 'MC-MEASURING'}</div>
+                        </td>
+                        <td class="p-3 font-sans">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-800 text-slate-200 border border-slate-700'}">
+                                ${dt.shift ? dt.shift.name : 'Shift 1'}
+                            </span>
+                            ${dt.team ? `<div class="text-[10px] text-amber-500 font-bold mt-1 flex items-center gap-1"><span>👥</span> <span>${dt.team}</span></div>` : ''}
+                        </td>
+                        <td class="p-3 ${isLight ? 'text-slate-800' : 'text-slate-200'} font-sans text-xs">
+                            <div class="font-medium">${dt.product ? dt.product.name : '-'}</div>
+                            ${dt.product && dt.product.sku ? `<div class="text-[10px] text-slate-400 font-mono">${dt.product.sku}</div>` : ''}
+                        </td>
+                        <td class="p-3 font-sans">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold border ${catMeta.badgeColor} max-w-[160px] truncate" title="${dt.problem_type || 'Mesin'}">
+                                <i data-lucide="${catMeta.icon}" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                                <span class="truncate">${dt.problem_type || 'Mesin'}</span>
+                            </span>
+                        </td>
+                        <td class="p-3 font-sans ${isLight ? 'text-slate-900' : 'text-slate-100'} text-xs max-w-[200px]">
+                            <div class="font-bold">${dt.description || (dt.downtime_reason ? dt.downtime_reason.name : 'Trouble Operasional')}</div>
+                            ${dt.description && dt.downtime_reason && dt.downtime_reason.name !== dt.description ? `<div class="text-[10px] text-slate-400 truncate mt-0.5">${dt.downtime_reason.name}</div>` : ''}
+                        </td>
+                        <td class="p-3 font-sans text-xs max-w-[180px]">
+                            <div class="${isLight ? 'text-slate-700' : 'text-slate-300'}">${dt.cause || '<span class="text-slate-500 italic">-</span>'}</div>
+                        </td>
+                        <td class="p-3 font-bold text-rose-500 font-mono text-sm whitespace-nowrap">
+                            <div>${durationMins.toFixed(1)} mins</div>
+                            <div class="text-[11px] text-slate-400 font-normal">(${(durationMins / 60).toFixed(1)} jam)</div>
+                        </td>
+                        <td class="p-3 font-sans text-xs max-w-[200px]">
+                            <div class="text-emerald-500 font-medium leading-relaxed">${dt.action_taken || '<span class="text-slate-500 italic">-</span>'}</div>
+                        </td>
+                        <td class="p-3 font-sans text-xs whitespace-nowrap">
+                            <div class="flex items-center gap-1 text-cyan-400 font-semibold">
+                                <i data-lucide="user-check" class="w-3.5 h-3.5 text-cyan-500 flex-shrink-0"></i>
+                                <span>${dt.pic || (dt.team ? `${dt.team} Leader` : (dt.creator ? dt.creator.name : 'Leader Shift'))}</span>
+                            </div>
+                        </td>
+                        <td class="p-3 text-center whitespace-nowrap">
+                            ${statusBadge}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        // Fetch Modal Data on Period or Custom Date Change
+        const fetchModalData = async () => {
+            const tbody = document.getElementById('modal-dt-tbody');
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="p-12 text-center text-cyan-400 font-sans">
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <div class="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                                <span class="font-bold text-xs font-mono">Memuat data log trouble...</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            try {
+                const queryParams = { ...this.filters, all: true };
+                if (modalStartDate && modalEndDate) {
+                    queryParams.start_date = modalStartDate;
+                    queryParams.end_date = modalEndDate;
+                    delete queryParams.period;
+                } else {
+                    queryParams.period = modalActivePeriod;
+                    delete queryParams.start_date;
+                    delete queryParams.end_date;
+                }
+                const res = await api.getDowntimes(queryParams);
+                modalDowntimes = res.data.data || [];
+                renderModalRows();
+            } catch (err) {
+                console.error('Error fetching modal downtime data:', err);
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="12" class="p-8 text-center text-rose-400 font-sans font-medium text-xs">
+                                Terjadi kesalahan saat memuat data: ${err.message || 'Koneksi gagal'}
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        };
+
+        if (!initialDowntimes || initialDowntimes.length === 0) {
+            fetchModalData();
+        } else {
+            renderModalRows();
+        }
+
+        // Close Modal Handler
+        const closeModal = () => {
+            modalContainer.innerHTML = '';
+            document.removeEventListener('keydown', handleEsc);
+        };
+
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') closeModal();
+        };
+        document.addEventListener('keydown', handleEsc);
+
+        document.getElementById('btn-modal-close-popup')?.addEventListener('click', closeModal);
+
+        // Period Buttons in Modal
+        document.querySelectorAll('.btn-modal-dt-period').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                modalActivePeriod = e.currentTarget.getAttribute('data-period');
+                modalStartDate = '';
+                modalEndDate = '';
+                const sInput = document.getElementById('modal-dt-start-date');
+                const eInput = document.getElementById('modal-dt-end-date');
+                if (sInput) sInput.value = '';
+                if (eInput) eInput.value = '';
+
+                document.querySelectorAll('.btn-modal-dt-period').forEach(b => {
+                    const isCur = b.getAttribute('data-period') === modalActivePeriod;
+                    b.className = `btn-modal-dt-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${isCur ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-slate-200'}`;
+                });
+                fetchModalData();
+            });
+        });
+
+        // Apply Custom Date Range Button
+        document.getElementById('btn-modal-apply-dates')?.addEventListener('click', () => {
+            const sInput = document.getElementById('modal-dt-start-date');
+            const eInput = document.getElementById('modal-dt-end-date');
+            if (!sInput || !eInput) return;
+
+            if (!sInput.value || !eInput.value) {
+                alert('Silakan pilih kedua tanggal (Dari Tanggal dan Sampai Tanggal).');
+                return;
+            }
+
+            modalStartDate = sInput.value;
+            modalEndDate = eInput.value;
+            modalActivePeriod = 'custom';
+
+            // Deselect all quick period pills
+            document.querySelectorAll('.btn-modal-dt-period').forEach(b => {
+                b.className = `btn-modal-dt-period px-2.5 py-1 rounded-lg transition-all cursor-pointer text-slate-400 hover:text-slate-200`;
+            });
+
+            fetchModalData();
+        });
+
+        // Reset Date Range Button
+        document.getElementById('btn-modal-reset-dates')?.addEventListener('click', () => {
+            const sInput = document.getElementById('modal-dt-start-date');
+            const eInput = document.getElementById('modal-dt-end-date');
+            if (sInput) sInput.value = '';
+            if (eInput) eInput.value = '';
+
+            modalStartDate = '';
+            modalEndDate = '';
+            modalActivePeriod = 'all';
+
+            document.querySelectorAll('.btn-modal-dt-period').forEach(b => {
+                const isCur = b.getAttribute('data-period') === 'all';
+                b.className = `btn-modal-dt-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${isCur ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-slate-200'}`;
+            });
+
+            fetchModalData();
+        });
+
+        // Search Input in Modal
+        document.getElementById('modal-dt-search')?.addEventListener('input', (e) => {
+            modalSearchQuery = e.target.value;
+            renderModalRows();
+        });
+
+        // Status Select in Modal
+        document.getElementById('modal-dt-status')?.addEventListener('change', (e) => {
+            modalActiveStatus = e.target.value;
+            renderModalRows();
+        });
+
+        // Problem Type Select in Modal
+        document.getElementById('modal-dt-type')?.addEventListener('change', (e) => {
+            modalActiveType = e.target.value;
+            renderModalRows();
+        });
+
+        // Line Select in Modal
+        document.getElementById('modal-dt-line')?.addEventListener('change', (e) => {
+            modalActiveLine = e.target.value;
+            renderModalRows();
+        });
+
+        // Shift Select in Modal
+        document.getElementById('modal-dt-shift')?.addEventListener('change', (e) => {
+            modalActiveShift = e.target.value;
+            renderModalRows();
+        });
+
+        // Export Excel in Modal
+        document.getElementById('btn-modal-export-excel')?.addEventListener('click', () => {
+            this.exportDowntimeExcel(modalDowntimes, modalPareto, modalSummary);
+        });
     }
 
     // ==========================================
@@ -18218,6 +21795,73 @@ tbody.innerHTML = '';
         this.showNotification('Excel Export Berhasil', `File ${fileName} berhasil diunduh.`, 'download');
     }
 
+    exportDowntimeExcel(downtimes, pareto, summary) {
+        if (!XLSX) {
+            alert('SheetJS Excel library belum siap.');
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Trouble & Downtime History Logs
+        const troubleRows = (downtimes || []).map((dt, idx) => ({
+            'No': idx + 1,
+            'Waktu Mulai': dt.start_time ? dt.start_time.slice(0, 19).replace('T', ' ') : '-',
+            'Waktu Selesai': dt.end_time ? dt.end_time.slice(0, 19).replace('T', ' ') : 'ONGOING',
+            'Durasi (Menit)': Number(dt.calculated_duration_minutes || dt.duration_minutes || 0),
+            'Line Produksi': dt.production_line ? dt.production_line.name : (dt.production_line_id ? 'Line #' + dt.production_line_id : '-'),
+            'Mesin': dt.machine ? `${dt.machine.name} (${dt.machine.code || ''})` : '-',
+            'Shift': dt.shift ? dt.shift.name : '-',
+            'Team': dt.team || '-',
+            'Part / Produk': dt.product ? `${dt.product.name} (${dt.product.sku || ''})` : '-',
+            'Jenis Problem': dt.problem_type || 'Mesin',
+            'Kategori Loss': dt.downtime_category ? dt.downtime_category.name : (dt.is_planned ? 'Planned Downtime' : 'Unplanned Downtime'),
+            'Masalah / Kendala': dt.description || (dt.downtime_reason ? dt.downtime_reason.name : '-'),
+            'Penyebab (Root Cause)': dt.cause || '-',
+            'Tindakan Perbaikan (CAPA)': dt.action_taken || '-',
+            'PIC / Leader': dt.pic || '-',
+            'Status': dt.status || (dt.end_time ? 'CLOSED' : 'OPEN')
+        }));
+        const wsTroubles = XLSX.utils.json_to_sheet(troubleRows);
+        XLSX.utils.book_append_sheet(wb, wsTroubles, 'Log Trouble & Downtime');
+
+        // Sheet 2: Problem Category Pareto
+        const paretoRows = (pareto || []).map((p, idx) => ({
+            'Rank': idx + 1,
+            'Kategori Problem': p.category || p.reason,
+            'Durasi Downtime (Menit)': Number(p.duration_minutes || 0),
+            'Jumlah Kejadian Stop': Number(p.stop_count || 0),
+            'Kontribusi (%)': Number(p.percentage || 0),
+            'Kumulatif (%)': Number(p.cumulative_percentage || 0),
+            'Klasifikasi Pareto': Number(p.cumulative_percentage || 0) <= 80 ? 'VITAL FEW (<=80%)' : 'USEFUL MANY (>80%)'
+        }));
+        const wsPareto = XLSX.utils.json_to_sheet(paretoRows);
+        XLSX.utils.book_append_sheet(wb, wsPareto, 'Pareto Kategori Problem');
+
+        // Sheet 3: Ringkasan Eksekutif
+        const totalMin = Number(summary.total_downtime || 0);
+        const totalStops = Number(summary.total_stops || 0);
+        const openCount = (downtimes || []).filter(d => (d.status === 'OPEN' || !d.end_time)).length;
+        const closedCount = (downtimes || []).filter(d => (d.status === 'CLOSED' || d.end_time)).length;
+
+        const summaryRows = [
+            { 'Indikator': 'Total Akumulasi Downtime (Menit)', 'Nilai': totalMin.toFixed(1) },
+            { 'Indikator': 'Total Akumulasi Downtime (Jam)', 'Nilai': (totalMin / 60).toFixed(1) + ' Jam' },
+            { 'Indikator': 'Total Kejadian Stop (Insiden)', 'Nilai': totalStops },
+            { 'Indikator': 'Jumlah Trouble CLOSED (Selesai)', 'Nilai': closedCount },
+            { 'Indikator': 'Jumlah Trouble OPEN (Ongoing)', 'Nilai': openCount },
+            { 'Indikator': 'Jumlah Kategori Problem Aktif', 'Nilai': (pareto || []).length },
+            { 'Indikator': 'Top #1 Dominant Problem Category', 'Nilai': summary.top_category || '-' },
+            { 'Indikator': 'Tanggal Export', 'Nilai': new Date().toISOString().slice(0, 19).replace('T', ' ') }
+        ];
+        const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan Eksekutif');
+
+        const fileName = `Downtime_Trouble_Logs_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        this.showNotification('Excel Export Berhasil', `File ${fileName} berhasil diunduh.`, 'download');
+    }
+
     // ==========================================
     // UI HELPERS & BADGES
     // ==========================================
@@ -18620,10 +22264,16 @@ tbody.innerHTML = '';
             <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-3xl w-full shadow-2xl my-8">
                     <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-                        <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2">
-                            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
-                            Entry Production & OEE Record
-                        </h3>
+                        <div class="flex items-center gap-2.5">
+                            <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2">
+                                <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
+                                Entry Production & OEE Record
+                            </h3>
+                            <button type="button" id="btn-switch-to-mobile-form" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-950/90 text-indigo-300 border border-indigo-700/80 hover:bg-indigo-900 text-[11px] font-bold transition-all shadow-sm cursor-pointer" title="Buka Form Input Khusus Tampilan Layar HP / Smartphone">
+                                <i data-lucide="smartphone" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                <span>Mode HP 📱</span>
+                            </button>
+                        </div>
                         <button id="btn-close-modal" class="text-slate-400 hover:text-slate-200">
                             <i data-lucide="x" class="w-4 h-4"></i>
                         </button>
@@ -19103,8 +22753,11 @@ tbody.innerHTML = '';
             modalPlannedDtInput.addEventListener('input', updateModalRunTimeAndDowntime);
         }
 
-        document.getElementById('btn-close-modal').addEventListener('click', () => modalContainer.innerHTML = '');
-        document.getElementById('btn-cancel-modal').addEventListener('click', () => modalContainer.innerHTML = '');
+        document.getElementById('btn-close-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
+        document.getElementById('btn-cancel-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
+        document.getElementById('btn-switch-to-mobile-form')?.addEventListener('click', () => {
+            this.showMobileProductionModal();
+        });
 
         const formProd = document.getElementById('form-production-entry');
         if (formProd) {
@@ -19176,6 +22829,620 @@ tbody.innerHTML = '';
 
                         const shiftInp = formProd.querySelector('[name="shift_id"]');
                         const lineInp = formProd.querySelector('[name="production_line_id"]');
+                        if (shiftInp) shiftInp.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50', 'bg-rose-500/10');
+                        if (lineInp) lineInp.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50', 'bg-rose-500/10');
+                    } else {
+                        this.showNotification('⚠️ Gagal Menyimpan', errorMsg, 'delete');
+                    }
+                }
+            });
+        }
+    }
+
+    // =========================================================================
+    // MODAL FORM KHUSUS SMARTPHONE / HP TABLET (OPTIMIZED FOR MOBILE TOUCH INPUT)
+    // =========================================================================
+    showMobileProductionModal() {
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) return;
+
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+
+        modalContainer.innerHTML = `
+            <div class="fixed inset-0 z-50 bg-slate-950 flex flex-col justify-between items-center p-0 sm:p-3 overflow-hidden animate-fadeIn">
+                <div class="w-full h-full max-w-lg ${isLight ? 'bg-slate-50 text-slate-900 border-slate-200' : 'bg-[#0B142C] text-slate-100 border-slate-800'} border sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
+                    
+                    <!-- 1. MOBILE STICKY HEADER -->
+                    <div class="sticky top-0 z-30 px-4 py-3 border-b ${isLight ? 'bg-white/95 border-slate-200 shadow-xs' : 'bg-[#070D1E]/95 border-slate-800 shadow-sm'} backdrop-blur-md flex items-center justify-between flex-shrink-0">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 flex-shrink-0">
+                                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <h3 class="font-extrabold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Input Harian Produksi</h3>
+                                    <span class="px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-cyan-950 text-cyan-400 border border-cyan-800">
+                                        Mode HP 📱
+                                    </span>
+                                </div>
+                                <p class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Form optimal touchscreen untuk Shift Leader</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" id="btn-mobile-to-desktop" class="px-2.5 py-1.5 rounded-lg ${isLight ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'} text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer" title="Kembali ke Mode Form Desktop">
+                                <i data-lucide="monitor" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                <span class="hidden xs:inline">Desktop</span>
+                            </button>
+                            <button type="button" id="btn-close-mobile-modal" class="p-1.5 rounded-lg ${isLight ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-400 hover:text-white'} transition-colors cursor-pointer" title="Tutup Modal">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 2. SCROLLABLE FORM BODY -->
+                    <form id="form-mobile-production-entry" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 pb-28 text-xs overscroll-contain">
+                        
+                        <!-- CARD 1: KONTEKS LAPORAN (TANGGAL, LINE, MESIN, PRODUK, SHIFT) -->
+                        <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800'} p-3.5 space-y-3 shadow-sm">
+                            <div class="flex items-center gap-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-2">
+                                <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/40">1</span>
+                                <h4 class="font-bold text-xs ${isLight ? 'text-slate-800' : 'text-slate-200'} uppercase tracking-wider">Tanggal Laporan, Line & Produk</h4>
+                            </div>
+
+                            <div class="space-y-2.5">
+                                <div>
+                                    <label class="block text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-semibold flex items-center gap-1">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                        <span>Tanggal Produksi</span>
+                                    </label>
+                                    <input type="date" name="production_date" value="${new Date().toISOString().slice(0,10)}" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2.5 text-sm font-mono font-bold focus:outline-none focus:border-cyan-500" />
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    <div>
+                                        <label class="block text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-semibold">Production Line</label>
+                                        <select name="production_line_id" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500 font-sans cursor-pointer">
+                                            ${this.masterData.lines.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-semibold">Mesin Input</label>
+                                        <select name="machine_id" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500 font-sans cursor-pointer">
+                                            <!-- Populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-semibold">Nama Produk</label>
+                                    <select name="product_id" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500 font-sans cursor-pointer truncate">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-semibold">Shift Kerja</label>
+                                    <select name="shift_id" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500 font-sans cursor-pointer">
+                                        ${this.masterData.shifts.map(s => `<option value="${s.id}">${s.name} (${s.start_time?.slice(0,5)} - ${s.end_time?.slice(0,5)})</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD 2: HASIL OUTPUT & JAM KERJA -->
+                        <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800'} p-3.5 space-y-3 shadow-sm">
+                            <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center border border-emerald-500/40">2</span>
+                                    <h4 class="font-bold text-xs ${isLight ? 'text-slate-800' : 'text-slate-200'} uppercase tracking-wider">Hasil Output & Jam Kerja</h4>
+                                </div>
+                            </div>
+
+                            <!-- Target Qty Card Banner -->
+                            <div class="p-2.5 rounded-xl ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-950/40 border border-cyan-800/60'} flex items-center justify-between">
+                                <div class="space-y-0.5">
+                                    <div class="text-[10px] uppercase tracking-wider font-bold text-cyan-400">Target Qty Otomatis</div>
+                                    <div class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-sans">Planned Time × 60 ÷ Cycle Time</div>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="number" name="target_quantity" value="0" min="0" required class="w-24 bg-slate-950 border border-cyan-500/60 rounded-lg px-2 py-1.5 text-right text-base text-cyan-400 font-mono font-black" />
+                                    <span class="text-xs font-bold text-cyan-400">pcs</span>
+                                </div>
+                            </div>
+
+                            <!-- 2x2 Numeric Inputs for Output -->
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="block text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-semibold">Total Measuring</label>
+                                    <input type="number" name="total_quantity" value="0" min="0" placeholder="0" inputmode="numeric" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2.5 text-base font-mono font-bold focus:outline-none focus:border-cyan-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-emerald-400 mb-1 font-semibold flex items-center gap-1">
+                                        <span>Finish Good (OK)</span>
+                                    </label>
+                                    <input type="number" name="good_quantity" value="0" min="0" placeholder="0" inputmode="numeric" required class="w-full ${isLight ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-emerald-950/40 border-emerald-800 text-emerald-300'} border rounded-xl px-3 py-2.5 text-base font-mono font-black focus:outline-none focus:border-emerald-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-rose-400 mb-1 font-semibold flex items-center gap-1">
+                                        <span>Not Good (NG)</span>
+                                    </label>
+                                    <input type="number" name="reject_quantity" value="0" min="0" placeholder="0" inputmode="numeric" required class="w-full ${isLight ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-rose-950/40 border-rose-800 text-rose-300'} border rounded-xl px-3 py-2.5 text-base font-mono font-black focus:outline-none focus:border-rose-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-amber-400 mb-1 font-semibold">Scrap / Afkir</label>
+                                    <input type="number" name="scrap_quantity" value="0" min="0" placeholder="0" inputmode="numeric" required class="w-full ${isLight ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-amber-950/40 border-amber-800 text-amber-300'} border rounded-xl px-3 py-2.5 text-base font-mono font-black focus:outline-none focus:border-amber-500" />
+                                </div>
+                            </div>
+
+                            <!-- 3 Time Inputs -->
+                            <div class="grid grid-cols-3 gap-2 pt-1">
+                                <div>
+                                    <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Planned (min)</label>
+                                    <input type="number" name="planned_production_time" value="480" inputmode="numeric" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-200'} border rounded-lg px-2 py-2 text-xs font-mono" />
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Break / Istirahat</label>
+                                    <input type="number" name="planned_downtime" value="60" inputmode="numeric" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-200'} border rounded-lg px-2 py-2 text-xs font-mono" />
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-emerald-400 mb-1 font-bold">Run Time (min)</label>
+                                    <input type="number" name="run_time" value="420" inputmode="numeric" required class="w-full ${isLight ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-emerald-950/40 border-emerald-800 text-emerald-400'} border rounded-lg px-2 py-2 text-xs font-mono font-bold" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD 3: TROUBLE LOG & LOSS TIME (OPSIONAL) -->
+                        <div class="rounded-2xl border ${isLight ? 'bg-white border-amber-300' : 'bg-slate-900/90 border-amber-500/40'} p-3.5 space-y-3 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-2 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/40">3</span>
+                                    <h4 class="font-bold text-xs text-amber-300 uppercase tracking-wider">Trouble Log & Losstime</h4>
+                                </div>
+                                <span id="mobile-dt-total-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">
+                                    Total: 0 Menit
+                                </span>
+                            </div>
+
+                            <button type="button" id="btn-mobile-add-trouble" class="w-full py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-md shadow-amber-600/20 flex items-center justify-center gap-2 cursor-pointer transition-all">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                <span>+ Tambah Trouble Log / Downtime</span>
+                            </button>
+
+                            <div id="mobile-trouble-logs-container" class="space-y-3 pt-1">
+                                <!-- Dynamic Mobile Trouble Rows -->
+                            </div>
+                        </div>
+
+                        <!-- Hidden Form Meta Fields -->
+                        <input type="hidden" name="downtime" value="0" />
+                        <input type="hidden" name="idle_time" value="0" />
+                        <input type="hidden" name="ideal_cycle_time" value="9.5" />
+                        <input type="hidden" name="production_date" value="${new Date().toISOString().slice(0,10)}" />
+                    </form>
+
+                    <!-- 3. MOBILE STICKY BOTTOM ACTION BAR -->
+                    <div class="sticky bottom-0 inset-x-0 z-30 px-3 py-3 border-t ${isLight ? 'bg-white/95 border-slate-200 shadow-md' : 'bg-slate-950/95 border-slate-800 shadow-2xl'} backdrop-blur-md flex items-center gap-2.5 flex-shrink-0">
+                        <button type="button" id="btn-cancel-mobile-modal" class="w-1/3 py-3 rounded-xl ${isLight ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'} font-bold text-xs transition-colors cursor-pointer">
+                            Batal
+                        </button>
+                        <button type="submit" form="form-mobile-production-entry" id="btn-submit-mobile-entry" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span>Simpan & Hitung OEE</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+
+        // 1. Mobile Dynamic Trouble Logs State Management
+        let mobileTroubleLogsState = [];
+        const mobileTroubleContainer = document.getElementById('mobile-trouble-logs-container');
+        const mobileTotalDtBadge = document.getElementById('mobile-dt-total-badge');
+        const mobileAddTroubleBtn = document.getElementById('btn-mobile-add-trouble');
+        const mobileMainDowntimeInput = document.querySelector('#form-mobile-production-entry input[name="downtime"]');
+        const mobilePlannedTimeInput = document.querySelector('#form-mobile-production-entry input[name="planned_production_time"]');
+        const mobilePlannedDtInput = document.querySelector('#form-mobile-production-entry input[name="planned_downtime"]');
+        const mobileRunTimeInput = document.querySelector('#form-mobile-production-entry input[name="run_time"]');
+        const mobileTargetQtyInput = document.querySelector('#form-mobile-production-entry input[name="target_quantity"]');
+        const mobileIdealCycleInput = document.querySelector('#form-mobile-production-entry input[name="ideal_cycle_time"]');
+        const mobileLineSelect = document.querySelector('#form-mobile-production-entry select[name="production_line_id"]');
+        const mobileProductSelect = document.querySelector('#form-mobile-production-entry select[name="product_id"]');
+        const mobileShiftSelect = document.querySelector('#form-mobile-production-entry select[name="shift_id"]');
+
+        const updateMobileRunTimeAndDowntime = () => {
+            let totalDtMins = 0;
+            mobileTroubleLogsState.forEach(r => {
+                totalDtMins += parseFloat(r.duration_minutes || 0);
+            });
+
+            if (mobileTotalDtBadge) {
+                mobileTotalDtBadge.textContent = `Total Losstime: ${totalDtMins} Menit`;
+            }
+            if (mobileMainDowntimeInput) {
+                mobileMainDowntimeInput.value = totalDtMins;
+            }
+            if (mobileRunTimeInput && mobilePlannedTimeInput && mobilePlannedDtInput) {
+                const plannedMins = parseFloat(mobilePlannedTimeInput.value || 0);
+                const breakMins = parseFloat(mobilePlannedDtInput.value || 0);
+                mobileRunTimeInput.value = Math.max(0, plannedMins - breakMins - totalDtMins);
+            }
+        };
+
+        const getMobileLeaderName = (teamVal) => {
+            if (!mobileLineSelect) return 'Belum Didaftar';
+            const lineId = mobileLineSelect.value;
+            const match = (this.masterData.groups || []).find(g => 
+                g.production_line_id == lineId && 
+                (g.team === teamVal || g.team.toLowerCase().includes((teamVal || '').toLowerCase()) || (teamVal || '').toLowerCase().includes(g.team.toLowerCase()))
+            );
+            return match ? match.leader_name : 'Belum Didaftar';
+        };
+
+        const renderMobileTroubleRows = () => {
+            if (!mobileTroubleContainer) return;
+
+            if (mobileTroubleLogsState.length === 0) {
+                mobileTroubleContainer.innerHTML = `
+                    <div class="text-center py-3 px-3 ${isLight ? 'bg-slate-100 border-slate-200 text-slate-500' : 'bg-slate-950/60 border-slate-800 text-slate-400'} border border-dashed rounded-xl text-xs">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 inline mr-1"></i>
+                        <span>Produksi lancar tanpa kendala stoppage.</span>
+                    </div>
+                `;
+            } else {
+                mobileTroubleContainer.innerHTML = mobileTroubleLogsState.map((row, idx) => `
+                    <div class="rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} p-3 space-y-2.5 shadow-sm">
+                        <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">
+                                    Trouble #${idx + 1}
+                                </span>
+                                <span class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${row.problem_type || 'Mesin'} (${row.duration_minutes || 0}m)</span>
+                            </div>
+                            <button type="button" data-del-mobile-dt-idx="${idx}" class="p-1 rounded-lg text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer" title="Hapus Trouble">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Team</label>
+                                <select data-mobile-dt-idx="${idx}" data-mobile-dt-field="team" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2 py-1.5 text-xs font-bold">
+                                    <option value="Team A" ${row.team === 'Team A' ? 'selected' : ''}>Team A</option>
+                                    <option value="Team B" ${row.team === 'Team B' ? 'selected' : ''}>Team B</option>
+                                    <option value="Team C" ${row.team === 'Team C' ? 'selected' : ''}>Team C</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Leader / PIC</label>
+                                <input type="text" data-mobile-dt-idx="${idx}" data-mobile-dt-field="leader_name" value="${row.leader_name || getMobileLeaderName(row.team)}" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-cyan-800' : 'bg-slate-900/60 border-slate-700 text-cyan-400'} border rounded-lg px-2 py-1.5 font-mono font-bold text-xs" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Jenis Trouble</label>
+                            <select data-mobile-dt-idx="${idx}" data-mobile-dt-field="problem_type" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2 py-1.5 text-xs">
+                                <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik</option>
+                                <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik</option>
+                                <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' ? 'selected' : ''}>Problem Tool</option>
+                                <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory</option>
+                                <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime</option>
+                                <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Jam Start</label>
+                                <input type="time" data-mobile-dt-idx="${idx}" data-mobile-dt-field="start_time" value="${row.start_time || ''}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-1.5 py-1 text-xs font-mono" />
+                            </div>
+                            <div>
+                                <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Jam Selesai</label>
+                                <input type="time" data-mobile-dt-idx="${idx}" data-mobile-dt-field="end_time" value="${row.end_time || ''}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-1.5 py-1 text-xs font-mono" />
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-rose-400 mb-1 font-bold">Durasi (m)</label>
+                                <input type="number" min="0" data-mobile-dt-idx="${idx}" data-mobile-dt-field="duration_minutes" value="${row.duration_minutes || 0}" class="w-full ${isLight ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-rose-950/40 border-rose-800 text-rose-300'} border rounded-lg px-1.5 py-1 text-xs font-mono font-bold" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Gejala Trouble (Masalah)</label>
+                            <textarea data-mobile-dt-idx="${idx}" data-mobile-dt-field="description" rows="2" placeholder="Jelaskan kendala mesin..." class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2.5 py-1.5 text-xs">${row.description || ''}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Tindakan Perbaikan (CAPA)</label>
+                            <textarea data-mobile-dt-idx="${idx}" data-mobile-dt-field="action_taken" rows="2" placeholder="Langkah perbaikan..." class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2.5 py-1.5 text-xs">${row.action_taken || ''}</textarea>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+
+            // Bind Event Listeners on Mobile Trouble Inputs
+            mobileTroubleContainer.querySelectorAll('select, input, textarea').forEach(el => {
+                el.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-mobile-dt-idx'));
+                    const field = e.target.getAttribute('data-mobile-dt-field');
+                    if (mobileTroubleLogsState[idx]) {
+                        mobileTroubleLogsState[idx][field] = e.target.value;
+
+                        if (field === 'team') {
+                            const leader = getMobileLeaderName(e.target.value);
+                            mobileTroubleLogsState[idx].leader_name = leader;
+                            const leaderInp = mobileTroubleContainer.querySelector(`input[data-mobile-dt-idx="${idx}"][data-mobile-dt-field="leader_name"]`);
+                            if (leaderInp) leaderInp.value = leader;
+                        }
+
+                        if (field === 'start_time' || field === 'end_time') {
+                            const sTime = mobileTroubleLogsState[idx].start_time;
+                            const eTime = mobileTroubleLogsState[idx].end_time;
+                            if (sTime && eTime) {
+                                const sParts = sTime.split(':');
+                                const eParts = eTime.split(':');
+                                let sMins = parseInt(sParts[0]) * 60 + parseInt(sParts[1] || 0);
+                                let eMins = parseInt(eParts[0]) * 60 + parseInt(eParts[1] || 0);
+                                if (eMins < sMins) eMins += 24 * 60;
+                                const dur = Math.max(0, eMins - sMins);
+                                mobileTroubleLogsState[idx].duration_minutes = dur;
+                                const durInp = mobileTroubleContainer.querySelector(`input[data-mobile-dt-idx="${idx}"][data-mobile-dt-field="duration_minutes"]`);
+                                if (durInp) durInp.value = dur;
+                            }
+                        }
+
+                        if (field === 'duration_minutes') {
+                            mobileTroubleLogsState[idx].duration_minutes = parseFloat(e.target.value || 0);
+                        }
+
+                        updateMobileRunTimeAndDowntime();
+                    }
+                });
+            });
+
+            // Bind Delete Trouble Buttons
+            mobileTroubleContainer.querySelectorAll('[data-del-mobile-dt-idx]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.currentTarget.getAttribute('data-del-mobile-dt-idx'));
+                    mobileTroubleLogsState.splice(idx, 1);
+                    renderMobileTroubleRows();
+                    updateMobileRunTimeAndDowntime();
+                });
+            });
+
+            updateMobileRunTimeAndDowntime();
+        };
+
+        if (mobileAddTroubleBtn) {
+            mobileAddTroubleBtn.addEventListener('click', () => {
+                const defaultTeam = 'Team A';
+                mobileTroubleLogsState.push({
+                    team: defaultTeam,
+                    leader_name: getMobileLeaderName(defaultTeam),
+                    problem_type: 'Problem Mesin Mekanik',
+                    start_time: '',
+                    end_time: '',
+                    duration_minutes: 0,
+                    description: '',
+                    action_taken: '',
+                    is_planned: false
+                });
+                renderMobileTroubleRows();
+            });
+        }
+
+        renderMobileTroubleRows();
+
+        // 2. Target Qty Auto Calculation on Mobile
+        const calcMobileTargetQty = () => {
+            const selectedProdId = mobileProductSelect ? mobileProductSelect.value : null;
+            const selectedProd = (this.masterData.products || []).find(p => p.id == selectedProdId);
+            const cycleTime = selectedProd && selectedProd.ideal_cycle_time ? parseFloat(selectedProd.ideal_cycle_time) : 9.5;
+
+            if (mobileIdealCycleInput) mobileIdealCycleInput.value = cycleTime;
+
+            const plannedMins = mobilePlannedTimeInput ? parseFloat(mobilePlannedTimeInput.value || 0) : 480;
+            if (mobileTargetQtyInput && cycleTime > 0 && plannedMins > 0) {
+                const computedTarget = Math.floor((plannedMins * 60) / cycleTime);
+                mobileTargetQtyInput.value = computedTarget;
+            }
+        };
+
+        const mobileMachineSelect = document.querySelector('#form-mobile-production-entry select[name="machine_id"]');
+
+        // Cascading Line -> Machines Filter
+        const filterMobileMachinesByLine = () => {
+            if (!mobileLineSelect || !mobileMachineSelect) return;
+            const selectedLineId = mobileLineSelect.value;
+            const lineMachines = this.getMachinesForLine(selectedLineId);
+
+            mobileMachineSelect.innerHTML = lineMachines.map(m => 
+                `<option value="${m.id}">${m.name} (${m.code})</option>`
+            ).join('');
+
+            const measuringMC = lineMachines.find(m => 
+                (m.name && m.name.toLowerCase().includes('measuring')) || 
+                (m.code && m.code.toLowerCase().includes('measuring'))
+            );
+            if (measuringMC) {
+                mobileMachineSelect.value = measuringMC.id;
+            } else if (lineMachines.length > 0) {
+                mobileMachineSelect.value = lineMachines[0].id;
+            }
+        };
+
+        // Cascading Line -> Product Filter
+        const filterMobileProductsByLine = () => {
+            if (!mobileLineSelect || !mobileProductSelect) return;
+            const selectedLineId = mobileLineSelect.value;
+            const lineProducts = this.getProductsForLine(selectedLineId);
+
+            if (lineProducts.length === 0) {
+                mobileProductSelect.innerHTML = '<option value="" disabled selected>-- Tidak ada produk --</option>';
+            } else {
+                mobileProductSelect.innerHTML = lineProducts.map(p => `
+                    <option value="${p.id}">${p.name} — SKU: ${p.sku} (${p.ideal_cycle_time}s)</option>
+                `).join('');
+            }
+
+            calcMobileTargetQty();
+        };
+
+        if (mobileLineSelect) {
+            mobileLineSelect.addEventListener('change', () => {
+                filterMobileProductsByLine();
+                filterMobileMachinesByLine();
+                mobileTroubleLogsState.forEach(r => {
+                    r.leader_name = getMobileLeaderName(r.team);
+                });
+                renderMobileTroubleRows();
+            });
+            filterMobileProductsByLine();
+            filterMobileMachinesByLine();
+        }
+
+        if (mobileProductSelect) {
+            mobileProductSelect.addEventListener('change', calcMobileTargetQty);
+        }
+
+        // Auto-calculate Shift Times
+        const updateMobileShiftTimeCalculation = () => {
+            if (!mobileShiftSelect) return;
+            const shiftId = mobileShiftSelect.value;
+            const shiftObj = (this.masterData.shifts || []).find(s => s.id == shiftId);
+            if (!shiftObj) return;
+
+            const startStr = shiftObj.start_time || '07:30';
+            const endStr = shiftObj.end_time || '16:30';
+            const breakMins = parseInt(shiftObj.break_duration_minutes || 60);
+
+            const startParts = startStr.split(':');
+            const endParts = endStr.split(':');
+
+            let startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1] || 0);
+            let endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1] || 0);
+
+            if (endMins <= startMins) {
+                endMins += 24 * 60;
+            }
+
+            const totalDurationMins = endMins - startMins;
+            const plannedTimeMins = Math.max(0, totalDurationMins - breakMins);
+
+            if (mobilePlannedTimeInput) mobilePlannedTimeInput.value = plannedTimeMins;
+            if (mobilePlannedDtInput) mobilePlannedDtInput.value = breakMins;
+            
+            calcMobileTargetQty();
+            updateMobileRunTimeAndDowntime();
+        };
+
+        if (mobileShiftSelect) {
+            mobileShiftSelect.addEventListener('change', updateMobileShiftTimeCalculation);
+            updateMobileShiftTimeCalculation();
+        }
+
+        if (mobilePlannedTimeInput) {
+            mobilePlannedTimeInput.addEventListener('input', () => {
+                calcMobileTargetQty();
+                updateMobileRunTimeAndDowntime();
+            });
+        }
+        if (mobilePlannedDtInput) {
+            mobilePlannedDtInput.addEventListener('input', updateMobileRunTimeAndDowntime);
+        }
+
+        // Action Buttons
+        document.getElementById('btn-close-mobile-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
+        document.getElementById('btn-cancel-mobile-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
+        document.getElementById('btn-mobile-to-desktop')?.addEventListener('click', () => {
+            this.showProductionModal();
+        });
+
+        // Form Submit Handler
+        const formMobileProd = document.getElementById('form-mobile-production-entry');
+        if (formMobileProd) {
+            formMobileProd.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+
+                const prodDate = data.production_date || new Date().toISOString().slice(0,10);
+                const validTroubleLogs = mobileTroubleLogsState.filter(r => 
+                    (r.duration_minutes > 0) || (r.description && r.description.trim() !== '') || (r.start_time && r.start_time.trim() !== '')
+                ).map(r => ({
+                    team: r.team || null,
+                    problem_type: r.problem_type || 'Mesin',
+                    start_time: r.start_time ? `${prodDate} ${r.start_time}:00` : `${prodDate} 08:00:00`,
+                    end_time: r.end_time ? `${prodDate} ${r.end_time}:00` : null,
+                    duration_minutes: parseFloat(r.duration_minutes || 0),
+                    description: r.description || null,
+                    action_taken: r.action_taken || null,
+                    is_planned: false
+                }));
+
+                data.downtime_logs = validTroubleLogs;
+
+                if (!this.validateProductionForm(data, formMobileProd)) return;
+
+                const submitBtn = document.getElementById('btn-submit-mobile-entry');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = `
+                        <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Menyimpan...</span>
+                    `;
+                }
+
+                try {
+                    await api.createProductionRecord(data);
+                    this.showNotification('Data Produksi Berhasil Disimpan', `Log harian & ${validTroubleLogs.length} Trouble Log berhasil disimpan ke database!`, 'create');
+                    modalContainer.innerHTML = '';
+                    this.loadCurrentTab();
+                } catch (err) {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span>Simpan & Hitung OEE</span>
+                        `;
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+
+                    const errorMsg = err.response?.data?.message || err.message || 'Gagal menyimpan log produksi';
+                    const errorDetail = err.response?.data?.error_detail || '';
+                    const params = err.response?.data?.parameters || null;
+
+                    if (errorMsg.includes('tidak boleh sama') || err.response?.status === 422) {
+                        let paramListHtml = '';
+                        if (params) {
+                            paramListHtml = `
+                                <div class="mt-3 p-3 bg-slate-950/90 border border-slate-800 rounded-xl space-y-1.5 font-mono text-[11px] text-left">
+                                    <div class="text-amber-400 font-bold mb-1 flex items-center gap-1.5">
+                                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i>
+                                        Rincian Parameter yang Sudah Terdaftar:
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-1 text-slate-300">
+                                        <div>🏭 Line: <strong class="text-cyan-400 font-sans">${params.line}</strong></div>
+                                        <div>⏰ Shift: <strong class="text-cyan-400 font-sans">${params.shift}</strong></div>
+                                        <div>📅 Tanggal: <strong class="text-slate-200">${params.tanggal}</strong></div>
+                                        <div>⚙️ Mesin: <strong class="text-slate-200">${params.mesin}</strong></div>
+                                    </div>
+                                    <div class="text-slate-300 truncate">📦 Produk: <strong class="text-emerald-400 font-sans">${params.produk}</strong></div>
+                                </div>
+                            `;
+                        }
+
+                        this.showAlertModal({
+                            title: 'Data sudah ditambahkan tidak boleh sama !',
+                            subtitle: (errorDetail || 'Kombinasi Line dan Shift pada tanggal tersebut sudah pernah ditambahkan ke sistem.') + paramListHtml,
+                            buttonText: 'Mengerti, Ubah Shift / Line'
+                        });
+
+                        const shiftInp = formMobileProd.querySelector('[name="shift_id"]');
+                        const lineInp = formMobileProd.querySelector('[name="production_line_id"]');
                         if (shiftInp) shiftInp.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50', 'bg-rose-500/10');
                         if (lineInp) lineInp.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50', 'bg-rose-500/10');
                     } else {
@@ -19333,12 +23600,25 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/90 text-emerald-400 border border-emerald-700 text-xs font-bold tracking-wide">
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/90 text-emerald-400 border border-emerald-700 text-xs font-bold tracking-wide shadow-sm">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> LIVE REALTIME
                     </span>
 
-                    <button id="btn-exit-tv" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 text-xs font-bold transition-all cursor-pointer shadow-sm">
+                    <!-- ACTION BUTTON 1: VIEW DATA NG -->
+                    <button id="btn-tv-view-ng" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white border border-rose-500/60 text-xs font-bold transition-all cursor-pointer shadow-md shadow-rose-950/40 active:scale-95" title="Buka Data Histori NG, Defect & Reject (Management Floor Meeting Mode)">
+                        <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+                        <span>View Data NG</span>
+                    </button>
+
+                    <!-- ACTION BUTTON 2: VIEW DATA TROUBLE LOG -->
+                    <button id="btn-tv-view-trouble" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white border border-indigo-500/60 text-xs font-bold transition-all cursor-pointer shadow-md shadow-indigo-950/40 active:scale-95" title="Buka Log Trouble & Downtime History (Management Floor Meeting Mode)">
+                        <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+                        <span>View Data Trouble Log</span>
+                    </button>
+
+                    <!-- EXIT TV MODE -->
+                    <button id="btn-exit-tv" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/80 hover:border-rose-700 text-slate-300 hover:text-rose-200 border border-slate-700 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95" title="Keluar dari TV Floor Mode">
                         <i data-lucide="x" class="w-4 h-4"></i>
                         <span>Exit TV Mode</span>
                     </button>
@@ -19678,6 +23958,15 @@ tbody.innerHTML = '';
                 this.toggleTvMode();
             });
         }
+
+        // TV Mode Header Action Buttons (Fullscreen Meeting Popups)
+        document.getElementById('btn-tv-view-ng')?.addEventListener('click', () => {
+            this.showNgFullscreenModal([], {});
+        });
+
+        document.getElementById('btn-tv-view-trouble')?.addEventListener('click', () => {
+            this.showDowntimeFullscreenModal([], [], {});
+        });
 
         if (this.currentLang === 'ja') {
             i18n.localizeDom(document.getElementById('content-body') || document.body);
@@ -20630,9 +24919,12 @@ tbody.innerHTML = '';
             const current = validSlides[miniSlideIndex];
 
             // Render background with Ken Burns
-            const motionClass = (miniSlideIndex % 2 === 0) ? 'animate-kb-zoom-in' : 'animate-kb-zoom-out';
+            const motionList = ['anim-zoom-in', 'anim-zoom-out', 'anim-pan-left', 'anim-pan-right'];
+            const motionClass = motionList[miniSlideIndex % motionList.length];
             miniContainer.innerHTML = `
-                <div class="absolute inset-0 bg-cover bg-center bg-no-repeat ${motionClass}" style="background-image: url('${this.escapeHtml(current.image_url)}');"></div>
+                <div class="login-slide-item active">
+                    <div class="slide-bg ${motionClass}" style="background-image: url('${this.escapeHtml(current.image_url)}');"></div>
+                </div>
             `;
 
             if (previewBadge) previewBadge.textContent = `Slide ${miniSlideIndex + 1} / ${validSlides.length}`;
@@ -20756,12 +25048,13 @@ tbody.innerHTML = '';
             });
 
             modalEl.querySelectorAll('.btn-select-preset-item, .group\\/preset').forEach(btn => {
-                btn.addEventListener('click', (e) => {
+                btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const pIdx = parseInt(btn.getAttribute('data-preset-idx'), 10);
                     const selected = presetGalleryList[pIdx];
                     if (selected && slideshowConfig.slides[targetSlideIdx]) {
                         slideshowConfig.slides[targetSlideIdx].image_url = selected.url;
+                        slideshowConfig.slides[targetSlideIdx].image = selected.url;
                         if (!slideshowConfig.slides[targetSlideIdx].title || slideshowConfig.slides[targetSlideIdx].title.startsWith('Slide Foto')) {
                             slideshowConfig.slides[targetSlideIdx].title = selected.title;
                         }
@@ -20773,10 +25066,36 @@ tbody.innerHTML = '';
                         }
                         closeModal();
                         renderSlideCards();
-                        this.showNotification('Foto Galeri Dipilih', `Foto '${selected.title}' berhasil diterapkan pada Slide #${targetSlideIdx + 1}.`, 'success');
+                        await autoSaveSlideshow('Foto Galeri Diterapkan', `Foto '${selected.title}' berhasil diterapkan pada Slide #${targetSlideIdx + 1} dan tersimpan otomatis.`);
                     }
                 });
             });
+        };
+
+        // Auto Save Helper
+        const autoSaveSlideshow = async (successTitle = null, successMsg = null) => {
+            try {
+                // Normalize slide data
+                slideshowConfig.slides.forEach(s => {
+                    const img = s.image_url || s.image || '';
+                    s.image_url = img;
+                    s.image = img;
+                });
+                const res = await api.saveLoginSlideshow(slideshowConfig);
+                if (res.data?.data) {
+                    slideshowConfig = res.data.data;
+                }
+                this.loginSlideshowConfig = slideshowConfig;
+                if (successTitle) {
+                    this.playClingSound();
+                    this.showNotification(successTitle, successMsg || 'Pengaturan slideshow berhasil disimpan otomatis.', 'success');
+                }
+            } catch (err) {
+                console.error('Auto-save slideshow failed:', err);
+                if (successTitle) {
+                    this.showNotification('Pemberitahuan', 'Foto diperbarui secara lokal. Silakan klik "Simpan Pengaturan Slideshow" di bawah.', 'status');
+                }
+            }
         };
 
         // Slide Upload Execution Helper
@@ -20800,14 +25119,17 @@ tbody.innerHTML = '';
             try {
                 this.showNotification('Mengunggah Foto', `Mengunggah foto baru untuk Slide #${idx + 1}...`, 'status');
                 const res = await api.uploadSlideshowImage(formData);
-                if (res.data?.data?.url) {
-                    slideshowConfig.slides[idx].image_url = res.data.data.url;
+                const uploadedUrl = res.data?.data?.url || res.data?.url;
+                if (uploadedUrl) {
+                    slideshowConfig.slides[idx].image_url = uploadedUrl;
+                    slideshowConfig.slides[idx].image = uploadedUrl;
                     renderSlideCards();
-                    this.showNotification('Foto Berhasil Diunggah', `Foto Slide #${idx + 1} berhasil diperbarui. Klik 'Simpan Pengaturan Slideshow' untuk mempublikasikan.`, 'success');
+                    await autoSaveSlideshow('Foto Berhasil Disimpan', `Foto Slide #${idx + 1} berhasil diunggah & tersimpan otomatis ke sistem!`);
                 }
             } catch (err) {
                 console.error('Error uploading slide image:', err);
                 this.showNotification('Gagal Unggah', err.response?.data?.message || 'Gagal mengunggah foto slide ke server.', 'delete');
+            } finally {
                 if (loadingOverlay) loadingOverlay.classList.add('hidden');
             }
         };
@@ -20931,33 +25253,35 @@ tbody.innerHTML = '';
         const bindSlideCardEvents = () => {
             // Reorder UP
             document.querySelectorAll('.btn-move-slide-up').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async () => {
                     const idx = parseInt(btn.getAttribute('data-index'), 10);
                     if (idx > 0) {
                         const temp = slideshowConfig.slides[idx];
                         slideshowConfig.slides[idx] = slideshowConfig.slides[idx - 1];
                         slideshowConfig.slides[idx - 1] = temp;
                         renderSlideCards();
+                        await autoSaveSlideshow();
                     }
                 });
             });
 
             // Reorder DOWN
             document.querySelectorAll('.btn-move-slide-down').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async () => {
                     const idx = parseInt(btn.getAttribute('data-index'), 10);
                     if (idx < slideshowConfig.slides.length - 1) {
                         const temp = slideshowConfig.slides[idx];
                         slideshowConfig.slides[idx] = slideshowConfig.slides[idx + 1];
                         slideshowConfig.slides[idx + 1] = temp;
                         renderSlideCards();
+                        await autoSaveSlideshow();
                     }
                 });
             });
 
             // Delete Slide
             document.querySelectorAll('.btn-delete-slide').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async () => {
                     const idx = parseInt(btn.getAttribute('data-index'), 10);
                     if (slideshowConfig.slides.length <= 3) {
                         this.showNotification('Batas Minimum', 'Minimal harus ada 3 foto slide pada halaman login.', 'status');
@@ -20965,6 +25289,7 @@ tbody.innerHTML = '';
                     }
                     slideshowConfig.slides.splice(idx, 1);
                     renderSlideCards();
+                    await autoSaveSlideshow('Slide Dihapus', 'Foto slide berhasil dihapus dan konfigurasi diperbarui.');
                 });
             });
 
@@ -21032,6 +25357,7 @@ tbody.innerHTML = '';
                         updateMiniPreview();
                     }
                 });
+                input.addEventListener('change', () => autoSaveSlideshow());
             });
 
             document.querySelectorAll('.input-slide-title').forEach(input => {
@@ -21042,6 +25368,7 @@ tbody.innerHTML = '';
                         updateMiniPreview();
                     }
                 });
+                input.addEventListener('change', () => autoSaveSlideshow());
             });
 
             document.querySelectorAll('.input-slide-subtitle').forEach(input => {
@@ -21052,14 +25379,17 @@ tbody.innerHTML = '';
                         updateMiniPreview();
                     }
                 });
+                input.addEventListener('change', () => autoSaveSlideshow());
             });
 
             document.querySelectorAll('.input-slide-url').forEach(input => {
-                input.addEventListener('change', (e) => {
+                input.addEventListener('change', async (e) => {
                     const idx = parseInt(input.getAttribute('data-index'), 10);
                     if (slideshowConfig.slides[idx]) {
                         slideshowConfig.slides[idx].image_url = e.target.value;
+                        slideshowConfig.slides[idx].image = e.target.value;
                         renderSlideCards();
+                        await autoSaveSlideshow('Path Foto Diperbarui', `Path foto Slide #${idx + 1} berhasil diperbarui.`);
                     }
                 });
             });
@@ -21068,7 +25398,7 @@ tbody.innerHTML = '';
         // Add Slide Button
         const btnAddSlide = document.getElementById('btn-add-slide');
         if (btnAddSlide) {
-            btnAddSlide.addEventListener('click', () => {
+            btnAddSlide.addEventListener('click', async () => {
                 if (slideshowConfig.slides.length >= 5) {
                     this.showNotification('Batas Maksimal', 'Maksimal 5 foto slide pada halaman login.', 'status');
                     return;
@@ -21076,62 +25406,69 @@ tbody.innerHTML = '';
                 const newIdx = slideshowConfig.slides.length + 1;
                 slideshowConfig.slides.push({
                     image_url: '/images/yasunaga-factory.jpg',
+                    image: '/images/yasunaga-factory.jpg',
                     title: `Smart Production Line #${newIdx}`,
                     subtitle: 'Monitoring Kinerja Mesin & Produktivitas Monozukuri',
                     tag: 'PT YASUNAGA INDONESIA'
                 });
                 renderSlideCards();
+                await autoSaveSlideshow('Slide Ditambahkan', `Slide baru #${newIdx} berhasil ditambahkan dan disimpan.`);
             });
         }
 
         // Reset Default Slides
         const btnResetSlides = document.getElementById('btn-reset-default-slides');
         if (btnResetSlides) {
-            btnResetSlides.addEventListener('click', () => {
+            btnResetSlides.addEventListener('click', async () => {
                 slideshowConfig.slides = JSON.parse(JSON.stringify(defaultSlides));
                 renderSlideCards();
-                this.showNotification('Foto Standar Dipulihkan', '5 Foto Monozukuri Yasunaga telah dipulihkan.', 'update');
+                await autoSaveSlideshow('Foto Standar Dipulihkan', '5 Foto Monozukuri Yasunaga telah dipulihkan dan disimpan.');
             });
         }
 
         // Global Form Controls
         const intervalSelect = document.getElementById('select-slideshow-interval');
         if (intervalSelect) {
-            intervalSelect.addEventListener('change', (e) => {
+            intervalSelect.addEventListener('change', async (e) => {
                 slideshowConfig.interval = parseInt(e.target.value, 10);
                 restartMiniSlideTimer();
+                await autoSaveSlideshow();
             });
         }
 
         const effectSelect = document.getElementById('select-slideshow-effect');
         if (effectSelect) {
-            effectSelect.addEventListener('change', (e) => {
+            effectSelect.addEventListener('change', async (e) => {
                 slideshowConfig.effect = e.target.value;
+                await autoSaveSlideshow();
             });
         }
 
         const enabledCheck = document.getElementById('check-slideshow-enabled');
         if (enabledCheck) {
-            enabledCheck.addEventListener('change', (e) => {
+            enabledCheck.addEventListener('change', async (e) => {
                 slideshowConfig.enabled = e.target.checked;
+                await autoSaveSlideshow();
             });
         }
 
         const indicatorsCheck = document.getElementById('check-slideshow-indicators');
         if (indicatorsCheck) {
-            indicatorsCheck.addEventListener('change', (e) => {
+            indicatorsCheck.addEventListener('change', async (e) => {
                 slideshowConfig.show_indicators = e.target.checked;
                 const miniDots = document.getElementById('settings-mini-dots');
                 if (miniDots) miniDots.style.display = e.target.checked ? 'flex' : 'none';
+                await autoSaveSlideshow();
             });
         }
 
         const captionsCheck = document.getElementById('check-slideshow-captions');
         if (captionsCheck) {
-            captionsCheck.addEventListener('change', (e) => {
+            captionsCheck.addEventListener('change', async (e) => {
                 slideshowConfig.show_captions = e.target.checked;
                 const miniCap = document.getElementById('settings-mini-caption');
                 if (miniCap) miniCap.style.display = e.target.checked ? 'block' : 'none';
+                await autoSaveSlideshow();
             });
         }
 
@@ -21154,6 +25491,7 @@ tbody.innerHTML = '';
                     if (res.data?.data) {
                         slideshowConfig = res.data.data;
                     }
+                    this.loginSlideshowConfig = slideshowConfig;
                 } catch (err) {
                     console.error('Error saving slideshow settings:', err);
                     this.showNotification('Gagal Menyimpan', err.response?.data?.message || 'Terjadi kesalahan saat menyimpan slideshow.', 'delete');

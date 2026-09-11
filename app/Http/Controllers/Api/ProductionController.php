@@ -71,7 +71,7 @@ class ProductionController extends Controller
         $isToday = ($startDate->toDateString() === $todayStr && $endDate->toDateString() === $todayStr);
 
         // Filter Machines by line_id / machine_id
-        $machineQuery = Machine::with(['workCenter.productionLine', 'products']);
+        $machineQuery = Machine::with(['workCenter.productionLine']);
 
         if ($request->filled('line_id')) {
             $lineId = $request->line_id;

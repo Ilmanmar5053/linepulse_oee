@@ -2347,7 +2347,7 @@ const MONOZUKURI_MASTER_DICTIONARY = [
         "(20個 非OEE)"
     ],
     [
-        "Daftar Antrean Laporan Harian yang Memiliki Reject / Defect",
+        "Laporan Not Goods, Defect & Reject",
         "品質不良・NG発生日報一覧 (要内訳入力)"
     ],
     [
@@ -3426,7 +3426,7 @@ const MONOZUKURI_MASTER_DICTIONARY = [
     ["Semua Shift", "全直 (All Shifts)"],
 
     // --- NG QUEUE & COMPONENT SECTION LABELS ---
-    ["Daftar Antrean Laporan Harian yang Memiliki Reject / Defect", "不良・NG発生 日次報告一覧"],
+    ["Laporan Not Goods, Defect & Reject", "不良・NG発生 日次報告一覧"],
     ["Antrean Laporan NG", "NG登録待ち報告"],
     ["STATUS INPUT DETAIL", "明細入力ステータス"],
     ["KOMPONEN WAJIB (OEE)", "主要部品 (OEE対象)"],
@@ -3468,7 +3468,136 @@ const MONOZUKURI_MASTER_DICTIONARY = [
     ["TV / Floor Display Mode", "アンドン・工場大型表示 (TV Mode)"],
     ["Keluar / Logout", "ログアウト"],
     ["Keluar", "ログアウト"],
-    ["Dasbor", "ダッシュボード"]
+    ["Dasbor", "ダッシュボード"],
+
+    // --- MOBILE ENTRY & RESPONSIVE LAYOUT SWITCHERS ---
+    ["Mode HP 📱", "モバイル入力 📱"],
+    ["Mode HP", "モバイル入力"],
+    ["Mode Desktop 💻", "デスクトップ表示 💻"],
+    ["Mode Desktop", "デスクトップ表示"],
+    ["Desktop", "デスクトップ"],
+    ["Entry Produksi Mobile", "モバイル生産実績登録"],
+    ["Form Entry Harian (Layar Sentuh)", "日次実績登録 (タッチ操作)"],
+    ["Beralih ke Tampilan Layar HP / Smartphone", "スマホ・モバイル画面へ切替"],
+    ["Beralih ke Tampilan Layar HP / Touchscreen", "スマホ・タッチ操作画面へ切替"],
+    ["Beralih ke Tampilan Layar HP", "スマホ・モバイル画面へ切替"],
+    ["Beralih ke Tampilan Desktop", "デスクトップ画面へ切替"],
+    ["Memuat Form Mobile NG...", "モバイルNG入力フォーム読込中..."],
+    ["Menyiapkan layout layar sentuh & data...", "タッチ操作レイアウトとデータを準備中..."],
+    ["Type yang diproduksi:", "生産対象品番・モデル:"],
+    ["Belum ada produk", "登録製品なし"],
+
+    // --- DOWNTIME & TROUBLE LOG HISTORY (NEWEST SUB-MODULE) ---
+    ["Downtime & Loss Trouble History Logs", "設備停止・トラブル履歴ログ"],
+    ["Log Riwayat Kendala Downtime & Kehilangan Waktu", "設備停止・ロス時間トラブル履歴ログ"],
+    ["Per Hari / Hari Ini", "本日・日次"],
+    ["Minggu / 7 Hari", "直近7日間 (週間)"],
+    ["Bulan / 30 Hari", "直近30日間 (月間)"],
+    ["Semua Data / All", "全期間・全データ"],
+    ["Custom Date Range", "カスタム期間指定"],
+    ["Terapkan Rentang Tanggal", "期間を適用"],
+    ["Terapkan Tanggal", "日付を適用"],
+    ["Dari Tanggal", "開始日"],
+    ["Sampai Tanggal", "終了日"],
+    ["Total Kejadian Stop", "総停止発生件数"],
+    ["Status Distribusi Log", "ログ対応状況分布"],
+    ["Dominant Problem (Pareto)", "最頻出トラブル (パレート)"],
+    ["Dominant Problem", "最頻出トラブル"],
+    ["Problem Mesin Mekanik", "機械系トラブル (Mekanik)"],
+    ["Problem Mesin Elektrik", "電気系トラブル (Elektrik)"],
+    ["Problem Tool", "刃具・金型トラブル (Tool)"],
+    ["Planning Downtime", "計画停止 (Planning)"],
+    ["Waktu Trouble", "発生日時"],
+    ["Line & Mesin", "ライン・設備"],
+    ["Shift & Team", "直・班 (Shift & Team)"],
+    ["Product / Part", "製品・品番"],
+    ["Jenis Problem", "トラブル区分"],
+    ["Masalah / Kendala (Trouble)", "トラブル内容・現象"],
+    ["Masalah / Kendala", "トラブル内容・現象"],
+    ["Penyebab (Root Cause)", "要因分析 (根本原因)"],
+    ["Tindakan Perbaikan (CAPA)", "是正処置 (CAPA)"],
+    ["Tindakan Perbaikan", "是正処置・対策"],
+    ["PIC / Leader", "担当者 / 班長"],
+    ["CLOSED (Selesai)", "完了 (CLOSED)"],
+    ["OPEN (Ongoing)", "対応中 (OPEN)"],
+    ["Total Durasi Stop", "総停止時間"],
+    ["Buka seluruh laporan NG semua line", "全ラインのNG日報を展開"],
+    ["Tutup rincian shift (hanya tampilkan ringkasan Line)", "直明細を折りたたむ (ライン集計のみ表示)"],
+    ["Buka seluruh problem semua line", "全ラインのトラブルを展開"],
+    ["Tutup rincian problem (hanya tampilkan ringkasan Line)", "トラブル明細を折りたたむ (ライン集計のみ表示)"],
+    ["Buka seluruh rincian shift semua line", "全ラインの直明細を展開"],
+    ["Zero Breakdown! Tidak ada log problem & downtime tercatat pada tanggal", "突発停止ゼロ！ 対象日に記録された設備トラブル・停止時間はありません: "],
+    ["Zero Breakdown! Tidak ada log problem & downtime tercatat", "突発停止ゼロ！ 記録された設備トラブル・停止時間はありません"],
+
+    // --- MOBILE & DESKTOP NG BREAKDOWN MODALS & FORMS ---
+    ["Input Detail Komponen NG", "NG部品内訳・品質不具合入力"],
+    ["Input Detail NG", "NG部品内訳入力"],
+    ["Target Reject / Defect:", "不良目標数 (NG数):"],
+    ["Target Reject:", "不良目標数 (NG数):"],
+    ["Target Reject", "不良目標数 (NG数)"],
+    ["Ringkasan Data Produksi", "生産実績データサマリー"],
+    ["Produk & Lini", "製品及びライン"],
+    ["Komponen Utama NG", "主要NG構成品 (OEE対象)"],
+    ["Total Assy NG:", "Assy不良合計:"],
+    ["Total Rod NG:", "Rod不良合計:"],
+    ["Total Cap NG:", "Cap不良合計:"],
+    ["Total Assy NG", "Assy不良合計"],
+    ["Total Rod NG", "Rod不良合計"],
+    ["Total Cap NG", "Cap不良合計"],
+    ["Assy NG", "Assy不良"],
+    ["Rod NG", "Rod不良"],
+    ["Cap NG", "Cap不良"],
+    ["+ Tambah Baris NG", "+ NG行を追加"],
+    ["+ Tambah Baris Rincian NG", "+ NG明細行を追加"],
+    ["OP Mesin (Ketik / Cari)", "工程・設備 (入力/検索)"],
+    ["OP Mesin", "工程・設備"],
+    ["Ketik / pilih OP Mesin...", "工程・設備を入力/選択..."],
+    ["Pilih/Ketik Mesin...", "設備を入力/選択..."],
+    ["Bagian NG (Ketik / Cari)", "NG部位・箇所 (入力/検索)"],
+    ["Ketik / pilih Bagian...", "不良部位を入力/選択..."],
+    ["Pilih/Ketik Bagian Komponen...", "部品の不良箇所を入力/選択..."],
+    ["Penyebab / Remark (Ketik / Cari)", "発生要因 / 特記事項 (入力/検索)"],
+    ["Penyebab / Remark", "発生要因 / 備考"],
+    ["Ketik / cari Penyebab Defect...", "不良要因を入力/検索..."],
+    ["Pilih/Ketik Penyebab Defect...", "不良原因を入力/検索..."],
+    ["Fasteners & Pelengkap (Opsional)", "締結部品・付属品 (任意・Non-OEE)"],
+    ["Komponen Pelengkap & Fasteners (Opsional)", "締結部品・付属品 (任意・Non-OEE)"],
+    ["Komponen Pelengkap", "締結部品・付属品"],
+    ["Non-OEE Tracking", "OEE計算対象外 (参考記録)"],
+    ["Non-OEE", "OEE対象外"],
+    ["Bolt (Baut)", "ボルト (Bolt)"],
+    ["Bush (Bushing)", "ブッシュ (Bushing)"],
+    ["Nut (Mur)", "ナット (Nut)"],
+    ["Pin (Dowel Pin)", "ノックピン (Dowel Pin)"],
+    ["Analisa Defect & Disposisi QC", "品質不良分析及びQC判定処置"],
+    ["Gejala Defect (Symptom)", "不具合現象 (Symptom)"],
+    ["Gejala Defect", "不具合現象"],
+    ["Cth: Scratch, Dimension Out, Dent, Porosity", "例: キズ, 寸法外れ, 打痕, 巣穴"],
+    ["Disposisi Part", "判定処置 (Disposisi)"],
+    ["SCRAP (Afkir / Buang)", "廃棄処分 (SCRAP)"],
+    ["SCRAP (Afkir)", "廃棄 (SCRAP)"],
+    ["REWORK (Perbaikan Ulang)", "手直し・再加工 (REWORK)"],
+    ["REWORK (Ulang)", "手直し (REWORK)"],
+    ["HOLD (Karantina / Analisa QC)", "保留・QC精査 (HOLD)"],
+    ["HOLD (Karantina)", "保留 (HOLD)"],
+    ["Nama Inspector QC", "品質検査員 (QC Inspector)"],
+    ["Inspector QC", "品質検査員"],
+    ["Catatan / Keterangan Tambahan", "特記事項・補足記録"],
+    ["Catatan analisa akar masalah atau tindakan penanganan...", "根本原因の分析所見または暫定・恒久処置を記入..."],
+    ["Catatan / Tindakan Perbaikan", "特記事項・是正処置"],
+    ["Catatan analisa akar masalah atau tindakan perbaikan...", "根本原因の分析所見または是正処置を記入..."],
+    ["Simpan Detail Laporan NG", "NG詳細レポートを保存"],
+    ["Reset / Hapus Detail", "詳細を初期化・削除"],
+    ["Reset / Hapus Detail NG", "NG詳細の初期化・削除"],
+    ["Konfirmasi Keseimbangan Target NG", "NG目標数量バランスの確認"],
+    ["Tetap Simpan", "このまま保存する"],
+    ["Periksa Ulang", "再確認する"],
+    ["Data Tidak Dapat Disimpan", "保存できません"],
+    ["Data Belum Lengkap", "入力内容に不備があります"],
+    ["Perbaiki Isian Sekarang", "今すぐ修正する"],
+    ["Saya Mengerti", "了解しました"],
+    ["SEIMBANG ✓", "整合 (合致) ✓"],
+    ["Minimal harus memiliki 1 baris rincian NG.", "最低1行以上のNG明細行が必要です。"]
 ];
 
 // Pre-sort longest phrases first for substring replacement integrity
@@ -3799,6 +3928,13 @@ class I18nService {
             'jumlah (pcs)': '数量 (個)',
             'jumlah (pcs) *': '数量 (個) *',
             'jumlah baris': '行数',
+            'op mesin': '工程・設備',
+            'op mesin (ketik / cari)': '工程・設備 (入力/検索)',
+            'penyebab / remark': '発生要因 / 備考',
+            'komponen utama ng': '主要NG構成品',
+            'disposisi part': '判定処置',
+            'nama inspector qc': '品質検査員',
+            'inspector qc': '品質検査員',
 
             // Reason columns
             'reason name': '原因名称',
@@ -3896,6 +4032,29 @@ class I18nService {
                         }
                     }
                     node.setAttribute('title', title);
+                }
+
+                if (node.hasAttribute('aria-label')) {
+                    let aria = node.getAttribute('aria-label');
+                    for (let i = 0; i < sortedPhrases.length; i++) {
+                        if (aria.includes(sortedPhrases[i][0])) {
+                            aria = aria.split(sortedPhrases[i][0]).join(sortedPhrases[i][1]);
+                        }
+                    }
+                    node.setAttribute('aria-label', aria);
+                }
+
+                // Handle button and input values (e.g. submit/button value attributes)
+                if (node.tagName === 'INPUT' && (node.type === 'button' || node.type === 'submit' || node.type === 'reset')) {
+                    if (node.hasAttribute('value')) {
+                        let val = node.getAttribute('value');
+                        for (let i = 0; i < sortedPhrases.length; i++) {
+                            if (val.includes(sortedPhrases[i][0])) {
+                                val = val.split(sortedPhrases[i][0]).join(sortedPhrases[i][1]);
+                            }
+                        }
+                        node.setAttribute('value', val);
+                    }
                 }
 
                 for (let child of node.childNodes) {
