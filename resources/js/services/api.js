@@ -69,6 +69,11 @@ export const api = {
     createProduct: (data) => axios.post(`${API_BASE}/master/products`, data),
     updateProduct: (id, data) => axios.put(`${API_BASE}/master/products/${id}`, data),
     deleteProduct: (id) => axios.delete(`${API_BASE}/master/products/${id}`),
+    getProductCycleTimes: (productId) => axios.get(`${API_BASE}/master/products/${productId}/cycle-times`),
+    createProductCycleTime: (productId, data) => axios.post(`${API_BASE}/master/products/${productId}/cycle-times`, data),
+    updateProductCycleTime: (productId, cycleTimeId, data) => axios.put(`${API_BASE}/master/products/${productId}/cycle-times/${cycleTimeId}`, data),
+    deleteProductCycleTime: (productId, cycleTimeId) => axios.delete(`${API_BASE}/master/products/${productId}/cycle-times/${cycleTimeId}`),
+    resolveProductCycleTime: (productId, date, machineId, lineId) => axios.get(`${API_BASE}/master/products/resolve-cycle-time`, { params: { product_id: productId, date, machine_id: machineId, production_line_id: lineId } }),
 
     getDowntimeReasons: () => axios.get(`${API_BASE}/master/downtime-categories`),
     createDowntimeReason: (data) => axios.post(`${API_BASE}/master/downtime-categories`, data),

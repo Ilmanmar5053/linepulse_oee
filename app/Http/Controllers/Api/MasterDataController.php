@@ -11,6 +11,7 @@ use App\Models\Machine;
 use App\Models\NgSection;
 use App\Models\Plant;
 use App\Models\Product;
+use App\Models\ProductCycleTime;
 use App\Models\ProductionLine;
 use App\Models\Shift;
 use App\Models\SystemSetting;
@@ -331,7 +332,9 @@ class MasterDataController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => Product::with(['productCategory', 'productionLine'])->get(),
+            'data' => Product::with(['productCategory', 'productionLine', 'cycleTimes' => function($q) {
+                $q->orderBy('effective_from', 'desc')->orderBy('id', 'desc');
+            }, 'cycleTimes.creator'])->get(),
         ]);
     }
 
@@ -347,11 +350,32 @@ class MasterDataController extends Controller
             'name' => 'required|string|max:255',
             'unit_of_measure' => 'required|string',
             'ideal_cycle_time' => 'required|numeric|min:0.0001',
+            'effective_from' => 'nullable|date',
+            'reason' => 'nullable|string',
         ]);
 
         $product = Product::create($validated);
 
-        return response()->json(['success' => true, 'message' => 'Product created', 'data' => $product->load(['productCategory', 'productionLine'])], 201);
+        // Auto create initial Rev 1 cycle time
+        $ict = (float) $validated['ideal_cycle_time'];
+        $effectiveFrom = $validated['effective_from'] ?? '2020-01-01';
+        $reason = $validated['reason'] ?? 'Standar awal desain lini produksi (Initial baseline)';
+
+        ProductCycleTime::create([
+            'product_id' => $product->id,
+            'production_line_id' => $product->production_line_id,
+            'machine_id' => null,
+            'ideal_cycle_time' => $ict,
+            'unit' => 'sec/unit',
+            'revision' => 'Rev 1',
+            'effective_from' => $effectiveFrom,
+            'effective_to' => null,
+            'status' => 'ACTIVE',
+            'reason' => $reason,
+            'created_by' => auth()->id() ?? null,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Product created', 'data' => $product->load(['productCategory', 'productionLine', 'cycleTimes'])], 201);
     }
 
     public function updateProduct(Request $request, $id): JsonResponse
@@ -366,8 +390,36 @@ class MasterDataController extends Controller
             'ideal_cycle_time' => 'nullable|numeric|min:0.0001',
         ]);
 
+        $oldIct = (float) $product->ideal_cycle_time;
+        $newIct = isset($validated['ideal_cycle_time']) ? (float) $validated['ideal_cycle_time'] : $oldIct;
+
         $product->update($validated);
-        return response()->json(['success' => true, 'message' => 'Product updated', 'data' => $product->fresh(['productCategory', 'productionLine'])]);
+
+        // If cycle time was modified, update active cycle time record or create new revision if requested
+        if (abs($newIct - $oldIct) > 0.0001) {
+            $activeCt = $product->cycleTimes()->where('status', 'ACTIVE')->first();
+            if ($activeCt) {
+                $activeCt->update([
+                    'ideal_cycle_time' => $newIct,
+                    'production_line_id' => $product->production_line_id,
+                ]);
+            } else {
+                ProductCycleTime::create([
+                    'product_id' => $product->id,
+                    'production_line_id' => $product->production_line_id,
+                    'ideal_cycle_time' => $newIct,
+                    'unit' => 'sec/unit',
+                    'revision' => 'Rev 1',
+                    'effective_from' => '2020-01-01',
+                    'effective_to' => null,
+                    'status' => 'ACTIVE',
+                    'reason' => 'Perubahan nilai standar cycle time',
+                    'created_by' => auth()->id() ?? null,
+                ]);
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => 'Product updated', 'data' => $product->fresh(['productCategory', 'productionLine', 'cycleTimes'])]);
     }
 
     public function destroyProduct($id): JsonResponse
@@ -375,6 +427,233 @@ class MasterDataController extends Controller
         $product = Product::findOrFail($id);
         $product->delete();
         return response()->json(['success' => true, 'message' => 'Product deleted']);
+    }
+
+    // ==========================================
+    // HISTORICAL / VERSIONED CYCLE TIME CRUD
+    // ==========================================
+    public function productCycleTimes($productId): JsonResponse
+    {
+        $product = Product::with(['productionLine'])->findOrFail($productId);
+        $cycleTimes = ProductCycleTime::where('product_id', $productId)
+            ->with(['creator', 'productionLine', 'machine'])
+            ->orderBy('effective_from', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'product' => $product,
+            'data' => $cycleTimes,
+        ]);
+    }
+
+    public function storeProductCycleTime(Request $request, $productId): JsonResponse
+    {
+        $product = Product::findOrFail($productId);
+
+        $validated = $request->validate([
+            'ideal_cycle_time' => 'required|numeric|min:0.0001',
+            'effective_from' => 'required|date',
+            'effective_to' => 'nullable|date|after_or_equal:effective_from',
+            'reason' => 'nullable|string|max:500',
+            'revision' => 'nullable|string|max:50',
+            'status' => 'nullable|string|in:ACTIVE,HISTORICAL,INACTIVE',
+            'production_line_id' => 'nullable|exists:production_lines,id',
+            'machine_id' => 'nullable|exists:machines,id',
+        ]);
+
+        $effFrom = $validated['effective_from'];
+        $effTo = $validated['effective_to'] ?? null;
+        $ict = (float) $validated['ideal_cycle_time'];
+
+        // Check for date overlapping with existing records for same product
+        $overlapQuery = ProductCycleTime::where('product_id', $productId);
+        if ($effTo) {
+            $overlapQuery->where(function ($q) use ($effFrom, $effTo) {
+                $q->whereBetween('effective_from', [$effFrom, $effTo])
+                  ->orWhereBetween('effective_to', [$effFrom, $effTo])
+                  ->orWhere(function ($sub) use ($effFrom, $effTo) {
+                      $sub->where('effective_from', '<=', $effFrom)
+                          ->where(function ($endQ) use ($effTo) {
+                              $endQ->whereNull('effective_to')
+                                   ->orWhere('effective_to', '>=', $effTo);
+                          });
+                  });
+            });
+        } else {
+            // New ongoing active revision
+            // If effTo is null, check existing records that have effective_from after effFrom
+            $overlapQuery->where(function ($q) use ($effFrom) {
+                $q->where('effective_from', '>=', $effFrom)
+                  ->orWhere(function ($sub) use ($effFrom) {
+                      $sub->where('effective_from', '<=', $effFrom)
+                          ->where('effective_to', '>=', $effFrom);
+                  });
+            });
+        }
+
+        $existingOverlap = $overlapQuery->get();
+
+        // If creating an ongoing active revision (effTo is null) and the only overlap is an open-ended previous active revision starting before effFrom:
+        // Automatically close the previous open-ended active revision to date(effFrom - 1 day)
+        if (!$effTo && $existingOverlap->isNotEmpty()) {
+            $canAutoClose = true;
+            foreach ($existingOverlap as $ex) {
+                if ($ex->effective_from >= $effFrom) {
+                    $canAutoClose = false;
+                    break;
+                }
+            }
+
+            if ($canAutoClose) {
+                foreach ($existingOverlap as $ex) {
+                    if (is_null($ex->effective_to) || $ex->effective_to >= $effFrom) {
+                        $prevEnd = date('Y-m-d', strtotime($effFrom . ' -1 day'));
+                        $ex->update([
+                            'effective_to' => $prevEnd,
+                            'status' => 'HISTORICAL',
+                        ]);
+                    }
+                }
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Periode Effective Date overlap dengan revisi cycle time yang sudah ada. Silakan sesuaikan tanggal efektif.',
+                ], 422);
+            }
+        } elseif ($effTo && $existingOverlap->isNotEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Periode Effective Date overlap dengan revisi cycle time yang sudah ada.',
+            ], 422);
+        }
+
+        // Auto determine revision string if not provided
+        $revisionCount = ProductCycleTime::where('product_id', $productId)->count();
+        $revisionName = !empty($validated['revision']) ? $validated['revision'] : ('Rev ' . ($revisionCount + 1));
+        $status = !empty($validated['status']) ? $validated['status'] : ($effTo ? 'HISTORICAL' : 'ACTIVE');
+
+        $cycleTime = ProductCycleTime::create([
+            'product_id' => $productId,
+            'production_line_id' => $validated['production_line_id'] ?? $product->production_line_id,
+            'machine_id' => $validated['machine_id'] ?? null,
+            'ideal_cycle_time' => $ict,
+            'unit' => 'sec/unit',
+            'revision' => $revisionName,
+            'effective_from' => $effFrom,
+            'effective_to' => $effTo,
+            'status' => $status,
+            'reason' => $validated['reason'] ?? 'Kaizen peningkatan efisiensi proses',
+            'created_by' => auth()->id() ?? null,
+        ]);
+
+        // Sync product table if this is the active cycle time
+        if ($status === 'ACTIVE' || is_null($effTo) || $effFrom <= now()->format('Y-m-d')) {
+            $product->update(['ideal_cycle_time' => $ict]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Revisi Cycle Time ({$revisionName}) berhasil disimpan.",
+            'data' => $cycleTime->load(['creator', 'productionLine', 'machine']),
+        ], 201);
+    }
+
+    public function updateProductCycleTime(Request $request, $productId, $cycleTimeId): JsonResponse
+    {
+        $cycleTime = ProductCycleTime::where('product_id', $productId)->findOrFail($cycleTimeId);
+
+        $validated = $request->validate([
+            'ideal_cycle_time' => 'required|numeric|min:0.0001',
+            'effective_from' => 'required|date',
+            'effective_to' => 'nullable|date|after_or_equal:effective_from',
+            'reason' => 'nullable|string|max:500',
+            'revision' => 'nullable|string|max:50',
+            'status' => 'nullable|string|in:ACTIVE,HISTORICAL,INACTIVE',
+        ]);
+
+        $cycleTime->update($validated);
+
+        if ($cycleTime->status === 'ACTIVE' || is_null($cycleTime->effective_to)) {
+            $cycleTime->product->update(['ideal_cycle_time' => $cycleTime->ideal_cycle_time]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Revisi Cycle Time berhasil diperbarui.',
+            'data' => $cycleTime->fresh(['creator', 'productionLine', 'machine']),
+        ]);
+    }
+
+    public function destroyProductCycleTime($productId, $cycleTimeId): JsonResponse
+    {
+        $cycleTime = ProductCycleTime::where('product_id', $productId)->findOrFail($cycleTimeId);
+        
+        $count = ProductCycleTime::where('product_id', $productId)->count();
+        if ($count <= 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat menghapus satu-satunya data standar cycle time produk ini.',
+            ], 422);
+        }
+
+        $cycleTime->delete();
+
+        // Re-sync product ideal_cycle_time to latest active
+        $latest = ProductCycleTime::where('product_id', $productId)->orderBy('effective_from', 'desc')->first();
+        if ($latest) {
+            $latest->product->update(['ideal_cycle_time' => $latest->ideal_cycle_time]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Revisi Cycle Time berhasil dihapus.',
+        ]);
+    }
+
+    public function resolveProductCycleTime(Request $request): JsonResponse
+    {
+        $productId = $request->input('product_id');
+        $date = $request->input('date', now()->format('Y-m-d'));
+        $machineId = $request->input('machine_id');
+        $lineId = $request->input('production_line_id');
+
+        if (!$productId) {
+            return response()->json(['success' => false, 'message' => 'Product ID is required'], 400);
+        }
+
+        $product = Product::find($productId);
+        if (!$product) {
+            return response()->json(['success' => false, 'message' => 'Product not found'], 404);
+        }
+
+        $effectiveCt = $product->getEffectiveCycleTime($date, $machineId ? (int) $machineId : null, $lineId ? (int) $lineId : null);
+
+        if (!$effectiveCt) {
+            return response()->json([
+                'success' => false,
+                'message' => "Tidak ditemukan standar Ideal Cycle Time yang berlaku untuk SKU {$product->sku} pada tanggal {$date}.",
+                'fallback_cycle_time' => (float) $product->ideal_cycle_time,
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'product_id' => $product->id,
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'date' => $date,
+                'ideal_cycle_time' => (float) $effectiveCt->ideal_cycle_time,
+                'unit' => $effectiveCt->unit,
+                'revision' => $effectiveCt->revision,
+                'effective_from' => $effectiveCt->effective_from?->format('Y-m-d'),
+                'effective_to' => $effectiveCt->effective_to?->format('Y-m-d'),
+                'status' => $effectiveCt->status,
+                'reason' => $effectiveCt->reason,
+            ],
+        ]);
     }
 
     // DOWNTIME CATEGORIES (KATEGORI PROBLEM)

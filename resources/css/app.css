@@ -16,9 +16,9 @@
     --color-card-border: #16254C;
     --color-border-subtle: #152347;
     --color-border-focus: #38BDF8;
-    --color-text-primary: #F8FAFC;
-    --color-text-secondary: #94A3B8;
-    --color-text-muted: #64748B;
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #FFFFFF;
+    --color-text-muted: #F8FAFC;
 
     /* Semantic Status Colors (WCAG AA Compliant) */
     --status-optimal: #10B981;
@@ -33,6 +33,105 @@
     --grad-bar-warning: linear-gradient(90deg, #D97706 0%, #F59E0B 100%);
     --grad-bar-critical: linear-gradient(90deg, #B91C1C 0%, #EF4444 100%);
     --grad-bar-maintenance: linear-gradient(90deg, #4338CA 0%, #6366F1 100%);
+}
+
+html:not(.light),
+html:not(.light) body,
+html:not(.light) #app,
+html:not(.light) #main-container,
+html:not(.light) #content-body {
+    color: #FFFFFF !important;
+}
+
+/* Transform all subdued gray/slate text classes into crisp bright white in dark mode */
+html:not(.light) .text-slate-400,
+html:not(.light) .text-slate-500,
+html:not(.light) .text-slate-600,
+html:not(.light) .text-gray-400,
+html:not(.light) .text-gray-500,
+html:not(.light) .text-gray-600,
+html:not(.light) .text-zinc-400,
+html:not(.light) .text-zinc-500,
+html:not(.light) .text-zinc-600,
+html:not(.light) .text-neutral-400,
+html:not(.light) .text-neutral-500,
+html:not(.light) .text-neutral-600 {
+    color: #F8FAFC !important;
+}
+
+html:not(.light) .text-slate-300,
+html:not(.light) .text-gray-300,
+html:not(.light) .text-zinc-300,
+html:not(.light) .text-slate-200,
+html:not(.light) .text-slate-100,
+html:not(.light) .text-white {
+    color: #FFFFFF !important;
+}
+
+/* Sidebar Navigation Text in Dark Mode */
+html:not(.light) .sidebar-section-title {
+    color: #F1F5F9 !important;
+}
+
+html:not(.light) .sidebar-nav-item {
+    color: #F8FAFC !important;
+}
+
+html:not(.light) .sidebar-nav-item:hover,
+html:not(.light) .sidebar-nav-item.active {
+    color: #FFFFFF !important;
+}
+
+/* Tables, Thead, Th, Td in Dark Mode */
+html:not(.light) table {
+    color: #FFFFFF !important;
+}
+
+html:not(.light) table th,
+html:not(.light) table thead th,
+html:not(.light) .table-header {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+
+html:not(.light) table td {
+    color: #F8FAFC !important;
+}
+
+/* Cards, Labels, Paragraphs, Empty States */
+html:not(.light) label,
+html:not(.light) .form-label {
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+}
+
+html:not(.light) p {
+    color: #F8FAFC !important;
+}
+
+html:not(.light) input,
+html:not(.light) select,
+html:not(.light) textarea {
+    color: #FFFFFF !important;
+}
+
+html:not(.light) input::placeholder,
+html:not(.light) textarea::placeholder {
+    color: #CBD5E1 !important;
+}
+
+/* ApexCharts Canvas Labels & Legend in Dark Mode */
+html:not(.light) .apexcharts-canvas text {
+    fill: #F8FAFC !important;
+}
+
+html:not(.light) .apexcharts-legend-text {
+    color: #FFFFFF !important;
+}
+
+html:not(.light) .apexcharts-xaxis-label,
+html:not(.light) .apexcharts-yaxis-label {
+    fill: #F8FAFC !important;
 }
 
 html.light {

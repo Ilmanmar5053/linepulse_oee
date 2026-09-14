@@ -36,6 +36,37 @@ class Product extends Model
         return $this->belongsTo(ProductCategory::class);
     }
 
+    public function cycleTimes(): HasMany
+    {
+        return $this->hasMany(ProductCycleTime::class)->orderBy('effective_from', 'desc')->orderBy('id', 'desc');
+    }
+
+    public function activeCycleTime(): HasMany
+    {
+        return $this->hasMany(ProductCycleTime::class)->where('status', 'ACTIVE')->orderBy('effective_from', 'desc');
+    }
+
+    public function getEffectiveCycleTime(?string $productionDate = null, ?int $machineId = null, ?int $lineId = null): ?ProductCycleTime
+    {
+        $date = $productionDate ?: now()->format('Y-m-d');
+        
+        $resolved = $this->cycleTimes()
+            ->forDate($date, $machineId, $lineId ?? $this->production_line_id)
+            ->first();
+
+        if ($resolved) {
+            return $resolved;
+        }
+
+        // Fallback to active cycle time if not found
+        $active = $this->cycleTimes()->where('status', 'ACTIVE')->first();
+        if ($active) {
+            return $active;
+        }
+
+        return null;
+    }
+
     public function productionRecords(): HasMany
     {
         return $this->hasMany(ProductionRecord::class);

@@ -398,6 +398,19 @@ class ProductionController extends Controller
             }
         }
 
+        // Resolve effective cycle time based on product and production_date
+        $product = Product::find($validated['product_id']);
+        if ($product) {
+            $effectiveCt = $product->getEffectiveCycleTime(
+                $validated['production_date'],
+                $validated['machine_id'] ?? null,
+                $validated['production_line_id'] ?? null
+            );
+            if ($effectiveCt && $effectiveCt->ideal_cycle_time > 0) {
+                $validated['ideal_cycle_time'] = (float) $effectiveCt->ideal_cycle_time;
+            }
+        }
+
         $availableTime = max(0, $validated['planned_production_time'] - $validated['planned_downtime']);
         $validated['available_production_time'] = $availableTime;
         $validated['production_rate'] = ($validated['run_time'] > 0) ? round(($validated['good_quantity'] / ($validated['run_time'] / 60.0)), 2) : 0;
@@ -412,6 +425,24 @@ class ProductionController extends Controller
         $qual = $this->oeeService->calculateQuality($record->good_quantity, $record->total_quantity);
         $oee = $this->oeeService->calculateOee($avail, $perf, $qual);
 
+        // Calculate setup & adjustment minutes vs unplanned equipment failure from downtime logs
+        $setupAdjustmentMinutes = 0.0;
+        $equipmentFailureMinutes = (float) $record->downtime;
+        if ($request->has('downtime_logs') && is_array($request->downtime_logs)) {
+            $setupSum = 0.0;
+            foreach ($request->downtime_logs as $dt) {
+                $pType = strtolower($dt['problem_type'] ?? '');
+                $dur = (float) ($dt['duration_minutes'] ?? 0);
+                if (str_contains($pType, 'plan') || str_contains($pType, 'setup') || str_contains($pType, 'changeover') || str_contains($pType, 'ganti')) {
+                    $setupSum += $dur;
+                }
+            }
+            if ($setupSum > 0) {
+                $setupAdjustmentMinutes = $setupSum;
+                $equipmentFailureMinutes = max(0, $equipmentFailureMinutes - $setupSum);
+            }
+        }
+
         $sixLosses = $this->oeeService->calculateSixBigLosses(
             $record->available_production_time,
             $record->run_time,
@@ -419,8 +450,8 @@ class ProductionController extends Controller
             $record->total_quantity,
             $record->reject_quantity,
             $record->scrap_quantity,
-            $record->downtime,
-            0,
+            $equipmentFailureMinutes,
+            $setupAdjustmentMinutes,
             $record->idle_time
         );
 
@@ -553,6 +584,18 @@ class ProductionController extends Controller
         $runTime = $validated['run_time'] ?? $record->run_time;
         $goodQty = $validated['good_quantity'] ?? $record->good_quantity;
         $totalQty = $validated['total_quantity'] ?? $record->total_quantity;
+        $prodDate = $validated['production_date'] ?? $record->production_date;
+        $prodId = $validated['product_id'] ?? $record->product_id;
+        $machId = $validated['machine_id'] ?? $record->machine_id;
+        $lineId = $validated['production_line_id'] ?? $record->production_line_id;
+
+        $product = Product::find($prodId);
+        if ($product) {
+            $effectiveCt = $product->getEffectiveCycleTime($prodDate, $machId, $lineId);
+            if ($effectiveCt && $effectiveCt->ideal_cycle_time > 0) {
+                $validated['ideal_cycle_time'] = (float) $effectiveCt->ideal_cycle_time;
+            }
+        }
         $idealCycle = $validated['ideal_cycle_time'] ?? $record->ideal_cycle_time;
 
         $availableTime = max(0, $plannedTime - $plannedDowntime);
@@ -568,6 +611,24 @@ class ProductionController extends Controller
         $qual = $this->oeeService->calculateQuality($record->good_quantity, $record->total_quantity);
         $oee = $this->oeeService->calculateOee($avail, $perf, $qual);
 
+        // Calculate setup & adjustment minutes vs unplanned equipment failure from downtime logs
+        $setupAdjustmentMinutes = 0.0;
+        $equipmentFailureMinutes = (float) $record->downtime;
+        if ($request->has('downtime_logs') && is_array($request->downtime_logs)) {
+            $setupSum = 0.0;
+            foreach ($request->downtime_logs as $dt) {
+                $pType = strtolower($dt['problem_type'] ?? '');
+                $dur = (float) ($dt['duration_minutes'] ?? 0);
+                if (str_contains($pType, 'plan') || str_contains($pType, 'setup') || str_contains($pType, 'changeover') || str_contains($pType, 'ganti')) {
+                    $setupSum += $dur;
+                }
+            }
+            if ($setupSum > 0) {
+                $setupAdjustmentMinutes = $setupSum;
+                $equipmentFailureMinutes = max(0, $equipmentFailureMinutes - $setupSum);
+            }
+        }
+
         $sixLosses = $this->oeeService->calculateSixBigLosses(
             $record->available_production_time,
             $record->run_time,
@@ -575,8 +636,8 @@ class ProductionController extends Controller
             $record->total_quantity,
             $record->reject_quantity,
             $record->scrap_quantity,
-            $record->downtime,
-            0,
+            $equipmentFailureMinutes,
+            $setupAdjustmentMinutes,
             $record->idle_time
         );
 

@@ -283,6 +283,7 @@ class OeeApp {
 
     hasAccessToTab(tab) {
         if (!this.user) return false;
+        if (tab === 'oee-education') return true; // Universal access for all factory roles
         const roleKeys = this.user.role_keys || [];
         const roleName = (this.user.role || '').toLowerCase();
         
@@ -488,15 +489,14 @@ class OeeApp {
                             <!-- FORM LOGIN MANUAL -->
                             <form id="form-login" class="space-y-4">
                                 <div>
-                                    <label class="block text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1.5 flex items-center justify-between">
+                                    <label class="block text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1.5">
                                         <span>Username / Email</span>
-                                        <span class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-500'} font-mono">@prodcr.yasunaga.com</span>
                                     </label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${isLight ? 'text-slate-400' : 'text-slate-500'}">
                                             <i data-lucide="user" class="w-4 h-4"></i>
                                         </div>
-                                        <input type="text" id="login-email" required placeholder="nama@prodcr.yasunaga.com atau username" value="" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 placeholder-slate-400' : 'bg-[#070D1E] border-[#1B2C56] text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder-slate-500'} border rounded-xl pl-9 pr-3 py-2.5 text-xs font-sans transition-all outline-none" />
+                                        <input type="text" id="login-email" required placeholder="Masukkan email atau username Anda" value="" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 placeholder-slate-400' : 'bg-[#070D1E] border-[#1B2C56] text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 placeholder-slate-500'} border rounded-xl pl-9 pr-3 py-2.5 text-xs font-sans transition-all outline-none" />
                                     </div>
                                 </div>
 
@@ -1508,7 +1508,7 @@ class OeeApp {
                             ` : ''}
 
                             <!-- MODUL 3: REPORT & DATA MASTER -->
-                            ${(this.hasAccessToTab('reports') || this.hasAccessToTab('master')) ? `
+                            ${(this.hasAccessToTab('reports') || this.hasAccessToTab('master') || this.hasAccessToTab('oee-education')) ? `
                                 <div class="sidebar-section-divider"></div>
                                 <div class="px-2.5 pt-1.5 pb-1 flex items-center justify-between">
                                     <span class="sidebar-section-title text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
@@ -1518,6 +1518,7 @@ class OeeApp {
                                 </div>
                                 ${this.navItem('reports', 'file-bar-chart', this.t('nav.reports', 'Laporan & Ekspor Data'))}
                                 ${this.navItem('master', 'database', this.t('nav.master_data', 'Master Data'))}
+                                ${this.navItem('oee-education', 'graduation-cap', this.t('nav.oee_education', 'OEE Education'), 'GUIDE')}
                             ` : ''}
 
                             <!-- MODUL 4: PENGATURAN SISTEM -->
@@ -2567,6 +2568,9 @@ class OeeApp {
                     break;
                 case 'database':
                     await this.renderDatabaseManagement();
+                    break;
+                case 'oee-education':
+                    await this.renderOeeEducation();
                     break;
                 default:
                     await this.renderDashboard(force);
@@ -4554,7 +4558,7 @@ tbody.innerHTML = '';
             const perfPct = totalMins > 0 ? ((perfLossMins / totalMins) * 100).toFixed(1) : '0.0';
             const qualPct = totalMins > 0 ? ((qualLossMins / totalMins) * 100).toFixed(1) : '0.0';
 
-            // Six Big Losses Knowledge Base Configuration (Definitions, Formulas, Shop Floor Causes, Kaizen/TPM Strategies)
+            // Six Big Losses Knowledge Base Configuration Tailored Specifically for PT Yasunaga Connecting Rod Plant
             const sixLossMetadata = {
                 'Equipment Failure': {
                     number: 1,
@@ -4566,17 +4570,17 @@ tbody.innerHTML = '';
                     gradient: 'from-rose-600 to-rose-400',
                     icon: 'alert-octagon',
                     definition: isJa
-                        ? '予期せぬ突発的な設備故障・トラブルによる停止時間。'
-                        : 'Kerusakan mesin atau komponen yang tidak terencana (unplanned downtime) sehingga proses produksi terhenti total.',
+                        ? '予期せぬ突発的な設備故障・トラブルによる停止時間 (Machining & Measuring Line)。'
+                        : 'Kerusakan mesin machining atau measuring machine yang tidak terencana sehingga lini produksi connecting rod terhenti total.',
                     formula: isJa
                         ? '突発停止時間の合計 (分・時間)'
                         : 'Total Durasi Breakdown Unplanned Downtime (Menit / Jam)',
                     categories: isJa
-                        ? ['機械的破損 (ベアリング、モーター、ギア等)', '電気・制御系トラブル (センサー、PLC、配線)', '油圧・空圧系の圧力低下・漏れ', '過熱 (Overheat) & 異常振動']
-                        : ['Kerusakan mekanikal (bearing, motor, gear aus)', 'Trouble kelistrikan & kontrol (sensor, PLC, short circuit)', 'Kebocoran atau drop tekanan pneumatik / hidrolik', 'Overheat & vibrasi berlebih pada mesin'],
+                        ? ['電気・配線ショート・ケーブル被覆破損トラブル', '扉センサー・ATCリミットスイッチ異常 (LS Abnormal)', 'スピンドルモーター過熱 (Overheat) & 異常振動', '油圧クランプ・空圧圧力低下・オイル漏れ']
+                        : ['Trouble kelistrikan & kabel mesin terkelupas', 'Sensor pintu & alarm oil pressure LS abnormal saat ATC', 'Spindle motor / servo drive overheat & vibrasi berlebih', 'Kebocoran / drop tekanan hidrolik clamping jig & pneumatik'],
                     kaizen: isJa
-                        ? '自主保全 (清掃・給油・増締め)、定期予防保全 (PM)、CBM (状態監視保全) の導入、なぜなぜ分析 (RCA) による再発防止。'
-                        : 'Penerapan Autonomous Maintenance (Jishu Hozen 5S), Preventive Maintenance terjadwal, CBM (Condition-Based Monitoring), dan 5-Whys RCA untuk pencegahan terulang.'
+                        ? '自主保全 (清掃・給油・増締め)、定期予防保全 (PM)、センサー配線の保護改善、なぜなぜ分析 (RCA) による再発防止。'
+                        : 'Penerapan Autonomous Maintenance (Jishu Hozen 5S), Preventive Maintenance terjadwal, perapihan kabel & proteksi sensor, serta 5-Whys RCA pencegahan trouble berulang.'
                 },
                 'Setup & Adjustment': {
                     number: 2,
@@ -4588,17 +4592,17 @@ tbody.innerHTML = '';
                     gradient: 'from-orange-600 to-orange-400',
                     icon: 'wrench',
                     definition: isJa
-                        ? 'ロット切替、金型・刃具交換、仕様変更に伴う段取り替え及び初期微調整時間。'
-                        : 'Waktu terhenti saat pergantian mold, dies, pergantian tipe produk (changeover SKU), serta fine-tuning posisi awal.',
+                        ? 'コネクティングロッドの品目切替 (SKU Changeover)、刃具交換、治具位置合わせ及び測定器の初期キャリブレーション時間。'
+                        : 'Waktu terhenti saat pergantian tipe SKU Connecting Rod, penggantian insert/cutting tool, setting jig clamping, serta kalibrasi awal measuring machine.',
                     formula: isJa
-                        ? '段取り・金型交換・初期調整時間の合計 (分)'
-                        : 'Total Durasi Changeover SKU + Mold Change + Alignment Tuning (Menit)',
+                        ? '段取り・刃具交換・初期調整時間の合計 (分)'
+                        : 'Total Durasi Changeover SKU + Tool Replacement + Gauge Calibration (Menit)',
                     categories: isJa
-                        ? ['金型・治具・刃具の交換作業', '生産品目 (SKU) 切り替え作業', '初期寸法合わせ・試運転・センシング位置調整', '材料交換 & 供給ライン段取り']
-                        : ['Pergantian mold, jig, dies, atau cutting tool', 'Changeover antar model / SKU produk', 'Fine-tuning setting awal, kalibrasi jarak, & trial clamping', 'Persiapan material awal lot baru'],
+                        ? ['生産品目 (SKU) 切り替え作業 (13201-BZ040, 13201-0Y070, 17021-220511, dll)', 'フライス・ボーリング用インサートチップ (Carbide Tool) の定期交換', 'Measuring Machine / Air Micrometer Gauge の初期寸法校正', 'Rod & Cap Clamping Jig の位置合わせ・微調整']
+                        : ['Changeover model SKU Connecting Rod (13201-BZ040, 13201-0Y070, 17021, dll)', 'Pergantian cutting tool / insert carbide (boring, honing, chamfer)', 'Kalibrasi air micrometer & master gauge measuring machine', 'Setting jig clamping rod & cap serta trial clamping'],
                     kaizen: isJa
-                        ? 'SMED (シングル段取り) 手法の適用、外段取り化の推進、段取り手順標準化 (SOP)、ワンタッチ治具の導入。'
-                        : 'Penerapan metode SMED (Single Minute Exchange of Dies), konversi setup internal ke eksternal, SOP standar baku, dan jig sistem quick-clamp.'
+                        ? 'SMED (シングル段取り) 手法の適用、外段取り用プリセッターの導入、段取り手順標準化 (SOP)、ワンタッチ治具化。'
+                        : 'Penerapan metode SMED (Single Minute Exchange of Dies/Tooling), kaset tool pre-setting eksternal, SOP standar baku pergantian SKU, dan jig sistem quick-clamp.'
                 },
                 'Idling & Minor Stops': {
                     number: 3,
@@ -4610,17 +4614,17 @@ tbody.innerHTML = '';
                     gradient: 'from-amber-600 to-amber-400',
                     icon: 'pause-circle',
                     definition: isJa
-                        ? 'ワーク詰まり、センサー誤検知などによる一時的なライン停止 (通常5分未満) 及び設備の空転。'
-                        : 'Pemberhentian mesin sesaat (< 5 menit) atau mesin beroperasi tanpa beban (idling) yang dapat di-reset cepat oleh operator tanpa tim maintenance.',
+                        ? 'コンベアやシュートでのワーク詰まり、切り粉によるセンサー誤検知などによる一時的なライン停止 (< 5分)。'
+                        : 'Pemberhentian mesin sesaat (< 5 menit) seperti part tersangkut di konveyor feeder atau sensor terhalang gram yang dapat di-reset cepat oleh operator.',
                     formula: isJa
                         ? 'チョコ停・空転累積時間 (分) または 稼働時間 - (実効稼働時間)'
                         : 'Total Durasi Chocotei & Idling Time (< 5 Menit per kejadian)',
                     categories: isJa
-                        ? ['パーツフィーダー・シュート内でのワーク引っかかり・詰まり', '光電センサーの埃・切り粉付着による誤検知', 'コンベア満杯による待機 (Buffer Full)', 'オペレーターの材料補給・小休止による空転']
-                        : ['Part macet / jamming di chute atau conveyor feeder', 'Sensor terhalang kotoran/gram yang memicu false stop', 'Mesin standby karena buffer line depan/belakang penuh', 'Jeda singkat operator saat memindahkan bin material'],
+                        ? ['シュート・コンベアフィーダー内での Rod / Cap の引っかかり・ワーク詰まり', '光電センサー・近接スイッチへの切り粉 (Gram) 付着による誤作動', '後工程 (Measuring Machine) 満杯による搬送待機 (Buffer Full)', 'オペレーターによる素材供給箱 (Bin Box) 移載時の小休止']
+                        : ['Part rod/cap tersangkut / jamming di chute atau conveyor feeder', 'Sensor photoelectric / proximity terhalang gram atau oli (false stop)', 'Mesin standby karena buffer konveyor ke measuring machine penuh', 'Jeda singkat operator saat memindahkan box / bin material'],
                     kaizen: isJa
-                        ? 'センサー部へのエアブロー設置、シュート形状改善、チョコ停要因の見える化 (Andon)、日常清掃点検の徹底。'
-                        : 'Pemasangan air-blow pembersih sensor otomatis, modifikasi sudut chute part, andon visual alarm, dan 5S area feeding.'
+                        ? 'センサー部への自動エアブロー設置、シュートガイド形状の改善、チョコ停要因のアンドン表示、日常清掃の徹底。'
+                        : 'Pemasangan air-blow otomatis pembersih gram pada sensor, modifikasi sudut kemiringan chute part, visual alarm andon, dan 5S area feeder.'
                 },
                 'Reduced Speed': {
                     number: 4,
@@ -4632,17 +4636,17 @@ tbody.innerHTML = '';
                     gradient: 'from-cyan-600 to-cyan-400',
                     icon: 'gauge',
                     definition: isJa
-                        ? '設計上の基準サイクルタイム (Ideal Cycle Time) よりも遅い速度で運転されていることによる損失。'
-                        : 'Kehilangan kapasitas karena mesin dioperasikan dengan cycle time lebih lambat dibanding kecepatan standar desain pabrik (Ideal Cycle Time).',
+                        ? '基準サイクルタイム (Ideal Cycle Time) よりも遅い送り速度・加工条件で運転されていることによる損失。'
+                        : 'Kehilangan output karena mesin dioperasikan dengan cycle time lebih lambat dibanding kecepatan standar desain (Ideal Cycle Time).',
                     formula: isJa
                         ? '実稼働時間 - (基準サイクルタイム × 総生産数量)'
                         : 'Operating Run Time - (Ideal Cycle Time × Total Output Pcs) / 60',
                     categories: isJa
-                        ? ['品質不良を懸念して意図的に速度を下げての運転', '機械の経年劣化・摩耗による定格速度低下', '作業者の不慣れによるタクトタイム延長', '材料硬度・寸法ばらつきによる加工速度ダウン']
-                        : ['Operator menurunkan kecepatan karena khawatir timbul defect', 'Penurunan kapasitas dinamis mesin karena keausan mekanis', 'Cycle time manual operator melebihi standar takt time', 'Material keras atau tidak seragam sehingga feed rate diturunkan'],
+                        ? ['鍛造材 (Forging) の硬度ばらつきによる切削送り速度 (Feed Rate) 低下', '刃具摩耗を懸念して意図的に回転数を下げての加工運転', '手動ロード・アンロード作業の遅れによるタクトタイム延長', 'Measuring Machine の測定プローブ移動速度の低下']
+                        : ['Material forging keras sehingga feed rate cutting/boring diturunkan', 'Operator menurunkan kecepatan mesin karena keausan insert pahat', 'Waktu manual loading/unloading part melebihi standar takt time', 'Pergerakan probing measuring machine melambat saat inspeksi otomatis'],
                     kaizen: isJa
-                        ? '設備の設計速度への復元保全、インバーター・モーターの最適化チューニング、標準作業組合せ票の見直し。'
-                        : 'Restorasi kemampuan mesin ke rated speed, optimasi inverter/motor driver, review & audit berkala terhadap standar Ideal Cycle Time.'
+                        ? '設計標準加工条件 (Feed/Speed) への復元、切削油 (Coolant) 供給の最適化、標準作業組合せ票の見直し。'
+                        : 'Restorasi kemampuan mesin ke rated standard cycle time, optimasi cairan coolant & insert cutter, dan audit berkala standar takt time.'
                 },
                 'Process Defects': {
                     number: 5,
@@ -4654,17 +4658,17 @@ tbody.innerHTML = '';
                     gradient: 'from-purple-600 to-purple-400',
                     icon: 'shield-alert',
                     definition: isJa
-                        ? '定常運転中に発生した不良品 (NG) 及び手直し (Rework) に要した時間損失。'
-                        : 'Waktu produksi produktif yang terbuang sia-sia karena menghasilkan produk reject / NG atau memerlukan pengerjaan ulang (rework).',
+                        ? '加工・組立中に発生したコネクティングロッド不良品 (NG) 及び手直し (Rework) による時間損失。'
+                        : 'Waktu produksi produktif yang terbuang sia-sia karena menghasilkan produk Connecting Rod NG / Reject atau memerlukan perbaikan ulang.',
                     formula: isJa
                         ? '(不良数量 × 基準サイクルタイム) / 60'
                         : '(Total Reject Pcs × Ideal Cycle Time) / 60 Menit',
                     categories: isJa
-                        ? ['寸法公差外れ (Over / Under tolerance)', '外観不良 (キズ、打痕、バリ、巣穴、クラック)', '組付け不良・トルク不足・締め忘れ', '測定器 (Measuring) でのNG判定品']
-                        : ['Dimensi out of tolerance (diameter, ketebalan, runout)', 'Cacat visual (scratch, dent, burr, crack, porosity)', 'Salah perakitan / bolt kurang torsi / missing part', 'Hasil inspeksi gauge / measuring machine reject'],
+                        ? ['大端部・小端部 (Big End / Small End) の内径・幅・真円度公差外れ', '外観キズ・打痕・バリ・表面粗さ異常 (Surface Scratch / Dent / Rough)', 'ボルト締結不良・Assy Seret・タップ加工不良 (Alarm Assy Ulir Tap)', 'Measuring Machine 自動検査でのNG判定品 (Alarm Bend / Twist)']
+                        : ['Goresan permukaan (surface scratch, dent, 1/2 diameter bergaris)', 'Dimensi out of tolerance (Big End, Small End, ketebalan thrust width)', 'Alarm assy ulir tap seret / bolt loosening / assy seret', 'Measuring Machine auto-reject (alarm bend, twist, center-to-center out)'],
                     kaizen: isJa
-                        ? 'ポカヨケ (ポカ除け治具) の設置、品質管理7つ道具による要因特定、自動インライン検査装置の導入、SPC管理図の運用。'
-                        : 'Penerapan Poka-Yoke (Mistake-Proofing), Analisis QC 7 Tools & Pareto, kamera inspeksi visual otomatis, dan Statistical Process Control (SPC).'
+                        ? 'ポカヨケ治具の設置、エアマイクロメーター自動連動、刃具寿命管理の徹底、SPC管理図による寸法トレンド監視。'
+                        : 'Penerapan Poka-Yoke mistake-proofing, penggantian pahat berkala sebelum aus, kalibrasi air micrometer gauge, dan SPC control chart.'
                 },
                 'Reduced Yield (Scrap)': {
                     number: 6,
@@ -4676,17 +4680,17 @@ tbody.innerHTML = '';
                     gradient: 'from-pink-600 to-pink-400',
                     icon: 'trash-2',
                     definition: isJa
-                        ? '始業時、金型交換直後、立ち上げ初期段階で発生する不良品及び歩留まり低下による損失。'
+                        ? '始業時、刃具交換直後、段取り替え立ち上げ初期段階で発生する不良品及び歩留まり損失。'
                         : 'Kehilangan waktu & material yang terjadi pada fase start-up awal saat mesin baru dinyalakan hingga proses mencapai kondisi stabil.',
                     formula: isJa
                         ? '(立上りスクラップ数量 × 基準サイクルタイム) / 60'
                         : '(Startup Scrap Pcs × Ideal Cycle Time) / 60 Menit',
                     categories: isJa
-                        ? ['金型・炉の昇温待ち時の試打ちNG (Warming-up scrap)', '段取り後のファーストピース検査用サンプル不良', 'ライン立上げ時の材料パージ・押し出しロス', '初期ロットの寸法安定化待ち廃棄']
-                        : ['Scrap saat pemanasan mold / furnace (warming-up test)', 'Sample piece inspeksi pertama setelah ganti mold/SKU', 'Purging material awal / sisa pembersihan jalur', 'Stabilisasi suhu pendingin dan tekanan di awal shift'],
+                        ? ['段取り後のファーストピース寸法測定サンプル不良 (First piece inspection)', 'スピンドル・クーラントの始業時ウォーミングアップ中の試加工NG', '刃具交換直後の初期切削寸法安定化待ち廃棄', '素材ロット変更時のファーストトライアル品']
+                        : ['Sample piece inspeksi pertama setelah ganti tipe SKU / ganti cutting tool', 'Pemanasan awal (warming-up test) spindle dan coolant di awal shift', 'Stabilisasi dimensi awal setelah pergantian batch material rod/cap', 'Trial piece uji clamping dan penyetelan zero point'],
                     kaizen: isJa
-                        ? 'タイマー付き自動プレヒーティングの導入、初品検査手順の迅速化、スタートアップ標準パラメータの厳格化。'
-                        : 'Pre-heating otomatis terjadwal sebelum shift dimulai, standardisasi checklist parameter start-up, dan prosedur first-piece release cepat.'
+                        ? '初品検査手順の標準化・迅速化、始業前自動ウォーミングアップタイマーの導入、ツールプリセッターの精度向上。'
+                        : 'Standardisasi checklist first-piece release cepat, pemanasan awal otomatis sebelum jam shift, dan peningkatan presisi tool pre-setter.'
                 }
             };
 
@@ -4802,7 +4806,7 @@ tbody.innerHTML = '';
                                         <div class="flex items-center justify-between">
                                             <span class="text-[11px] font-bold font-sans ${isLight ? 'text-purple-700' : 'text-purple-400'} flex items-center gap-1.5">
                                                 <span class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_6px_#a855f7]"></span>
-                                                ${isJa ? '品質不良ロス (Quality)' : 'Quality Loss'}
+                                                ${isJa ? '品質ロス (Quality Rate)' : 'Quality Loss'}
                                             </span>
                                             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-950 text-purple-400 border border-purple-800/60'}">${qualPct}% of Loss</span>
                                         </div>
@@ -4810,7 +4814,7 @@ tbody.innerHTML = '';
                                             ${(qualLossMins / 60).toFixed(1)}h <span class="text-xs font-normal text-slate-400">(${qualLossMins}m)</span>
                                         </div>
                                         <p class="text-[10px] font-sans ${isLight ? 'text-slate-600' : 'text-slate-400'} mt-1">
-                                            ${isJa ? '工程不良・手直し + 立上り歩留ロス' : 'Process Defects + Reduced Yield (Scrap)'}
+                                            ${isJa ? '工程不良 (NG) + 立上りスクラップ' : 'Process Defects (NG) + Startup Scrap'}
                                         </p>
                                         <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} mt-2 overflow-hidden">
                                             <div class="h-full rounded-full bg-purple-500" style="width: ${qualPct}%;"></div>
@@ -4892,7 +4896,7 @@ tbody.innerHTML = '';
                                                 <!-- TYPICAL SHOP FLOOR CAUSES -->
                                                 <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
                                                     <span class="font-bold text-[10.5px] ${isLight ? 'text-slate-800' : 'text-slate-300'} block mb-1">
-                                                        ${isJa ? '⚠️ 含まれる停止・ロス要因 (Kategori Losstime):' : '⚠️ Kategori Losstime yang Termasuk:'}
+                                                        ${isJa ? '⚠️ 含まれる停止・ロス要因 (Kategori Losstime):' : '⚠️ Kategori Losstime yang Termasuk (Connecting Rod Process):'}
                                                     </span>
                                                     <ul class="space-y-0.5 text-[10.5px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">
                                                         ${meta.categories.map(catItem => `
@@ -4956,10 +4960,10 @@ tbody.innerHTML = '';
                                                         </tr>
                                                     ` : dtPareto.slice(0, 8).map(r => `
                                                         <tr class="${isLight ? 'hover:bg-slate-100' : 'hover:bg-slate-800/40'}">
-                                                            <td class="py-1.5 px-2 font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[180px]">${r.reason || '-'}</td>
-                                                            <td class="py-1.5 px-2 text-right font-mono font-bold text-rose-400">${r.duration_minutes || 0}m</td>
+                                                            <td class="py-1.5 px-2 font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[180px]" title="${r.category || r.reason || '-'}">${r.category || r.reason || '-'}</td>
+                                                            <td class="py-1.5 px-2 text-right font-mono font-bold text-rose-400">${Number(r.duration_minutes || 0).toFixed(1)}m</td>
                                                             <td class="py-1.5 px-2 text-right font-mono text-slate-400">${r.stop_count || 0}x</td>
-                                                            <td class="py-1.5 px-2 text-right font-mono text-cyan-400 font-semibold">${r.cumulative_percentage || 0}%</td>
+                                                            <td class="py-1.5 px-2 text-right font-mono text-cyan-400 font-semibold">${r.percentage || r.cumulative_percentage || 0}%</td>
                                                         </tr>
                                                     `).join('')}
                                                 </tbody>
@@ -4991,13 +4995,22 @@ tbody.innerHTML = '';
                                                         <tr>
                                                             <td colspan="3" class="text-center py-4 text-slate-500 font-mono">Tidak ada catatan defect pada filter ini</td>
                                                         </tr>
-                                                    ` : defPareto.slice(0, 8).map(d => `
-                                                        <tr class="${isLight ? 'hover:bg-slate-100' : 'hover:bg-slate-800/40'}">
-                                                            <td class="py-1.5 px-2 font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[200px]">${d.category || d.defect_name || '-'}</td>
-                                                            <td class="py-1.5 px-2 text-right font-mono font-bold text-purple-400">${(d.count || d.quantity || 0).toLocaleString()} pcs</td>
-                                                            <td class="py-1.5 px-2 text-right font-mono text-cyan-400 font-semibold">${d.percentage || d.cumulative_percentage || 0}%</td>
-                                                        </tr>
-                                                    `).join('')}
+                                                    ` : defPareto.slice(0, 8).map(d => {
+                                                        const defectName = d.reason || d.defect_name || d.category || '-';
+                                                        const rejectQty = Number(d.reject_quantity || d.count || d.quantity || 0);
+                                                        const defectPct = Number(d.percentage || d.cumulative_percentage || 0);
+                                                        const compBadge = d.component_type ? `<span class="text-[9px] px-1.5 py-0.2 rounded ${isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-950 text-purple-300'} font-mono ml-1.5 border ${isLight ? 'border-purple-200' : 'border-purple-800'}">${d.component_type}</span>` : '';
+                                                        return `
+                                                            <tr class="${isLight ? 'hover:bg-slate-100' : 'hover:bg-slate-800/40'}">
+                                                                <td class="py-1.5 px-2 font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[200px]" title="${defectName}">
+                                                                    <span>${defectName}</span>
+                                                                    ${compBadge}
+                                                                </td>
+                                                                <td class="py-1.5 px-2 text-right font-mono font-bold text-purple-400">${rejectQty.toLocaleString()} pcs</td>
+                                                                <td class="py-1.5 px-2 text-right font-mono text-cyan-400 font-semibold">${defectPct}%</td>
+                                                            </tr>
+                                                        `;
+                                                    }).join('')}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -5061,7 +5074,25 @@ tbody.innerHTML = '';
 
             if (printBtn) {
                 printBtn.addEventListener('click', () => {
-                    window.print();
+                    this.prepareAndPrintSixLossesReport({
+                        losses,
+                        kpi,
+                        dtPareto,
+                        defPareto,
+                        sixLossMetadata,
+                        totalMins,
+                        totalHours,
+                        availLossMins,
+                        perfLossMins,
+                        qualLossMins,
+                        availPct,
+                        perfPct,
+                        qualPct,
+                        filterPeriodLabel,
+                        filterLineLabel,
+                        filterMachineLabel,
+                        filterShiftLabel
+                    });
                 });
             }
 
@@ -5084,6 +5115,410 @@ tbody.innerHTML = '';
             this.showNotification('⚠️ Gagal Membuka Detail', err.message, 'delete');
             modalContainer.innerHTML = '';
         }
+    }
+
+    /**
+     * Generate & Trigger Clean Table-Based Official A4 Portrait Six Big Losses & TPM Report
+     * Structured with minimalist Kop, detailed matrix tables, number alignments, and 3-role approval matrix.
+     */
+    prepareAndPrintSixLossesReport(params) {
+        const {
+            losses = [],
+            kpi = {},
+            dtPareto = [],
+            defPareto = [],
+            sixLossMetadata = {},
+            totalMins = 0,
+            totalHours = '0.0',
+            availLossMins = 0,
+            perfLossMins = 0,
+            qualLossMins = 0,
+            availPct = '0.0',
+            perfPct = '0.0',
+            qualPct = '0.0',
+            filterPeriodLabel = '-',
+            filterLineLabel = 'Semua Lini',
+            filterMachineLabel = 'Semua Mesin',
+            filterShiftLabel = 'Semua Shift'
+        } = params;
+
+        const isJa = this.currentLang === 'ja';
+        const nowStr = new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
+        const docNo = `YSN/TPM-6BL/${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
+        const reportFilename = this.sanitizeReportFilename(`Laporan Six Big Losses & TPM Analysis - ${filterPeriodLabel}`);
+
+        let printHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>${reportFilename}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 6mm 7mm 6mm 7mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 7.5pt;
+            color: #0f172a;
+            background: #ffffff;
+            margin: 0;
+            padding: 0;
+            line-height: 1.25;
+        }
+        .header-kop {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 3px;
+            margin-bottom: 4px;
+        }
+        .kop-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: none;
+            margin-bottom: 0;
+        }
+        .kop-table td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+        .company-name {
+            font-size: 10.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #0f172a;
+        }
+        .company-sub {
+            font-size: 7pt;
+            color: #475569;
+            margin-top: 1px;
+        }
+        .doc-title {
+            font-size: 9.5pt;
+            font-weight: bold;
+            text-align: right;
+            text-transform: uppercase;
+            color: #0284c7;
+        }
+        .doc-meta {
+            font-size: 7pt;
+            color: #475569;
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .section-title {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 5px;
+            border-left: 3px solid #0284c7;
+            border-top: 0.5pt solid #cbd5e1;
+            border-right: 0.5pt solid #cbd5e1;
+            border-bottom: 0.5pt solid #cbd5e1;
+            margin: 3px 0 2px 0;
+        }
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2.5px;
+            font-size: 7.2pt;
+        }
+        table.data-table th, table.data-table td {
+            border: 0.5pt solid #64748b;
+            padding: 1.8px 3px;
+            vertical-align: middle;
+        }
+        table.data-table th {
+            background-color: #f8fafc;
+            font-weight: bold;
+            color: #0f172a;
+            text-align: left;
+            font-size: 6.8pt;
+            text-transform: uppercase;
+        }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-mono { font-family: 'Courier New', Courier, monospace; }
+        .font-bold { font-weight: bold; }
+        .bg-subtotal { background-color: #f1f5f9; font-weight: bold; }
+        .badge-pill {
+            display: inline-block;
+            padding: 0.5px 3px;
+            border-radius: 3px;
+            font-size: 6pt;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            border: 0.5pt solid #cbd5e1;
+            background-color: #f8fafc;
+        }
+        .signatures-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            font-size: 7pt;
+            page-break-inside: avoid;
+        }
+        .signatures-table td {
+            border: none;
+            text-align: center;
+            padding: 1px 6px;
+            vertical-align: top;
+            width: 33.3%;
+        }
+        .sig-line {
+            border-bottom: 1px solid #0f172a;
+            width: 75%;
+            margin: 20px auto 2px auto;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- KOP SURAT FORMAL RESMI -->
+    <div class="header-kop">
+        <table class="kop-table">
+            <tr>
+                <td style="width: 65px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
+                    <img src="/images/yasunaga-logo.png" style="max-height: 42px; max-width: 65px; object-fit: contain;" alt="Yasunaga Logo" onerror="this.style.display='none';" />
+                </td>
+                <td style="border: none; padding: 0; vertical-align: middle;">
+                    <div class="company-name">PT. YASUNAGA INDONESIA</div>
+                    <div class="company-sub">CONNECTING ROD PLANT &bull; PLANT-01</div>
+                    <div class="company-sub">Kawasan Industri MM2100, Cikarang Barat, Bekasi 17520, Jawa Barat</div>
+                </td>
+                <td style="width: 250px; border: none; padding: 0; vertical-align: top; text-align: right;">
+                    <div class="doc-title">${isJa ? '6大ロス詳細分析 & TPM レポート' : 'LAPORAN ANALISIS SIX BIG LOSSES & TPM'}</div>
+                    <div class="doc-meta">No. Dok: <strong>${docNo}</strong></div>
+                    <div class="doc-meta">Dicetak: <strong>${nowStr}</strong></div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- METADATA FILTER INFORMASI -->
+    <table class="data-table" style="margin-bottom: 5px;">
+        <tr class="bg-subtotal">
+            <th style="width: 15%;">Periode Data:</th>
+            <td style="width: 35%; font-weight: bold;">${filterPeriodLabel}</td>
+            <th style="width: 15%;">Lini Produksi:</th>
+            <td style="width: 35%; font-weight: bold;">${filterLineLabel}</td>
+        </tr>
+        <tr class="bg-subtotal">
+            <th>Mesin / Sub-Asset:</th>
+            <td style="font-weight: bold;">${filterMachineLabel}</td>
+            <th>Shift Kerja:</th>
+            <td style="font-weight: bold;">${filterShiftLabel}</td>
+        </tr>
+        <tr>
+            <th>Akumulasi Kerugian:</th>
+            <td colspan="3" style="font-weight: bold; color: #dc2626; font-size: 8pt;">
+                Total TPM Losses: ${totalHours} Jam (${totalMins} Menit) across 6 TPM Pillars
+            </td>
+        </tr>
+    </table>
+
+    <!-- BAGIAN I: RINGKASAN 3 PILAR OEE -->
+    <div class="section-title">I. RINGKASAN KERUGIAN BERDASARKAN 3 PILAR OEE (AVAILABILITY, PERFORMANCE, QUALITY)</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;" class="text-center">No</th>
+                <th style="width: 25%;">Pilar OEE Loss</th>
+                <th style="width: 35%;">Kategori Six Big Losses Terkait</th>
+                <th style="width: 15%;" class="text-right">Durasi Terbuang</th>
+                <th style="width: 20%;" class="text-right">% Share of Total Loss</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-center font-bold">1</td>
+                <td><strong style="color: #e11d48;">Availability Loss</strong> (Waktu Ketersediaan)</td>
+                <td>#1 Equipment Failure + #2 Setup & Adjustment</td>
+                <td class="text-right font-mono font-bold">${(availLossMins / 60).toFixed(1)}h (${availLossMins}m)</td>
+                <td class="text-right font-mono font-bold">${availPct}%</td>
+            </tr>
+            <tr>
+                <td class="text-center font-bold">2</td>
+                <td><strong style="color: #d97706;">Performance Loss</strong> (Efisiensi Kecepatan)</td>
+                <td>#3 Idling & Minor Stops + #4 Reduced Speed</td>
+                <td class="text-right font-mono font-bold">${(perfLossMins / 60).toFixed(1)}h (${perfLossMins}m)</td>
+                <td class="text-right font-mono font-bold">${perfPct}%</td>
+            </tr>
+            <tr>
+                <td class="text-center font-bold">3</td>
+                <td><strong style="color: #7c3aed;">Quality Loss</strong> (Kualitas Mutu Hasil)</td>
+                <td>#5 Process Defects + #6 Reduced Yield (Scrap)</td>
+                <td class="text-right font-mono font-bold">${(qualLossMins / 60).toFixed(1)}h (${qualLossMins}m)</td>
+                <td class="text-right font-mono font-bold">${qualPct}%</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr class="bg-subtotal">
+                <td colspan="3" class="text-center font-bold">TOTAL KESELURUHAN WAKTU KERUGIAN TPM (6 BIG LOSSES):</td>
+                <td class="text-right font-mono font-bold" style="font-size: 8pt; color: #dc2626;">${totalHours} Jam (${totalMins}m)</td>
+                <td class="text-right font-mono font-bold">100.0%</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- BAGIAN II: MATRIKS RINCIAN 6 BIG LOSSES BREAKDOWN -->
+    <div class="section-title">II. MATRIKS DETAIL PERHITUNGAN 6 BIG LOSSES (CONNECTING ROD MANUFACTURING PROCESS)</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 4%;" class="text-center">No</th>
+                <th style="width: 18%;">Kategori Six Big Loss</th>
+                <th style="width: 13%;">Pilar OEE</th>
+                <th style="width: 12%;" class="text-right">Durasi Loss</th>
+                <th style="width: 8%;" class="text-right">% Share</th>
+                <th style="width: 25%;">Kategori Kendala Lapangan (PT Yasunaga)</th>
+                <th style="width: 20%;">Rekomendasi Kaizen & Standar TPM</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${losses.map((item) => {
+                const meta = sixLossMetadata[item.loss] || {};
+                const mins = Number(item.minutes) || 0;
+                const hrs = (mins / 60).toFixed(1);
+                const pct = totalMins > 0 ? ((mins / totalMins) * 100).toFixed(1) : '0.0';
+                const cats = Array.isArray(meta.categories) ? meta.categories.slice(0, 3).join('; ') : '-';
+                return `
+                    <tr>
+                        <td class="text-center font-bold font-mono">#${meta.number || 0}</td>
+                        <td>
+                            <strong>${item.loss}</strong>
+                            <div style="font-size: 6.5pt; color: #64748b; font-family: monospace;">${meta.formula || ''}</div>
+                        </td>
+                        <td><span class="badge-pill">${meta.pillar || item.category || 'Loss'}</span></td>
+                        <td class="text-right font-mono font-bold">${hrs}h (${mins}m)</td>
+                        <td class="text-right font-mono font-bold">${pct}%</td>
+                        <td style="font-size: 6.8pt; color: #334155;">${cats}</td>
+                        <td style="font-size: 6.8pt; color: #047857; font-weight: 500;">${meta.kaizen || '-'}</td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    </table>
+
+    <!-- BAGIAN III & IV: DATA RIIL DOWNTIME & QUALITY DEFECT (2 KOLOM RAPI) -->
+    <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 3px;">
+        <tr>
+            <td style="width: 50%; vertical-align: top; padding-right: 3px; border: none;">
+                <div class="section-title" style="margin-top: 0;">III. TOP DOWNTIME / TROUBLE LOG HISTORI</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">Kategori Masalah</th>
+                            <th style="width: 25%;" class="text-right">Durasi</th>
+                            <th style="width: 15%;" class="text-center">Freq</th>
+                            <th style="width: 15%;" class="text-right">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${dtPareto.length === 0 ? `
+                            <tr><td colspan="4" class="text-center" style="color: #64748b;">Tidak ada data trouble pada periode ini</td></tr>
+                        ` : dtPareto.slice(0, 6).map(r => `
+                            <tr>
+                                <td><strong>${r.category || r.reason || '-'}</strong></td>
+                                <td class="text-right font-mono font-bold" style="color: #e11d48;">${Number(r.duration_minutes || 0).toFixed(1)}m</td>
+                                <td class="text-center font-mono">${r.stop_count || 0}x</td>
+                                <td class="text-right font-mono">${r.percentage || r.cumulative_percentage || 0}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </td>
+            <td style="width: 50%; vertical-align: top; padding-left: 3px; border: none;">
+                <div class="section-title" style="margin-top: 0;">IV. TOP DEFECT / CACAT KUALITAS PRODUKSI</div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;">Kategori Defect</th>
+                            <th style="width: 18%;" class="text-center">Part</th>
+                            <th style="width: 20%;" class="text-right">Reject Qty</th>
+                            <th style="width: 12%;" class="text-right">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${defPareto.length === 0 ? `
+                            <tr><td colspan="4" class="text-center" style="color: #64748b;">Tidak ada data defect pada periode ini</td></tr>
+                        ` : defPareto.slice(0, 6).map(d => `
+                            <tr>
+                                <td><strong>${d.reason || d.defect_name || d.category || '-'}</strong></td>
+                                <td class="text-center"><span class="badge-pill">${d.component_type || 'ASSY'}</span></td>
+                                <td class="text-right font-mono font-bold" style="color: #7c3aed;">${Number(d.reject_quantity || d.count || d.quantity || 0).toLocaleString()} pcs</td>
+                                <td class="text-right font-mono">${d.percentage || d.cumulative_percentage || 0}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- BAGIAN V: LEMBAR PENGESAHAN TANDA TANGAN (3 KOLOM RESMI) -->
+    <div style="text-align: right; font-size: 7pt; margin-top: 3px; color: #475569;">
+        Diverifikasi Pada: <strong>${nowStr}</strong>
+    </div>
+    <table class="signatures-table">
+        <tr>
+            <td>
+                <div>Dibuat Oleh (Leader Produksi):</div>
+                <div class="sig-line">Leader Shift Produksi</div>
+                <div style="font-size: 6.8pt; color: #64748b;">Connecting Rod Line Leader</div>
+            </td>
+            <td>
+                <div>Diperiksa Oleh (Maintenance & QC):</div>
+                <div class="sig-line">Supervisor Maintenance / QC</div>
+                <div style="font-size: 6.8pt; color: #64748b;">Engineering & Quality Dept</div>
+            </td>
+            <td>
+                <div>Mengetahui / Disetujui:</div>
+                <div class="sig-line">Production Manager</div>
+                <div style="font-size: 6.8pt; color: #64748b;">Plant Manager / Dept Head</div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+
+        if (isJa) {
+            printHtml = i18n.translateHtml(printHtml);
+        }
+
+        let frame = document.getElementById('print-iframe-target');
+        if (!frame) {
+            frame = document.createElement('iframe');
+            frame.id = 'print-iframe-target';
+            frame.style.position = 'fixed';
+            frame.style.right = '0';
+            frame.style.bottom = '0';
+            frame.style.width = '0';
+            frame.style.height = '0';
+            frame.style.border = '0';
+            frame.style.visibility = 'hidden';
+            document.body.appendChild(frame);
+        }
+
+        const frameDoc = frame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(printHtml);
+        frameDoc.close();
+
+        if (isJa) {
+            i18n.localizeDom(frameDoc.body);
+        }
+
+        const originalDocTitle = document.title;
+        this.triggerFramePrint(frame, frameDoc, originalDocTitle, reportFilename);
     }
 
     // ==========================================
@@ -5299,18 +5734,12 @@ tbody.innerHTML = '';
                 <!-- CHART 2: MACHINE STATUS DISTRIBUTION DONUT (1 Col) -->
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl flex flex-col justify-between">
                     <div>
-                        <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center justify-between mb-2">
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                 <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
-                                <span>Distribusi Status & Health Mesin</span>
+                                <span>Distribusi Status & Optimasi Mesin</span>
                             </h3>
-                            <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                                Status OEE
-                            </span>
                         </div>
-                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mb-3">
-                            Proporsi kategori capaian OEE dan kesiapan seluruh armada mesin.
-                        </p>
                     </div>
                     <div id="chart-machine-status-donut" class="w-full h-[290px]"></div>
                 </div>
@@ -7798,12 +8227,6 @@ tbody.innerHTML = '';
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- FULLSCREEN POPUP MEETING MODE BUTTON ON TABLE -->
-                        <button id="btn-ng-fullscreen-popup-table" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex-shrink-0" title="Buka Tampilan Pop-up Fullscreen Fit to Display untuk Management Floor Meeting">
-                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
-                            <span>Pop-up Fullscreen Focus</span>
-                        </button>
-
                         <!-- EXPAND / COLLAPSE ALL BUTTONS FOR NG TABLE -->
                         <div class="flex items-center gap-1 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl p-1 shrink-0">
                             <button id="btn-expand-all-ng-lines" title="Buka seluruh laporan NG semua line" class="px-2.5 py-1 text-[11px] font-bold ${isLight ? 'text-slate-700 hover:bg-white' : 'text-slate-300 hover:bg-slate-800'} rounded-lg transition-all flex items-center gap-1 cursor-pointer">
@@ -11695,21 +12118,44 @@ tbody.innerHTML = '';
                 <!-- Dynamic Category Cards -->
             </div>
 
-            <!-- 4. PROBLEM CATEGORY DOWNTIME PARETO CHART -->
-            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-sm mb-5">
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <!-- 4. TWO-COLUMN CHARTS: PROBLEM CATEGORY PARETO & SIX BIG LOSSES BREAKDOWN -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5 items-stretch">
+                <!-- 4A. PROBLEM CATEGORY DOWNTIME PARETO CHART (COL 1) -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
                     <div>
-                        <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-amber-500"></i>
-                            <span>Problem Category Downtime Pareto Chart</span>
-                        </h3>
-                        <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Prinsip Pareto 80/20: Menampilkan problem dominan penyebab mayoritas kehilangan jam produksi</p>
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <div>
+                                <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-amber-500"></i>
+                                    <span>Problem Category Downtime Pareto Chart</span>
+                                </h3>
+                                <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Prinsip Pareto 80/20: Menampilkan problem dominan penyebab mayoritas kehilangan jam produksi</p>
+                            </div>
+                            <span id="dt-pareto-status-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
+                                Pareto 80% Threshold
+                            </span>
+                        </div>
                     </div>
-                    <span id="dt-pareto-status-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
-                        Pareto 80% Threshold
-                    </span>
+                    <div id="chart-pareto-downtime" class="h-72 w-full mt-2"></div>
                 </div>
-                <div id="chart-pareto-downtime" class="h-72"></div>
+
+                <!-- 4B. SIX BIG LOSSES BREAKDOWN CARD (COL 2) -->
+                <div id="card-dt-six-losses" class="${isLight ? 'bg-white border-slate-200 shadow-sm hover:border-cyan-500/60 hover:shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl hover:border-cyan-500/60 hover:shadow-cyan-500/10'} border rounded-2xl p-5 flex flex-col justify-between cursor-pointer group transition-all">
+                    <div>
+                        <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3 mb-3">
+                            <div>
+                                <h3 class="text-sm font-bold ${isLight ? 'text-slate-900 group-hover:text-cyan-600' : 'text-slate-100 group-hover:text-cyan-400'} flex items-center gap-2 transition-colors">
+                                    <i data-lucide="pie-chart" class="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform"></i>
+                                    <span>Six Big Losses Breakdown</span>
+                                    <span class="text-[9.5px] font-mono font-bold ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950 text-cyan-400 border-cyan-800'} border px-2 py-0.5 rounded opacity-90 group-hover:opacity-100 flex items-center gap-1 shadow-xs"><i data-lucide="maximize-2" class="w-3 h-3"></i> Detail</span>
+                                </h3>
+                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Total losstime across 6 TPM pillars &bull; <span class="${isLight ? 'text-cyan-600 group-hover:text-cyan-700' : 'text-cyan-400 group-hover:text-cyan-300'} underline">Klik untuk popup breakdown</span></p>
+                            </div>
+                            <div id="dt-six-losses-total-badge"></div>
+                        </div>
+                    </div>
+                    <div id="dt-chart-six-losses" class="w-full"></div>
+                </div>
             </div>
 
             <!-- 5. DOWNTIME & LOSS TROUBLE HISTORY LOGS TABLE -->
@@ -11978,14 +12424,16 @@ tbody.innerHTML = '';
 
             try {
                 const queryParams = { ...this.filters, all: true };
-                const [dtListRes, dtParetoRes] = await Promise.all([
+                const [dtListRes, dtParetoRes, sixLossesRes] = await Promise.all([
                     api.getDowntimes(queryParams),
                     api.getParetoDowntime(this.filters),
+                    api.getSixBigLosses(this.filters).catch(() => ({ data: { data: [] } })),
                 ]);
 
                 rawDowntimes = dtListRes.data.data || [];
                 rawPareto = dtParetoRes.data.data || [];
                 rawSummary = dtParetoRes.data.summary || {};
+                const rawSixLosses = sixLossesRes.data?.data || [];
 
                 const totalDowntime = rawSummary.total_downtime !== undefined ? Number(rawSummary.total_downtime) : rawPareto.reduce((sum, i) => sum + Number(i.duration_minutes || 0), 0);
                 const totalStops = rawSummary.total_stops !== undefined ? Number(rawSummary.total_stops) : rawPareto.reduce((sum, i) => sum + Number(i.stop_count || 0), 0);
@@ -12151,8 +12599,17 @@ tbody.innerHTML = '';
                     `;
                 }
 
-                // 3. Render Pareto Chart
+                // 3. Render Pareto Chart & Six Big Losses Breakdown (Side-by-side 2 Columns)
                 this.renderParetoDowntimeChart(rawPareto);
+                this.renderSixLossesChart(rawSixLosses, 'dt-chart-six-losses', 'dt-six-losses-total-badge');
+
+                // Bind Six Big Losses Card Popup Click for in-depth TPM root cause analysis
+                const dtSixLossesCard = document.getElementById('card-dt-six-losses');
+                if (dtSixLossesCard) {
+                    dtSixLossesCard.onclick = () => {
+                        this.showSixBigLossesDetailModal(rawSixLosses);
+                    };
+                }
 
                 // 4. Render Table Rows
                 renderTableRows();
@@ -16994,6 +17451,12 @@ tbody.innerHTML = '';
         let filteredItems = [];
 
         const actionButtons = (type, id, name) => `
+            ${type === 'products' ? `
+                <button data-id="${id}" data-name="${name}" class="btn-history-cycletime inline-flex items-center gap-1 px-2.5 py-1 rounded bg-amber-950/60 hover:bg-amber-900/80 text-amber-400 border border-amber-800/60 text-xs font-semibold transition-all mr-1.5 cursor-pointer shadow-sm" title="Histori / Versi Ideal Cycle Time">
+                    <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                    <span>Histori ICT</span>
+                </button>
+            ` : ''}
             <button data-type="${type}" data-id="${id}" class="btn-edit-master inline-flex items-center gap-1 px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-400 border border-cyan-800/60 text-xs font-semibold transition-all mr-1.5 cursor-pointer shadow-sm" title="Edit Record">
                 <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                 <span>Edit</span>
@@ -17215,6 +17678,9 @@ tbody.innerHTML = '';
                 const lineObj = (this.masterData.lines || []).find(l => l.id == p.production_line_id);
                 const lineName = lineObj ? lineObj.name : (p.production_line?.name || 'Unassigned');
                 const isUnassigned = !lineObj && !p.production_line;
+                const activeCycle = (p.cycle_times || []).find(c => c.status === 'ACTIVE') || p.active_cycle_time;
+                const revisionLabel = activeCycle?.revision || (p.cycle_times && p.cycle_times.length > 0 ? `Rev ${p.cycle_times.length}` : 'Rev 1');
+                const revisionsCount = (p.cycle_times || []).length;
                 return `
                     <tr class="hover:bg-slate-800/40 transition-colors">
                         <td class="p-3 text-center font-bold text-slate-500 font-mono text-[11px]">${startIndex + idx + 1}</td>
@@ -17224,9 +17690,19 @@ tbody.innerHTML = '';
                                 <span>${lineName}</span>
                             </span>
                         </td>
-                        <td class="p-3 text-cyan-400 font-bold font-sans">${p.name}</td>
+                        <td class="p-3 text-cyan-400 font-bold font-sans">
+                            <div class="flex items-center gap-2">
+                                <span>${p.name}</span>
+                                ${revisionsCount > 1 ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700 font-mono" title="${revisionsCount} riwayat versi">${revisionsCount} versi</span>` : ''}
+                            </div>
+                        </td>
                         <td class="p-3 text-slate-300 font-mono">${p.sku}</td>
-                        <td class="p-3 text-amber-400 font-sans font-semibold">${p.ideal_cycle_time}s</td>
+                        <td class="p-3 text-amber-400 font-sans font-semibold">
+                            <div class="flex items-center gap-1.5">
+                                <span>${p.ideal_cycle_time}s</span>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 font-mono font-bold">${revisionLabel}</span>
+                            </div>
+                        </td>
                         <td class="p-3 text-slate-300 font-sans">${p.ideal_cycle_time > 0 ? (60 / p.ideal_cycle_time).toFixed(1) : 'N/A'} Pcs/Min</td>
                         <td class="p-3 text-right font-sans">
                             ${actionButtons('products', p.id, p.name || p.sku)}
@@ -17524,6 +18000,14 @@ tbody.innerHTML = '';
                 this.renderMaster();
             });
         }
+
+        document.querySelectorAll('.btn-history-cycletime').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
+                const name = e.currentTarget.getAttribute('data-name');
+                this.showProductCycleTimeHistoryModal(id, name);
+            });
+        });
 
         document.querySelectorAll('.btn-edit-master').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -18727,6 +19211,338 @@ tbody.innerHTML = '';
                 await this.loadCurrentTab(false);
             } catch (err) {
                 alert('Error deleting record: ' + (err.response?.data?.message || err.message));
+            }
+        });
+    }
+
+    // ==========================================
+    // 7B. HISTORICAL / VERSIONED CYCLE TIME MODALS
+    // ==========================================
+    async showProductCycleTimeHistoryModal(productId, productName) {
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) return;
+
+        const product = (this.masterData.products || []).find(p => p.id == productId);
+        const displayName = productName || (product ? product.name : `Product #${productId}`);
+        const sku = product ? product.sku : '';
+
+        // Initial Loading State
+        modalContainer.innerHTML = `
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-950/60 border border-amber-800/60 text-amber-400 flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-slate-100 mb-1">Memuat Riwayat Standard ICT...</h3>
+                    <p class="text-xs text-slate-400">Mengambil data versi Ideal Cycle Time untuk ${displayName}.</p>
+                </div>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+
+        try {
+            const res = await api.getProductCycleTimes(productId);
+            const cycleTimes = res.data?.data || [];
+
+            const renderModalContent = (items) => {
+                const rowsHtml = items.length === 0 ? `
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-500 font-sans">
+                            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-600"></i>
+                            Belum ada riwayat revisi cycle time. Silakan tambahkan revisi standard baru.
+                        </td>
+                    </tr>
+                ` : items.map((c, idx) => {
+                    const isActive = c.status === 'ACTIVE';
+                    const effFrom = c.effective_from ? String(c.effective_from).slice(0, 10) : '-';
+                    const effTo = c.effective_to ? String(c.effective_to).slice(0, 10) : '<span class="text-emerald-400 font-semibold italic">Sekarang (Aktif)</span>';
+                    const speed = c.ideal_cycle_time > 0 ? (60 / c.ideal_cycle_time).toFixed(1) : 'N/A';
+                    const creatorName = c.creator?.name || c.created_by_user?.name || (c.created_by ? `User #${c.created_by}` : 'System');
+                    const createdAt = c.created_at ? String(c.created_at).slice(0, 10) : '-';
+
+                    return `
+                        <tr class="hover:bg-slate-800/40 transition-colors border-b border-slate-800/60 text-xs">
+                            <td class="p-3 text-center font-bold font-mono">
+                                <span class="px-2 py-1 rounded ${isActive ? 'bg-amber-950/80 text-amber-300 border border-amber-800/80 shadow-sm' : 'bg-slate-800 text-slate-400 border border-slate-700'}">
+                                    ${c.revision || `Rev ${idx + 1}`}
+                                </span>
+                            </td>
+                            <td class="p-3 font-mono font-bold text-amber-400">
+                                <div class="text-sm">${c.ideal_cycle_time} <span class="text-[10px] text-slate-400 font-normal">detik/pcs</span></div>
+                                <div class="text-[10px] text-slate-500 font-sans font-normal">${speed} Pcs/Menit</div>
+                            </td>
+                            <td class="p-3 font-sans font-medium text-slate-300">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-slate-300 font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">${effFrom}</span>
+                                    <span class="text-slate-500">s/d</span>
+                                    <span class="font-mono">${effTo}</span>
+                                </div>
+                            </td>
+                            <td class="p-3">
+                                ${isActive ? `
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 shadow-sm shadow-emerald-900/30">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                        ACTIVE
+                                    </span>
+                                ` : `
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                                        HISTORICAL
+                                    </span>
+                                `}
+                            </td>
+                            <td class="p-3 text-slate-300 max-w-xs" title="${c.reason || 'Tidak ada catatan'}">
+                                <div class="truncate text-xs font-sans">${c.reason || '<span class="text-slate-600 italic">-</span>'}</div>
+                            </td>
+                            <td class="p-3 text-slate-400 font-sans text-[11px]">
+                                <div class="text-slate-200 font-medium">${creatorName}</div>
+                                <div class="text-[10px] text-slate-500 font-mono">${createdAt}</div>
+                            </td>
+                            <td class="p-3 text-right">
+                                <button data-id="${c.id}" class="btn-delete-cycletime-rev p-1.5 rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-400 border border-rose-800/60 transition-all cursor-pointer shadow-sm" title="Hapus Versi Standard Ini">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                modalContainer.innerHTML = `
+                    <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+                            <!-- Header -->
+                            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 backdrop-blur-sm">
+                                <div class="flex items-center gap-3.5">
+                                    <div class="p-2.5 rounded-xl bg-amber-950/80 border border-amber-800/80 text-amber-400 shadow-sm">
+                                        <i data-lucide="history" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-base text-slate-100 flex items-center gap-2">
+                                            Histori & Versioning Ideal Cycle Time (ICT)
+                                        </h3>
+                                        <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                                            <span class="text-cyan-400 font-semibold">${displayName}</span>
+                                            <span>•</span>
+                                            <span class="font-mono bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-[11px] text-slate-300">SKU: ${sku}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <button id="btn-add-cycletime-rev" class="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-cyan-600/20 transition-all cursor-pointer">
+                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                        <span>+ Tambah Revisi Standard ICT</span>
+                                    </button>
+                                    <button id="btn-close-cycletime-modal" class="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
+                                        <i data-lucide="x" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Body -->
+                            <div class="p-6 overflow-y-auto space-y-4">
+                                <!-- Info Alert -->
+                                <div class="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-800/40 flex items-start gap-3 text-xs text-cyan-300/90 shadow-sm">
+                                    <i data-lucide="info" class="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5"></i>
+                                    <div class="leading-relaxed">
+                                        <strong>Prinsip Versioning Standard ICT:</strong> Setiap perbaikan line / Kaizen yang merubah standard waktu siklus akan tercatat sebagai revisi baru. Data produksi historis tetap dihitung OEE Performance-nya berdasarkan nilai ICT yang berlaku saat tanggal produksi tersebut berlangsung, tanpa mengubah data lama secara retroaktif.
+                                    </div>
+                                </div>
+
+                                <!-- Table -->
+                                <div class="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/60 shadow-inner">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800 font-bold">
+                                                <th class="p-3 text-center w-20">Revisi</th>
+                                                <th class="p-3">Ideal Cycle Time</th>
+                                                <th class="p-3">Periode Berlaku</th>
+                                                <th class="p-3">Status</th>
+                                                <th class="p-3">Alasan / Note Kaizen</th>
+                                                <th class="p-3">Dibuat Oleh</th>
+                                                <th class="p-3 text-right w-16">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${rowsHtml}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="px-6 py-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
+                                <div>Total: <span class="font-bold text-slate-200">${items.length}</span> revisi tercatat</div>
+                                <button id="btn-done-cycletime-modal" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium cursor-pointer transition-colors">
+                                    Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (window.lucide) window.lucide.createIcons();
+
+                // Bind close events
+                document.getElementById('btn-close-cycletime-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
+                document.getElementById('btn-done-cycletime-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
+
+                // Bind Add Revision Button
+                document.getElementById('btn-add-cycletime-rev')?.addEventListener('click', () => {
+                    this.showAddCycleTimeRevisionModal(productId, product, items, () => {
+                        this.showProductCycleTimeHistoryModal(productId, productName);
+                    });
+                });
+
+                // Bind Delete Revision Button
+                modalContainer.querySelectorAll('.btn-delete-cycletime-rev').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const ctId = e.currentTarget.getAttribute('data-id');
+                        if (!confirm('Yakin ingin menghapus revisi cycle time ini?')) return;
+
+                        try {
+                            await api.deleteProductCycleTime(productId, ctId);
+                            this.showNotification('Revisi Dihapus', 'Revisi cycle time berhasil dihapus.', 'delete');
+                            await this.loadMasterData(true);
+                            this.renderMaster();
+                            this.showProductCycleTimeHistoryModal(productId, productName);
+                        } catch (err) {
+                            alert('Gagal menghapus revisi: ' + (err.response?.data?.message || err.message));
+                        }
+                    });
+                });
+            };
+
+            renderModalContent(cycleTimes);
+        } catch (err) {
+            console.error('Failed to load cycle times:', err);
+            modalContainer.innerHTML = `
+                <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl text-center">
+                        <i data-lucide="alert-circle" class="w-8 h-8 text-rose-400 mx-auto mb-3"></i>
+                        <h3 class="font-bold text-sm text-slate-100 mb-1">Gagal Memuat Data</h3>
+                        <p class="text-xs text-slate-400 mb-4">${err.response?.data?.message || err.message}</p>
+                        <button id="btn-close-err-modal" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">Tutup</button>
+                    </div>
+                </div>
+            `;
+            if (window.lucide) window.lucide.createIcons();
+            document.getElementById('btn-close-err-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
+        }
+    }
+
+    showAddCycleTimeRevisionModal(productId, product, existingCycleTimes = [], onSuccess = null) {
+        const nextRevNum = (existingCycleTimes.length || 0) + 1;
+        const defaultRev = `Rev ${nextRevNum}`;
+        const activeCycle = existingCycleTimes.find(c => c.status === 'ACTIVE');
+        const currentIct = activeCycle ? activeCycle.ideal_cycle_time : (product?.ideal_cycle_time || 21);
+        const today = new Date().toISOString().slice(0, 10);
+
+        const innerModal = document.createElement('div');
+        innerModal.id = 'modal-add-cycletime-revision';
+        innerModal.className = 'fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-fade-in';
+        innerModal.innerHTML = `
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-2 text-cyan-400">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                        <h3 class="font-bold text-sm text-slate-100">Tambah Revisi Standard ICT Baru</h3>
+                    </div>
+                    <button id="btn-close-add-rev-modal" class="text-slate-400 hover:text-slate-200 cursor-pointer">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 mb-4 flex items-center justify-between">
+                    <div>
+                        <div class="font-bold text-cyan-400">${product?.name || 'Product'}</div>
+                        <div class="font-mono text-[11px] text-slate-400">SKU: ${product?.sku || '-'}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] text-slate-400">ICT Saat Ini:</div>
+                        <div class="font-mono font-bold text-amber-400">${currentIct}s</div>
+                    </div>
+                </div>
+
+                <form id="form-add-cycletime-revision" class="space-y-4 text-xs">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Revisi / Version <span class="text-rose-400">*</span></label>
+                            <input type="text" name="revision" value="${defaultRev}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 font-mono font-bold" />
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Ideal Cycle Time (detik/unit) <span class="text-rose-400">*</span></label>
+                            <input type="number" step="0.01" min="0.01" name="ideal_cycle_time" placeholder="e.g. 19.5" required class="w-full bg-slate-950 border border-cyan-800/80 rounded px-3 py-2 text-amber-400 font-mono font-bold text-sm" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Berlaku Dari (Effective From) <span class="text-rose-400">*</span></label>
+                            <input type="date" name="effective_from" value="${today}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 font-mono" />
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Berlaku Sampai (Effective To)</label>
+                            <input type="date" name="effective_to" placeholder="Kosongkan jika aktif" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 font-mono" />
+                            <p class="text-[10px] text-slate-500 mt-1">Kosongkan jika revisi ini berlaku sampai waktu yang belum ditentukan (Open-Ended).</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-400 mb-1">Alasan Perubahan / Catatan Kaizen <span class="text-rose-400">*</span></label>
+                        <textarea name="reason" rows="3" required placeholder="Contoh: Kaizen pergantian insert cutter PCD, optimasi program spindle speed OP-30..." class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 text-xs"></textarea>
+                    </div>
+
+                    <div class="pt-4 flex justify-end gap-2 border-t border-slate-800">
+                        <button type="button" id="btn-cancel-add-rev" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-medium cursor-pointer">Batal</button>
+                        <button type="submit" id="btn-submit-add-rev" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded shadow-md shadow-cyan-600/20 cursor-pointer flex items-center gap-1.5">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            <span>Simpan Revisi</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(innerModal);
+        if (window.lucide) window.lucide.createIcons();
+
+        const closeInner = () => {
+            innerModal.remove();
+        };
+
+        innerModal.querySelector('#btn-close-add-rev-modal').addEventListener('click', closeInner);
+        innerModal.querySelector('#btn-cancel-add-rev').addEventListener('click', closeInner);
+
+        innerModal.querySelector('#form-add-cycletime-revision').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = innerModal.querySelector('#btn-submit-add-rev');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Menyimpan...`;
+            if (window.lucide) window.lucide.createIcons();
+
+            const formData = new FormData(e.target);
+            const payload = {
+                revision: formData.get('revision'),
+                ideal_cycle_time: parseFloat(formData.get('ideal_cycle_time')),
+                effective_from: formData.get('effective_from'),
+                effective_to: formData.get('effective_to') || null,
+                reason: formData.get('reason'),
+            };
+
+            try {
+                const res = await api.createProductCycleTime(productId, payload);
+                this.showNotification('Revisi Standard Berhasil Dibuat', res.data?.message || 'Standard Cycle Time baru telah diaktifkan.', 'create');
+                closeInner();
+                await this.loadMasterData(true);
+                this.renderMaster();
+                if (typeof onSuccess === 'function') {
+                    onSuccess();
+                }
+            } catch (err) {
+                console.error('Error saving cycle time revision:', err);
+                alert('Gagal menyimpan revisi: ' + (err.response?.data?.message || err.message));
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Simpan Revisi`;
+                if (window.lucide) window.lucide.createIcons();
             }
         });
     }
@@ -20240,6 +21056,8 @@ tbody.innerHTML = '';
             return 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80';
         };
 
+        const getRoleBadgeClass = roleColor;
+
         const content = document.getElementById('content-body');
         content.innerHTML = `
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -20250,10 +21068,6 @@ tbody.innerHTML = '';
                     </h2>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <button id="btn-generate-default-users" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer transition-all">
-                        <i data-lucide="sparkles" class="w-4 h-4 text-indigo-200"></i>
-                        <span>Generate Master Users (@prodcr.yasunaga.com)</span>
-                    </button>
                     <button id="btn-add-user" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md shadow-cyan-600/20 cursor-pointer transition-all">
                         <i data-lucide="user-plus" class="w-4 h-4"></i>
                         <span>+ Add User</span>
@@ -20339,7 +21153,7 @@ tbody.innerHTML = '';
                             <tr>
                                 <th class="p-3.5 text-center w-12">No</th>
                                 <th class="p-3.5">User Profile & Name</th>
-                                <th class="p-3.5">Corporate Email (@prodcr.yasunaga.com)</th>
+                                <th class="p-3.5">Alamat Email Pengguna</th>
                                 <th class="p-3.5">Assigned Role(s)</th>
                                 <th class="p-3.5">Account Status</th>
                                 <th class="p-3.5 text-right">Actions</th>
@@ -20364,26 +21178,27 @@ tbody.innerHTML = '';
                                         ${u.email}
                                     </td>
                                     <td class="p-3.5 font-sans">
-                                        ${(u.roles || []).map(r => `<span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${roleColor(r.display_name)} mr-1 inline-block my-0.5">${r.display_name}</span>`).join('')}
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border ${getRoleBadgeClass(u.roles ? u.roles.map(r => r.name).join(', ') : '')}">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                            ${(u.roles && u.roles[0]) ? u.roles[0].display_name : 'No Role'}
+                                        </span>
                                     </td>
-                                    <td class="p-3.5 font-sans">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}">
-                                            ${u.is_active ? '● ACTIVE' : '○ DEACTIVATED'}
+                                    <td class="p-3.5 font-mono">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.is_active ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/80' : 'bg-rose-950/80 text-rose-300 border border-rose-800/80'}">
+                                            ${u.is_active ? '+ ACTIVE' : '- INACTIVE'}
                                         </span>
                                     </td>
                                     <td class="p-3.5 text-right font-sans">
                                         <div class="flex items-center justify-end gap-1.5">
-                                            <button class="btn-switch-user px-2 py-1 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors" data-id="${u.id}" data-name="${this.escapeHtml(u.name)}" data-email="${this.escapeHtml(u.email)}" data-role="${(u.roles && u.roles[0]) ? this.escapeHtml(u.roles[0].display_name) : 'User'}" data-role-key="${(u.roles && u.roles[0]) ? this.escapeHtml(u.roles[0].name) : 'operator'}" title="Masuk langsung sebagai user ini untuk menguji hak akses">
-                                                <i data-lucide="log-in" class="w-3 h-3 text-cyan-400"></i>
+                                            <button class="btn-switch-user px-2 py-1 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 rounded text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-all" data-id="${u.id}" data-name="${u.name}" data-email="${u.email}" data-role="${(u.roles && u.roles[0]) ? u.roles[0].name : 'operator'}" data-role-key="${(u.roles && u.roles[0]) ? (u.roles[0].name.toLowerCase().replace(/[^a-z]/g, '_')) : 'operator'}" title="Switch current session into this user">
+                                                <i data-lucide="log-in" class="w-3 h-3"></i>
                                                 <span>Login As</span>
                                             </button>
-                                            <button class="btn-edit-user px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-colors" data-id="${u.id}">
-                                                <i data-lucide="pencil" class="w-3 h-3 text-slate-400"></i>
-                                                <span>Edit</span>
+                                            <button class="btn-edit-user p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer" data-id="${u.id}" title="Edit User">
+                                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                             </button>
-                                            <button class="btn-delete-user px-2 py-1 bg-rose-950/50 hover:bg-rose-900 text-rose-300 border border-rose-900 rounded text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-colors" data-id="${u.id}" data-name="${this.escapeHtml(u.name)}">
-                                                <i data-lucide="trash-2" class="w-3 h-3 text-rose-400"></i>
-                                                <span>Delete</span>
+                                            <button class="btn-delete-user p-1.5 bg-rose-950/50 hover:bg-rose-900/80 border border-rose-800/50 text-rose-400 rounded cursor-pointer" data-id="${u.id}" data-name="${u.name}" title="Hapus User">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -20517,11 +21332,10 @@ tbody.innerHTML = '';
                         </div>
 
                         <div>
-                            <label class="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
-                                <span>Corporate Email / Username <span class="text-rose-400">*</span></span>
-                                <span class="text-[10px] text-cyan-400 font-mono">@prodcr.yasunaga.com</span>
+                            <label class="block text-slate-300 font-semibold mb-1">
+                                <span>Alamat Email Pengguna <span class="text-rose-400">*</span></span>
                             </label>
-                            <input type="email" id="add-user-email" name="email" required placeholder="budi.santoso@prodcr.yasunaga.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-mono" />
+                            <input type="email" id="add-user-email" name="email" required placeholder="Contoh: nama.user@email.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-sans" />
                         </div>
 
                         <div>
@@ -20553,18 +21367,6 @@ tbody.innerHTML = '';
         if (window.lucide) window.lucide.createIcons();
         if (this.currentLang === 'ja') {
             i18n.localizeDom(modalContainer);
-        }
-
-        // Auto generator email as user types name
-        const nameInput = document.getElementById('add-user-name');
-        const emailInput = document.getElementById('add-user-email');
-        if (nameInput && emailInput) {
-            nameInput.addEventListener('input', () => {
-                const val = nameInput.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.');
-                if (val) {
-                    emailInput.value = `${val}@prodcr.yasunaga.com`;
-                }
-            });
         }
 
         const closeModal = () => modalContainer.innerHTML = '';
@@ -20617,11 +21419,10 @@ tbody.innerHTML = '';
                         </div>
 
                         <div>
-                            <label class="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
-                                <span>Corporate Email / Username <span class="text-rose-400">*</span></span>
-                                <span class="text-[10px] text-cyan-400 font-mono">@prodcr.yasunaga.com</span>
+                            <label class="block text-slate-300 font-semibold mb-1">
+                                <span>Alamat Email Pengguna <span class="text-rose-400">*</span></span>
                             </label>
-                            <input type="email" name="email" value="${this.escapeHtml(user.email)}" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-mono" />
+                            <input type="email" name="email" value="${this.escapeHtml(user.email)}" required placeholder="Contoh: nama.user@email.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-sans" />
                         </div>
 
                         <div>
@@ -22514,14 +23315,14 @@ tbody.innerHTML = '';
                                 <input type="text" data-modal-dt-idx="${idx}" data-modal-dt-field="leader_name" value="${row.leader_name || getModalLeaderName(row.team)}" readonly class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-2.5 py-1.5 text-cyan-400 font-mono font-bold text-xs" placeholder="Auto-populated..." />
                             </div>
                             <div>
-                                <label class="block text-slate-400 mb-1 font-medium">Jenis Trouble</label>
+                                <label class="block text-slate-400 mb-1 font-medium">Jenis Trouble / Losstime</label>
                                 <select data-modal-dt-idx="${idx}" data-modal-dt-field="problem_type" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-100 font-sans text-xs">
-                                    <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory</option>
-                                    <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others</option>
-                                    <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime</option>
-                                    <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik</option>
-                                    <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik</option>
-                                    <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' || row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool</option>
+                                    <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik (Equipment Failure)</option>
+                                    <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik (Equipment Failure)</option>
+                                    <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' || row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool (Tooling Breakdown)</option>
+                                    <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime (Changeover / Ganti Model SKU)</option>
+                                    <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory / Material Shortage</option>
+                                    <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others (Lain-lain)</option>
                                 </select>
                             </div>
                         </div>
@@ -26097,6 +26898,1111 @@ tbody.innerHTML = '';
                 }
             });
         }
+    }
+
+    /**
+     * =========================================================================
+     * OEE EDUCATION & TRAINING MODULE (PUSAT EDUKASI & STANDAR OEE)
+     * =========================================================================
+     * Comprehensive educational resource for Plant Management, Supervisors, Engineers & Operators
+     * Features JIPM World-Class Theory, 3 Pillars, Six Big Losses, Live OEE Simulator, Data Flow & Kaizen.
+     */
+    async renderOeeEducation() {
+        const content = document.getElementById('content-body');
+        if (!content) return;
+
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const isJa = this.currentLang === 'ja';
+
+        if (!this.activeEducationTab) {
+            this.activeEducationTab = 'benchmarks';
+        }
+
+        const tabs = [
+            { id: 'benchmarks', icon: 'award', num: '1', title: isJa ? '世界基準 (JIPM)' : 'Benchmark World-Class', subtitle: isJa ? '世界水準KPI' : 'Standar JIPM' },
+            { id: 'pillars', icon: 'columns-3', num: '2', title: isJa ? '3大要素 (A・P・Q)' : 'Anatomi 3 Pilar OEE', subtitle: isJa ? '計算構造' : 'Rumus & Contoh' },
+            { id: 'six-losses', icon: 'layers', num: '3', title: isJa ? '6大ロス (TPM)' : 'Six Big Losses', subtitle: isJa ? '6大損失分析' : 'Analisis Kerugian' },
+            { id: 'simulator', icon: 'calculator', num: '4', title: isJa ? 'シミュレーター' : 'Live OEE Simulator', subtitle: isJa ? 'リアルタイム計算' : 'Kalkulator Interaktif', highlight: true },
+            { id: 'pipeline', icon: 'git-merge', num: '5', title: isJa ? 'データ連携フロー' : 'Alur Data Form Input', subtitle: isJa ? 'MES連携' : 'Single Source of Truth' },
+            { id: 'kaizen', icon: 'check-square', num: '6', title: isJa ? '改善 & 8本柱' : 'Kaizen & 8 Pilar TPM', subtitle: isJa ? '現場アクション' : 'Framework Perbaikan' }
+        ];
+
+        content.innerHTML = `
+            <div class="space-y-6 pb-12">
+                <!-- HERO HEADER BANNER -->
+                <div class="relative overflow-hidden rounded-2xl border ${isLight ? 'bg-gradient-to-r from-cyan-50 via-sky-50 to-indigo-50 border-cyan-200' : 'bg-gradient-to-r from-cyan-950/50 via-[#0C1938] to-[#121B3B] border-cyan-800/40'} p-5 sm:p-7 shadow-xl">
+                    <div class="absolute -right-10 -top-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute right-32 -bottom-10 w-48 h-48 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                        <div class="space-y-1.5 max-w-2xl">
+                            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${isLight ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-700/60'}">
+                                <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                <span>${isJa ? 'OEE 教育・標準ガイド' : 'Pusat Edukasi & Standar OEE'}</span>
+                            </div>
+                            <h2 class="text-lg sm:text-xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight">
+                                ${isJa ? 'OEE 総合設備効率 ガイド＆シミュレーター' : 'Panduan & Simulasi Standar OEE'}
+                            </h2>
+                            <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'} leading-relaxed">
+                                ${isJa 
+                                    ? 'OEE 3要素（時間稼働率・性能稼働率・良品率）と6大ロスの構造を学び、シミュレーターで即時計算できます。'
+                                    : 'Pelajari konsep 3 pilar OEE (Availability, Performance, Quality), analisis Six Big Losses, dan uji simulasi kalkulasi secara realtime.'}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+                            <button type="button" id="btn-hero-jump-simulator" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition-all cursor-pointer transform hover:-translate-y-0.5">
+                                <i data-lucide="calculator" class="w-4 h-4"></i>
+                                <span>${isJa ? 'OEE シミュレーターを開く' : 'Uji Live OEE Simulator'}</span>
+                            </button>
+                            <button type="button" id="btn-hero-jump-sixlosses" class="px-4 py-2.5 rounded-xl text-xs font-semibold ${isLight ? 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300' : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700'} flex items-center gap-2 transition-all cursor-pointer transform hover:-translate-y-0.5">
+                                <i data-lucide="layers" class="w-4 h-4 text-amber-400"></i>
+                                <span>${isJa ? '6大ロス解説へ' : 'Pelajari 6 Big Losses'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC TAB NAVIGATION BAR -->
+                <div class="rounded-2xl border ${isLight ? 'bg-white/90 border-slate-200 shadow-sm' : 'bg-slate-950/80 border-slate-800 shadow-lg'} p-2">
+                    <div class="flex items-center justify-between px-3 py-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="flex h-2 w-2 relative">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                            </span>
+                            <span class="text-xs font-mono font-bold uppercase tracking-wider ${isLight ? 'text-slate-600' : 'text-slate-400'}">
+                                ${isJa ? '学習メニュー選択 (タブ別表示)' : 'Pilih Modul Pembelajaran (Navigasi Tab Interaktif):'}
+                            </span>
+                        </div>
+                        <span id="edu-tab-indicator" class="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-cyan-950/80 text-cyan-400 border border-cyan-800'}">
+                            Materi 1 dari 6
+                        </span>
+                    </div>
+
+                    <!-- TAB BUTTONS -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2" id="education-tab-container">
+                        ${tabs.map((tab, idx) => {
+                            const isActive = this.activeEducationTab === tab.id;
+                            return `
+                                <button type="button" 
+                                    data-edu-tab="${tab.id}"
+                                    class="edu-tab-btn text-left p-3 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between border relative overflow-hidden group
+                                    ${isActive 
+                                        ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white border-cyan-400/80 shadow-md shadow-cyan-600/30 ring-2 ring-cyan-400/40' 
+                                        : isLight 
+                                            ? 'bg-slate-50 hover:bg-slate-100/80 text-slate-700 border-slate-200 hover:border-cyan-300' 
+                                            : 'bg-slate-900/70 hover:bg-slate-900 text-slate-300 border-slate-800/90 hover:border-slate-700'
+                                    }">
+                                    <div class="flex items-center justify-between w-full mb-1.5">
+                                        <span class="w-6 h-6 rounded-lg ${isActive ? 'bg-white/20 text-white' : isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-cyan-400'} text-[11px] font-mono font-bold flex items-center justify-center">
+                                            ${tab.num}
+                                        </span>
+                                        <i data-lucide="${tab.icon}" class="w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-cyan-400'} transition-colors"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold leading-snug line-clamp-1 ${isActive ? 'text-white' : isLight ? 'text-slate-800' : 'text-slate-200'}">
+                                            ${tab.title}
+                                        </div>
+                                        <div class="text-[10px] font-mono mt-0.5 ${isActive ? 'text-cyan-100' : isLight ? 'text-slate-500' : 'text-slate-400'}">
+                                            ${tab.subtitle}
+                                        </div>
+                                    </div>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <!-- TAB PANES CONTAINER -->
+                <div id="education-panes-wrapper" class="transition-all duration-300">
+
+                    <!-- PANE 1: BENCHMARKS -->
+                    <div id="edu-pane-benchmarks" class="edu-pane ${this.activeEducationTab === 'benchmarks' ? '' : 'hidden'} space-y-4">
+                        <div class="flex items-center justify-between pb-2 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <h3 class="text-sm sm:text-base font-bold uppercase tracking-wider ${isLight ? 'text-slate-800' : 'text-slate-200'} flex items-center gap-2">
+                                <i data-lucide="award" class="w-5 h-5 text-amber-400"></i>
+                                <span>1. Standar World-Class OEE Benchmark (JIPM - Seiichi Nakajima Standard)</span>
+                            </h3>
+                            <span class="text-xs font-mono text-slate-400">Target Manufaktur Global</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- OVERALL OEE BENCHMARK -->
+                            <div class="p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} relative overflow-hidden group hover:border-cyan-500/50 transition-all">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider font-mono">Overall OEE</span>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold">&ge; 85.0%</span>
+                                </div>
+                                <div class="text-3xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono mb-2">85.0%</div>
+                                <div class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Standar keunggulan kelas dunia (*World Class Manufacturing*). Mencerminkan fasilitas yang sangat ramping dan kompetitif secara global.
+                                </div>
+                            </div>
+
+                            <!-- AVAILABILITY BENCHMARK -->
+                            <div class="p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} relative overflow-hidden group hover:border-rose-500/50 transition-all">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-xs font-bold text-rose-400 uppercase tracking-wider font-mono">Availability (A)</span>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-bold">&ge; 90.0%</span>
+                                </div>
+                                <div class="text-3xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono mb-2">90.0%</div>
+                                <div class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Waktu henti tidak terencana (*unplanned breakdown*) dan durasi *changeover SKU* tidak melebihi 10% dari total waktu kerja tersedia.
+                                </div>
+                            </div>
+
+                            <!-- PERFORMANCE BENCHMARK -->
+                            <div class="p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} relative overflow-hidden group hover:border-amber-500/50 transition-all">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono">Performance (P)</span>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 font-bold">&ge; 95.0%</span>
+                                </div>
+                                <div class="text-3xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono mb-2">95.0%</div>
+                                <div class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Kecepatan mesin beroperasi minimal 95% dari kapasitas ideal desain (*Ideal Cycle Time*), tanpa banyak henti singkat (*chocotei*).
+                                </div>
+                            </div>
+
+                            <!-- QUALITY BENCHMARK -->
+                            <div class="p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} relative overflow-hidden group hover:border-purple-500/50 transition-all">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-xs font-bold text-purple-400 uppercase tracking-wider font-mono">Quality Rate (Q)</span>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 font-bold">&ge; 99.0%</span>
+                                </div>
+                                <div class="text-3xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono mb-2">99.0%</div>
+                                <div class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Tingkat cacat (*Defect / NG Rate*) dan *Start-up Scrap* maksimal 1.0% dari total seluruh part yang diproduksi pada lini connecting rod.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- EXPLANATION TABLE FOR OEE SCALE -->
+                        <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} p-5 space-y-3">
+                            <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-100'} uppercase font-mono flex items-center gap-2">
+                                <i data-lucide="gauge" class="w-4 h-4 text-cyan-400"></i>
+                                <span>Tabel Klasifikasi & Makna Skor OEE Pabrik</span>
+                            </h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b ${isLight ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-slate-800 bg-slate-950 text-slate-300'} font-mono">
+                                            <th class="p-2.5 font-bold">Skor OEE</th>
+                                            <th class="p-2.5 font-bold">Status Klasifikasi</th>
+                                            <th class="p-2.5 font-bold">Interpretasi Lapangan & Rekomendasi Manajemen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800'}">
+                                        <tr class="${isLight ? 'hover:bg-emerald-50/50' : 'hover:bg-slate-800/40'}">
+                                            <td class="p-2.5 font-mono font-bold text-emerald-400">&ge; 85.0%</td>
+                                            <td class="p-2.5 font-bold text-emerald-400">World-Class (Kelas Dunia)</td>
+                                            <td class="p-2.5 text-slate-300">Sangat kompetitif global. Fasilitas beroperasi dengan pemborosan (*muda*) minimal. Pertahankan dengan Total Productive Maintenance (TPM).</td>
+                                        </tr>
+                                        <tr class="${isLight ? 'hover:bg-cyan-50/50' : 'hover:bg-slate-800/40'}">
+                                            <td class="p-2.5 font-mono font-bold text-cyan-400">75.0% &ndash; 84.9%</td>
+                                            <td class="p-2.5 font-bold text-cyan-400">Good Typical (Baik / Standar Manufaktur)</td>
+                                            <td class="p-2.5 text-slate-300">Rata-rata pabrik manufaktur yang stabil. Ada ruang perbaikan minor pada kecepatan siklus atau pengurangan waktu pergantian model SKU.</td>
+                                        </tr>
+                                        <tr class="${isLight ? 'hover:bg-amber-50/50' : 'hover:bg-slate-800/40'}">
+                                            <td class="p-2.5 font-mono font-bold text-amber-400">65.0% &ndash; 74.9%</td>
+                                            <td class="p-2.5 font-bold text-amber-400">Fair / Warning (Perlu Perhatian)</td>
+                                            <td class="p-2.5 text-slate-300">Terdapat kebocoran efisiensi signifikan. Perlu analisis pareto Six Big Losses untuk mengidentifikasi apakah masalah utama ada di breakdown, henti singkat, atau reject.</td>
+                                        </tr>
+                                        <tr class="${isLight ? 'hover:bg-rose-50/50' : 'hover:bg-slate-800/40'}">
+                                            <td class="p-2.5 font-mono font-bold text-rose-400">&lt; 65.0%</td>
+                                            <td class="p-2.5 font-bold text-rose-400">Low / Critical (Kritis)</td>
+                                            <td class="p-2.5 text-slate-300">Kerugian finansial dan kapasitas produksi tinggi. Perlu pembentukan tim gugus kendali mutu / Kobetsu Kaizen darurat untuk perbaikan mesin kritis.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- NAVIGATION FOOTER -->
+                        <div class="flex items-center justify-between pt-4 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <div></div>
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 cursor-pointer transition-all" data-target-tab="pillars">
+                                <span>Lanjut: 2. Anatomi 3 Pilar OEE</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PANE 2: 3 PILLARS -->
+                    <div id="edu-pane-pillars" class="edu-pane ${this.activeEducationTab === 'pillars' ? '' : 'hidden'} space-y-4">
+                        <div class="flex items-center justify-between pb-2 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <h3 class="text-sm sm:text-base font-bold uppercase tracking-wider ${isLight ? 'text-slate-800' : 'text-slate-200'} flex items-center gap-2">
+                                <i data-lucide="columns-3" class="w-5 h-5 text-cyan-400"></i>
+                                <span>2. Anatomi 3 Pilar OEE (Ketersediaan &bull; Kecepatan &bull; Kualitas)</span>
+                            </h3>
+                            <span class="text-xs font-mono text-cyan-400 font-bold">OEE = A &times; P &times; Q</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                            <!-- PILAR 1: AVAILABILITY -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-4 relative overflow-hidden flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center font-bold font-mono text-sm">A</div>
+                                            <div>
+                                                <h4 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-white'}">Availability (Ketersediaan)</h4>
+                                                <span class="text-[10px] text-rose-400 font-mono font-medium">Availability Rate (%)</span>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800">Target &ge; 90%</span>
+                                    </div>
+
+                                    <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'} leading-relaxed">
+                                        Mengukur perbandingan antara <strong>waktu mesin benar-benar beroperasi (Operating Run Time)</strong> dengan <strong>waktu yang direncanakan beroperasi (Planned Production Time - Planned Downtime)</strong>.
+                                    </p>
+
+                                    <div class="p-3 rounded-xl ${isLight ? 'bg-rose-50/70 border-rose-200 text-rose-950' : 'bg-rose-950/30 border-rose-900/50 text-rose-200'} border text-xs font-mono space-y-1">
+                                        <div class="font-bold font-sans text-rose-400 flex items-center gap-1.5 mb-1">
+                                            <i data-lucide="function-square" class="w-3.5 h-3.5"></i> Rumus Matematis:
+                                        </div>
+                                        <div class="font-bold text-[11px] leading-tight text-rose-300">
+                                            Availability = (Operating Run Time / Available Time) &times; 100%
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 pt-1">
+                                            Available Time = Planned Time - Planned Break
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-1.5 text-xs">
+                                        <div class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'} text-[11px]">📍 Sumber Data di Form Input:</div>
+                                        <ul class="text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} space-y-1 list-disc list-inside">
+                                            <li><strong>Planned Time:</strong> Jam kerja shift (480 menit)</li>
+                                            <li><strong>Planned Break:</strong> Istirahat resmi (60 menit)</li>
+                                            <li><strong>Trouble Log:</strong> Durasi breakdown tak terencana (menit)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="pt-3 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} text-[11px] font-mono text-emerald-400 bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-900/30">
+                                    💡 Contoh: Dari 420m waktu kerja tersedia, mesin down 30m &rarr; Run Time 390m &rarr; <strong>Availability = 92.86%</strong>
+                                </div>
+                            </div>
+
+                            <!-- PILAR 2: PERFORMANCE -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-4 relative overflow-hidden flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center font-bold font-mono text-sm">P</div>
+                                            <div>
+                                                <h4 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-white'}">Performance (Kecepatan)</h4>
+                                                <span class="text-[10px] text-amber-400 font-mono font-medium">Performance Rate (%)</span>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">Target &ge; 95%</span>
+                                    </div>
+
+                                    <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'} leading-relaxed">
+                                        Mengukur seberapa cepat mesin memproduksi part dibanding kapasitas teoritis standarnya. Mengidentifikasi kerugian akibat henti singkat (*chocotei*) dan perlambatan *feed rate*.
+                                    </p>
+
+                                    <div class="p-3 rounded-xl ${isLight ? 'bg-amber-50/70 border-amber-200 text-amber-950' : 'bg-amber-950/30 border-amber-900/50 text-amber-200'} border text-xs font-mono space-y-1">
+                                        <div class="font-bold font-sans text-amber-400 flex items-center gap-1.5 mb-1">
+                                            <i data-lucide="function-square" class="w-3.5 h-3.5"></i> Rumus Matematis:
+                                        </div>
+                                        <div class="font-bold text-[11px] leading-tight text-amber-300">
+                                            Performance = ((Ideal Cycle Time &times; Total Output) / (Run Time &times; 60)) &times; 100%
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 pt-1">
+                                            Ideal Cycle Time = Detik standar per part SKU
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-1.5 text-xs">
+                                        <div class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'} text-[11px]">📍 Sumber Data di Form Input:</div>
+                                        <ul class="text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} space-y-1 list-disc list-inside">
+                                            <li><strong>Total Output / Measuring:</strong> Jumlah part aktual (pcs)</li>
+                                            <li><strong>Run Time:</strong> Durasi mesin beroperasi (menit)</li>
+                                            <li><strong>Master Data SKU:</strong> Ideal Cycle Time (misal: 9.5s)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="pt-3 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} text-[11px] font-mono text-emerald-400 bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-900/30">
+                                    💡 Contoh: Run Time 390m (23.400s), output 2.400 pcs (Cycle Time 9.5s = 22.800s) &rarr; <strong>Performance = 97.44%</strong>
+                                </div>
+                            </div>
+
+                            <!-- PILAR 3: QUALITY RATE -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-4 relative overflow-hidden flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-400 flex items-center justify-center font-bold font-mono text-sm">Q</div>
+                                            <div>
+                                                <h4 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-white'}">Quality (Kualitas Mutu)</h4>
+                                                <span class="text-[10px] text-purple-400 font-mono font-medium">Quality Rate (%)</span>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-800">Target &ge; 99%</span>
+                                    </div>
+
+                                    <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'} leading-relaxed">
+                                        Mengukur rasio produk yang memenuhi standar spesifikasi (*Finish Good / OK*) tanpa cacat atau perlu pengerjaan ulang (*rework*), dibandingkan seluruh part yang diproses.
+                                    </p>
+
+                                    <div class="p-3 rounded-xl ${isLight ? 'bg-purple-50/70 border-purple-200 text-purple-950' : 'bg-purple-950/30 border-purple-900/50 text-purple-200'} border text-xs font-mono space-y-1">
+                                        <div class="font-bold font-sans text-purple-400 flex items-center gap-1.5 mb-1">
+                                            <i data-lucide="function-square" class="w-3.5 h-3.5"></i> Rumus Matematis:
+                                        </div>
+                                        <div class="font-bold text-[11px] leading-tight text-purple-300">
+                                            Quality = (Good Quantity (OK) / Total Output) &times; 100%
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 pt-1">
+                                            Good Output = Total Output - Reject (NG) - Scrap
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-1.5 text-xs">
+                                        <div class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'} text-[11px]">📍 Sumber Data di Form Input:</div>
+                                        <ul class="text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} space-y-1 list-disc list-inside">
+                                            <li><strong>Finish Good (OK):</strong> Jumlah part lolos inspeksi (pcs)</li>
+                                            <li><strong>Not Good (NG Qty):</strong> Jumlah reject cacat proses (pcs)</li>
+                                            <li><strong>Scrap:</strong> Part terbuang awal shift / setup (pcs)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="pt-3 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} text-[11px] font-mono text-emerald-400 bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-900/30">
+                                    💡 Contoh: Total Output 2.400 pcs, Reject NG 24 pcs &rarr; Good Output 2.376 pcs &rarr; <strong>Quality = 99.00%</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NAVIGATION FOOTER -->
+                        <div class="flex items-center justify-between pt-4 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-semibold ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-slate-900 hover:bg-slate-800 text-slate-300'} flex items-center gap-2 cursor-pointer transition-all" data-target-tab="benchmarks">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                <span>Kembali: 1. Benchmark World-Class</span>
+                            </button>
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 cursor-pointer transition-all" data-target-tab="six-losses">
+                                <span>Lanjut: 3. Six Big Losses</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PANE 3: SIX BIG LOSSES -->
+                    <div id="edu-pane-six-losses" class="edu-pane ${this.activeEducationTab === 'six-losses' ? '' : 'hidden'} space-y-4">
+                        <div class="flex items-center justify-between pb-2 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <h3 class="text-sm sm:text-base font-bold uppercase tracking-wider ${isLight ? 'text-slate-800' : 'text-slate-200'} flex items-center gap-2">
+                                <i data-lucide="layers" class="w-5 h-5 text-amber-400"></i>
+                                <span>3. Analisis Six Big Losses (6 Kerugian Besar Standar TPM)</span>
+                            </h3>
+                            <span class="text-xs font-mono text-slate-400">Katalog Kerugian & Solusi Kaizen</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- LOSS 1 -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-xl bg-rose-500/20 text-rose-400 font-mono font-bold text-xs flex items-center justify-center border border-rose-500/30">#1</span>
+                                        <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Equipment Failure (Kerusakan Mesin)</h4>
+                                    </div>
+                                    <span class="text-[9px] px-2 py-0.5 rounded bg-rose-950 text-rose-300 font-mono font-bold border border-rose-800">Availability Loss</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Kerusakan mendadak yang menghentikan lini: Trouble kelistrikan kabel mesin, sensor pintu & alarm oil pressure LS abnormal saat ATC, over-vibrasi spindle, kebocoran hidrolik clamping.
+                                </p>
+                                <div class="p-2.5 rounded-xl ${isLight ? 'bg-slate-50 text-slate-700' : 'bg-slate-950 text-slate-300'} text-xs font-sans border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                    🛠️ <strong>Solusi TPM:</strong> Autonomous Maintenance (Jishu Hozen 5S), Preventive Maintenance terjadwal, 5-Whys RCA pencegahan trouble berulang.
+                                </div>
+                            </div>
+
+                            <!-- LOSS 2 -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-xl bg-rose-500/20 text-rose-400 font-mono font-bold text-xs flex items-center justify-center border border-rose-500/30">#2</span>
+                                        <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Setup & Adjustment (Ganti SKU)</h4>
+                                    </div>
+                                    <span class="text-[9px] px-2 py-0.5 rounded bg-rose-950 text-rose-300 font-mono font-bold border border-rose-800">Availability Loss</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Waktu henti untuk changeover tipe produk Connecting Rod (misal SKU 13201-BZ040 ke 13201-0Y070), pergantian insert pahat potong carbide (boring, honing), dan kalibrasi air micrometer gauge.
+                                </p>
+                                <div class="p-2.5 rounded-xl ${isLight ? 'bg-slate-50 text-slate-700' : 'bg-slate-950 text-slate-300'} text-xs font-sans border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                    🛠️ <strong>Solusi TPM:</strong> Penerapan metode SMED (*Single Minute Exchange of Die*), tool pre-setting di luar mesin, standarisasi SOP pergantian SKU.
+                                </div>
+                            </div>
+
+                            <!-- LOSS 3 -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/30">#3</span>
+                                        <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Idling & Minor Stops (Chocotei)</h4>
+                                    </div>
+                                    <span class="text-[9px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 font-mono font-bold border border-amber-800">Performance Loss</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Henti singkat (&lt; 5 menit) seperti part rod/cap macet di chute konveyor, sensor photoelectric terhalang gram/oli (*false alarm*), buffer line measuring machine penuh.
+                                </p>
+                                <div class="p-2.5 rounded-xl ${isLight ? 'bg-slate-50 text-slate-700' : 'bg-slate-950 text-slate-300'} text-xs font-sans border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                    🛠️ <strong>Solusi TPM:</strong> Pasang air blower otomatis pembersih sensor, modifikasi kemiringan chute part, visual alarm andon 5S area feeder.
+                                </div>
+                            </div>
+
+                            <!-- LOSS 4 -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 font-mono font-bold text-xs flex items-center justify-center border border-amber-500/30">#4</span>
+                                        <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Reduced Speed (Kecepatan Turun)</h4>
+                                    </div>
+                                    <span class="text-[9px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 font-mono font-bold border border-amber-800">Performance Loss</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Mesin berjalan di bawah kecepatan standar karena operator menurunkan feed rate saat material forging keras, keausan bertahap insert cutter, jeda probing inspeksi measuring machine lambat.
+                                </p>
+                                <div class="p-2.5 rounded-xl ${isLight ? 'bg-slate-50 text-slate-700' : 'bg-slate-950 text-slate-300'} text-xs font-sans border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                    🛠️ <strong>Solusi TPM:</strong> Evaluasi kesesuaian feed rate terhadap standard cycle time, optimalisasi coolant & insert cutter, audit berkala standard takt time.
+                                </div>
+                            </div>
+
+                            <!-- LOSS 5 -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-xl bg-purple-500/20 text-purple-400 font-mono font-bold text-xs flex items-center justify-center border border-purple-500/30">#5</span>
+                                        <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Process Defects (Cacat Produksi / NG)</h4>
+                                    </div>
+                                    <span class="text-[9px] px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-mono font-bold border border-purple-800">Quality Loss</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Waktu produksi yang terbuang karena menghasilkan produk NG / defect: Goresan permukaan (*surface scratch*), dimensi Big/Small End out, ketebalan thrust out, ulir tap seret.
+                                </p>
+                                <div class="p-2.5 rounded-xl ${isLight ? 'bg-slate-50 text-slate-700' : 'bg-slate-950 text-slate-300'} text-xs font-sans border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                    🛠️ <strong>Solusi TPM:</strong> Penerapan Poka-Yoke (mistake proofing), penggantian pahat berkala sebelum aus, kalibrasi air micrometer gauge, dan SPC control chart.
+                                </div>
+                            </div>
+
+                            <!-- LOSS 6 -->
+                            <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} p-5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-xl bg-purple-500/20 text-purple-400 font-mono font-bold text-xs flex items-center justify-center border border-purple-500/30">#6</span>
+                                        <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Reduced Yield (Scrap Awal Shift)</h4>
+                                    </div>
+                                    <span class="text-[9px] px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-mono font-bold border border-purple-800">Quality Loss</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Kehilangan waktu & material saat mesin baru dihidupkan (*warming-up* spindle/coolant di awal shift) atau part sample inspeksi pertama (*first piece*) setelah ganti model SKU.
+                                </p>
+                                <div class="p-2.5 rounded-xl ${isLight ? 'bg-slate-50 text-slate-700' : 'bg-slate-950 text-slate-300'} text-xs font-sans border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                    🛠️ <strong>Solusi TPM:</strong> Standardisasi checklist first-piece release cepat, pemanasan awal otomatis sebelum jam shift, dan peningkatan presisi tool pre-setter.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NAVIGATION FOOTER -->
+                        <div class="flex items-center justify-between pt-4 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-semibold ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-slate-900 hover:bg-slate-800 text-slate-300'} flex items-center gap-2 cursor-pointer transition-all" data-target-tab="pillars">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                <span>Kembali: 2. Anatomi 3 Pilar OEE</span>
+                            </button>
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 cursor-pointer transition-all" data-target-tab="simulator">
+                                <span>Lanjut: 4. Live Simulator</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PANE 4: LIVE OEE SIMULATOR -->
+                    <div id="edu-pane-simulator" class="edu-pane ${this.activeEducationTab === 'simulator' ? '' : 'hidden'} space-y-4">
+                        <div class="rounded-2xl border ${isLight ? 'bg-white border-cyan-200 shadow-xl' : 'bg-[#0A132B] border-cyan-800/50 shadow-2xl'} p-5 sm:p-7 space-y-6">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-600 to-blue-600 text-white flex items-center justify-center shadow-md shadow-cyan-600/30">
+                                        <i data-lucide="calculator" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-base font-black ${isLight ? 'text-slate-900' : 'text-white'}">
+                                            ${isJa ? 'OEE リアルタイム計算シミュレーター' : 'Live Interactive OEE Simulator & Calculator'}
+                                        </h3>
+                                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}">
+                                            ${isJa ? '数値を変更すると、A/P/Q及び6大ロスの時間が即時自動計算されます。' : 'Ubah angka parameter di bawah untuk mensimulasikan dampak waktu downtime & defect terhadap skor OEE.'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button type="button" id="btn-reset-simulator" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700'} flex items-center gap-1.5 cursor-pointer self-start sm:self-auto">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                                    <span>Reset Contoh</span>
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                <!-- SIMULATOR INPUT CONTROLS (5 COLS) -->
+                                <div class="lg:col-span-6 space-y-3.5">
+                                    <div class="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono flex items-center gap-1.5">
+                                        <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Parameter Input Simulasi
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-slate-400 mb-1">Planned Production Time (m)</label>
+                                            <input type="number" id="sim-planned-time" value="480" min="60" max="1440" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:border-cyan-500 focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-slate-400 mb-1">Planned Break / Istirahat (m)</label>
+                                            <input type="number" id="sim-planned-break" value="60" min="0" max="240" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:border-cyan-500 focus:outline-none" />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-rose-400 mb-1">Unplanned Breakdown (m)</label>
+                                            <input type="number" id="sim-downtime" value="25" min="0" max="720" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-rose-400 font-mono font-bold text-xs focus:border-rose-500 focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-amber-400 mb-1">Setup & Changeover SKU (m)</label>
+                                            <input type="number" id="sim-setup" value="15" min="0" max="300" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-amber-400 font-mono font-bold text-xs focus:border-amber-500 focus:outline-none" />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-amber-300 mb-1">Idle Time / Chocotei (m)</label>
+                                            <input type="number" id="sim-idletime" value="5" min="0" max="180" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-amber-300 font-mono text-xs focus:border-amber-500 focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-cyan-300 mb-1">Ideal Cycle Time (detik/pc)</label>
+                                            <input type="number" step="0.1" id="sim-cycletime" value="9.5" min="1" max="120" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-cyan-300 font-mono font-bold text-xs focus:border-cyan-500 focus:outline-none" />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-3 gap-2.5">
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-slate-300 mb-1">Total Output (pcs)</label>
+                                            <input type="number" id="sim-output" value="2350" min="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-white font-mono font-bold text-xs focus:border-cyan-500 focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-purple-400 mb-1">Reject NG (pcs)</label>
+                                            <input type="number" id="sim-reject" value="20" min="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-purple-400 font-mono font-bold text-xs focus:border-purple-500 focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-medium text-rose-300 mb-1">Scrap (pcs)</label>
+                                            <input type="number" id="sim-scrap" value="4" min="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-rose-300 font-mono font-bold text-xs focus:border-rose-500 focus:outline-none" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SIMULATOR REALTIME LIVE RESULTS (7 COLS) -->
+                                <div class="lg:col-span-6 space-y-4 bg-slate-950/80 rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+                                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Hasil Perhitungan Realtime</span>
+                                            <span id="sim-eval-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                                                WORLD CLASS (&ge; 85%)
+                                            </span>
+                                        </div>
+
+                                        <!-- OVERALL OEE HERO SCORE -->
+                                        <div class="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-purple-950/40 border border-cyan-800/40 mb-3">
+                                            <div>
+                                                <div class="text-[11px] font-bold text-slate-400 uppercase font-mono">Overall OEE Score</div>
+                                                <div class="text-xs text-slate-300 mt-0.5">Availability &times; Performance &times; Quality</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div id="sim-oee-val" class="text-3xl sm:text-4xl font-black font-mono text-cyan-400 tracking-tight">85.42%</div>
+                                                <div id="sim-status-label" class="text-[10px] font-mono text-emerald-400 font-bold">Optimal Efficiency</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 3 PILLARS GAUGES -->
+                                        <div class="grid grid-cols-3 gap-2 font-mono text-center mb-3">
+                                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                                <div class="text-[10px] text-rose-400 uppercase font-sans font-bold">Availability</div>
+                                                <div id="sim-avail-val" class="text-base font-bold text-white mt-0.5">90.48%</div>
+                                                <div class="text-[9px] text-slate-400 mt-0.5 font-sans">Target: 90%</div>
+                                            </div>
+                                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                                <div class="text-[10px] text-amber-400 uppercase font-sans font-bold">Performance</div>
+                                                <div id="sim-perf-val" class="text-base font-bold text-white mt-0.5">95.42%</div>
+                                                <div class="text-[9px] text-slate-400 mt-0.5 font-sans">Target: 95%</div>
+                                            </div>
+                                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                                                <div class="text-[10px] text-purple-400 uppercase font-sans font-bold">Quality</div>
+                                                <div id="sim-qual-val" class="text-base font-bold text-white mt-0.5">98.98%</div>
+                                                <div class="text-[9px] text-slate-400 mt-0.5 font-sans">Target: 99%</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- SIMULATOR SIX LOSSES MINI SUMMARY -->
+                                        <div class="space-y-1.5 text-xs font-mono">
+                                            <div class="text-[10.5px] font-sans font-bold text-slate-300 mb-1 flex items-center justify-between">
+                                                <span>Distribusi Estimasi Six Big Losses:</span>
+                                                <span id="sim-total-losses-badge" class="text-rose-400 font-mono">Total: 40.0 Menit</span>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                                                <div class="flex justify-between p-1.5 rounded bg-slate-900/80 border border-slate-800/80">
+                                                    <span class="text-slate-400">#1 Eq Failure:</span>
+                                                    <span id="sim-loss-eq" class="font-bold text-rose-400">25.0m</span>
+                                                </div>
+                                                <div class="flex justify-between p-1.5 rounded bg-slate-900/80 border border-slate-800/80">
+                                                    <span class="text-slate-400">#2 Setup:</span>
+                                                    <span id="sim-loss-setup" class="font-bold text-amber-400">15.0m</span>
+                                                </div>
+                                                <div class="flex justify-between p-1.5 rounded bg-slate-900/80 border border-slate-800/80">
+                                                    <span class="text-slate-400">#3 Minor Stop:</span>
+                                                    <span id="sim-loss-idle" class="font-bold text-amber-300">5.0m</span>
+                                                </div>
+                                                <div class="flex justify-between p-1.5 rounded bg-slate-900/80 border border-slate-800/80">
+                                                    <span class="text-slate-400">#4 Speed Loss:</span>
+                                                    <span id="sim-loss-speed" class="font-bold text-cyan-300">8.2m</span>
+                                                </div>
+                                                <div class="flex justify-between p-1.5 rounded bg-slate-900/80 border border-slate-800/80">
+                                                    <span class="text-slate-400">#5 Defect Loss:</span>
+                                                    <span id="sim-loss-defect" class="font-bold text-purple-400">3.2m</span>
+                                                </div>
+                                                <div class="flex justify-between p-1.5 rounded bg-slate-900/80 border border-slate-800/80">
+                                                    <span class="text-slate-400">#6 Scrap Loss:</span>
+                                                    <span id="sim-loss-scrap" class="font-bold text-rose-300">0.6m</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NAVIGATION FOOTER -->
+                        <div class="flex items-center justify-between pt-4 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-semibold ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-slate-900 hover:bg-slate-800 text-slate-300'} flex items-center gap-2 cursor-pointer transition-all" data-target-tab="six-losses">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                <span>Kembali: 3. Six Big Losses</span>
+                            </button>
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 cursor-pointer transition-all" data-target-tab="pipeline">
+                                <span>Lanjut: 5. Alur Data Form Input</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PANE 5: DATA PIPELINE -->
+                    <div id="edu-pane-pipeline" class="edu-pane ${this.activeEducationTab === 'pipeline' ? '' : 'hidden'} space-y-4">
+                        <div class="flex items-center justify-between pb-2 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <h3 class="text-sm sm:text-base font-bold uppercase tracking-wider ${isLight ? 'text-slate-800' : 'text-slate-200'} flex items-center gap-2">
+                                <i data-lucide="git-merge" class="w-5 h-5 text-emerald-400"></i>
+                                <span>5. Alur Integrasi Data & Sumber Kebenaran (Single Source of Truth)</span>
+                            </h3>
+                            <span class="text-xs font-mono text-slate-400">Arsitektur Aliran Data MES</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} space-y-3">
+                                <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 font-bold font-mono text-sm flex items-center justify-center border border-cyan-500/30">1</div>
+                                <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Form Input Produksi & Trouble Log</h4>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Operator/Leader shift menginput Target, Measuring Output, Finish Good (OK), NG Reject, Scrap, serta mencatat trouble log kerusakan atau pergantian model SKU.
+                                </p>
+                            </div>
+
+                            <div class="p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} space-y-3">
+                                <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 font-bold font-mono text-sm flex items-center justify-center border border-amber-500/30">2</div>
+                                <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">OeeCalculationService (Backend Engine)</h4>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Server Laravel memproses perhitungan Availability, Performance, Quality, OEE %, serta mengurai breakdown Six Big Losses dalam satuan menit secara presisi.
+                                </p>
+                            </div>
+
+                            <div class="p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} space-y-3">
+                                <div class="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 font-bold font-mono text-sm flex items-center justify-center border border-purple-500/30">3</div>
+                                <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Database Relasional MES</h4>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Data disimpan aman dan berelasi di tabel <code>production_records</code>, <code>oee_records</code>, <code>downtimes</code>, dan <code>ng_records</code>.
+                                </p>
+                            </div>
+
+                            <div class="p-5 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'} space-y-3">
+                                <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 font-bold font-mono text-sm flex items-center justify-center border border-emerald-500/30">4</div>
+                                <h4 class="font-bold text-xs sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Visualisasi & Laporan Resmi</h4>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Realtime Dashboard, Ranking Mesin, Live Floor TV Display, Pareto Downtime/Quality, serta modul cetak resmi A4 dan ekspor Excel spreadsheet.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- INPUT REFERENCE MAPPING -->
+                        <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} p-5 space-y-3">
+                            <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-100'} uppercase font-mono flex items-center gap-2">
+                                <i data-lucide="table-2" class="w-4 h-4 text-emerald-400"></i>
+                                <span>Tabel Pemetaan Kolom Form Input Terhadap Parameter OEE</span>
+                            </h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b ${isLight ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-slate-800 bg-slate-950 text-slate-300'} font-mono">
+                                            <th class="p-2.5 font-bold">Elemen OEE</th>
+                                            <th class="p-2.5 font-bold">Kolom di Form Input Harian</th>
+                                            <th class="p-2.5 font-bold">Fungsi & Rumus Dalam Sistem</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800'}">
+                                        <tr>
+                                            <td class="p-2.5 font-mono font-bold text-rose-400">Planned Time</td>
+                                            <td class="p-2.5">Durasi Jam Shift (Standar: 480 menit)</td>
+                                            <td class="p-2.5 text-slate-300">Waktu dasar shift operasi mesin</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-2.5 font-mono font-bold text-rose-400">Planned Downtime</td>
+                                            <td class="p-2.5">Istirahat Resmi (60m) + Trouble tipe 'Planning Downtime'</td>
+                                            <td class="p-2.5 text-slate-300">Downtime terencana yang dikeluarkan dari total beban mesin</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-2.5 font-mono font-bold text-rose-400">Unplanned Downtime</td>
+                                            <td class="p-2.5">Trouble Log tipe 'Unplanned Breakdown' / Kerusakan Mesin</td>
+                                            <td class="p-2.5 text-slate-300">Mengurangi Operating Run Time &rarr; Menurunkan Availability Rate</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-2.5 font-mono font-bold text-amber-400">Total Output</td>
+                                            <td class="p-2.5">Total Measuring Output (pcs)</td>
+                                            <td class="p-2.5 text-slate-300">Jumlah fisik part yang berhasil melewati stasiun mesin</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-2.5 font-mono font-bold text-amber-400">Ideal Cycle Time</td>
+                                            <td class="p-2.5">Master Data SKU (detik/pc)</td>
+                                            <td class="p-2.5 text-slate-300">Acuan kecepatan standar teoritis desain mesin untuk menghitung Performance Rate</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-2.5 font-mono font-bold text-purple-400">Good Output</td>
+                                            <td class="p-2.5">Finish Good (OK Qty) = Total Output - NG Qty - Scrap</td>
+                                            <td class="p-2.5 text-slate-300">Part sempurna yang lolos kontrol mutu untuk menghitung Quality Rate</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- NAVIGATION FOOTER -->
+                        <div class="flex items-center justify-between pt-4 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-semibold ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-slate-900 hover:bg-slate-800 text-slate-300'} flex items-center gap-2 cursor-pointer transition-all" data-target-tab="simulator">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                <span>Kembali: 4. Live Simulator</span>
+                            </button>
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-2 cursor-pointer transition-all" data-target-tab="kaizen">
+                                <span>Lanjut: 6. Kaizen & 8 Pilar TPM</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PANE 6: KAIZEN & TPM -->
+                    <div id="edu-pane-kaizen" class="edu-pane ${this.activeEducationTab === 'kaizen' ? '' : 'hidden'} space-y-4">
+                        <div class="flex items-center justify-between pb-2 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <h3 class="text-sm sm:text-base font-bold uppercase tracking-wider ${isLight ? 'text-slate-800' : 'text-slate-200'} flex items-center gap-2">
+                                <i data-lucide="check-square" class="w-5 h-5 text-cyan-400"></i>
+                                <span>6. Rekomendasi Kaizen & 8 Pilar Total Productive Maintenance (TPM)</span>
+                            </h3>
+                            <span class="text-xs font-mono text-slate-400">Actionable Kaizen Framework</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} space-y-2">
+                                <div class="font-bold text-cyan-400 font-sans text-xs flex items-center gap-1.5">
+                                    <i data-lucide="wrench" class="w-4 h-4"></i> 1. Jishu Hozen (Autonomous Maint.)
+                                </div>
+                                <p class="${isLight ? 'text-slate-600' : 'text-slate-400'} text-[11px] leading-relaxed">
+                                    Operator melakukan pembersihan, pelumasan, pengencangan baut (*cleaning, lubrication, tightening*), dan deteksi dini ketidaknormalan mesin.
+                                </p>
+                            </div>
+
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} space-y-2">
+                                <div class="font-bold text-amber-400 font-sans text-xs flex items-center gap-1.5">
+                                    <i data-lucide="target" class="w-4 h-4"></i> 2. Kobetsu Kaizen (Focused Impr.)
+                                </div>
+                                <p class="${isLight ? 'text-slate-600' : 'text-slate-400'} text-[11px] leading-relaxed">
+                                    Proyek perbaikan fokus tim lintas fungsi (*cross-functional team*) untuk menuntaskan pareto trouble dan akar masalah terbesar pada mesin kritis.
+                                </p>
+                            </div>
+
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} space-y-2">
+                                <div class="font-bold text-emerald-400 font-sans text-xs flex items-center gap-1.5">
+                                    <i data-lucide="calendar-check" class="w-4 h-4"></i> 3. Planned Maintenance (PM)
+                                </div>
+                                <p class="${isLight ? 'text-slate-600' : 'text-slate-400'} text-[11px] leading-relaxed">
+                                    Pemeliharaan preventif terjadwal oleh teknisi maintenance berdasarkan jam operasi (*operating hours*) dan riwayat keausan komponen kritis.
+                                </p>
+                            </div>
+
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} space-y-2">
+                                <div class="font-bold text-purple-400 font-sans text-xs flex items-center gap-1.5">
+                                    <i data-lucide="shield-check" class="w-4 h-4"></i> 4. Quality Maintenance (Hinshitsu)
+                                </div>
+                                <p class="${isLight ? 'text-slate-600' : 'text-slate-400'} text-[11px] leading-relaxed">
+                                    Menjaga kondisi mesin agar tidak memproduksi part cacat (*Zero Defect condition*) dengan kontrol batas aus pahat dan sensor poka-yoke.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 4 OTHER PILLARS SUMMARY -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pt-1">
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} space-y-2">
+                                <div class="font-bold text-sky-400 font-sans text-xs flex items-center gap-1.5">
+                                    <i data-lucide="cpu" class="w-4 h-4"></i> 5. Initial Phase Management
+                                </div>
+                                <p class="${isLight ? 'text-slate-600' : 'text-slate-400'} text-[11px] leading-relaxed">
+                                    Manajemen pengenalan mesin baru atau SKU baru agar fase *start-up* langsung mencapai stabilitas OEE tanpa delay berpanjangan.
+                                </p>
+                            </div>
+
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} space-y-2">
+                                <div class="font-bold text-indigo-400 font-sans text-xs flex items-center gap-1.5">
+                                    <i data-lucide="graduation-cap" class="w-4 h-4"></i> 6. Training & Education
+                                </div>
+                                <p class="${isLight ? 'text-slate-600' : 'text-slate-400'} text-[11px] leading-relaxed">
+                                    Pelatihan berkelanjutan multi-skill operator dan teknisi dalam pemahaman OEE, trouble shooting, serta standarisasi metode kerja.
+                                </p>
+                            </div>
+
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} space-y-2">
+                                <div class="font-bold text-green-400 font-sans text-xs flex items-center gap-1.5">
+                                    <i data-lucide="heart-pulse" class="w-4 h-4"></i> 7. Safety, Health & Env (SHE)
+                                </div>
+                                <p class="${isLight ? 'text-slate-600' : 'text-slate-400'} text-[11px] leading-relaxed">
+                                    Menciptakan lingkungan kerja nihil kecelakaan (*Zero Accident*), ergonomis, dan ramah lingkungan sebagai fondasi produktivitas.
+                                </p>
+                            </div>
+
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'} space-y-2">
+                                <div class="font-bold text-rose-400 font-sans text-xs flex items-center gap-1.5">
+                                    <i data-lucide="briefcase" class="w-4 h-4"></i> 8. TPM in Administration
+                                </div>
+                                <p class="${isLight ? 'text-slate-600' : 'text-slate-400'} text-[11px] leading-relaxed">
+                                    Meningkatkan efisiensi proses administrasi data produksi, eliminasi birokrasi input kertas, dan otomatisasi pelaporan berbasis MES digital.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- NAVIGATION FOOTER -->
+                        <div class="flex items-center justify-between pt-4 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-semibold ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-slate-900 hover:bg-slate-800 text-slate-300'} flex items-center gap-2 cursor-pointer transition-all" data-target-tab="pipeline">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                <span>Kembali: 5. Alur Data Form Input</span>
+                            </button>
+                            <button type="button" class="btn-edu-jump px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-cyan-600/30" data-target-tab="benchmarks">
+                                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                <span>Kembali ke Awal: 1. Benchmark World-Class</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+        if (isJa) i18n.localizeDom(content);
+
+        // TAB SWITCHING LOGIC WITH DYNAMIC CONTROLS
+        const switchEduTab = (tabId) => {
+            this.activeEducationTab = tabId;
+
+            // Update Tab Buttons UI
+            const tabButtons = content.querySelectorAll('.edu-tab-btn');
+            tabButtons.forEach(btn => {
+                const isTarget = btn.getAttribute('data-edu-tab') === tabId;
+                if (isTarget) {
+                    btn.className = `edu-tab-btn text-left p-3 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between border relative overflow-hidden group bg-gradient-to-br from-cyan-600 to-blue-600 text-white border-cyan-400/80 shadow-md shadow-cyan-600/30 ring-2 ring-cyan-400/40`;
+                    const numBadge = btn.querySelector('span');
+                    if (numBadge) numBadge.className = 'w-6 h-6 rounded-lg bg-white/20 text-white text-[11px] font-mono font-bold flex items-center justify-center';
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = 'w-4 h-4 text-white transition-colors';
+                } else {
+                    btn.className = `edu-tab-btn text-left p-3 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between border relative overflow-hidden group ${
+                        isLight 
+                            ? 'bg-slate-50 hover:bg-slate-100/80 text-slate-700 border-slate-200 hover:border-cyan-300' 
+                            : 'bg-slate-900/70 hover:bg-slate-900 text-slate-300 border-slate-800/90 hover:border-slate-700'
+                    }`;
+                    const numBadge = btn.querySelector('span');
+                    if (numBadge) numBadge.className = `w-6 h-6 rounded-lg ${isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-cyan-400'} text-[11px] font-mono font-bold flex items-center justify-center`;
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = 'w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition-colors';
+                }
+            });
+
+            // Update Panes UI
+            const panes = content.querySelectorAll('.edu-pane');
+            panes.forEach(pane => {
+                if (pane.id === `edu-pane-${tabId}`) {
+                    pane.classList.remove('hidden');
+                    pane.classList.add('animate-fadeIn');
+                } else {
+                    pane.classList.add('hidden');
+                    pane.classList.remove('animate-fadeIn');
+                }
+            });
+
+            // Update Top Progress Indicator
+            const indicator = document.getElementById('edu-tab-indicator');
+            if (indicator) {
+                const activeIndex = tabs.findIndex(t => t.id === tabId);
+                indicator.textContent = isJa ? `項目 ${activeIndex + 1} / ${tabs.length}` : `Materi ${activeIndex + 1} dari ${tabs.length}`;
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+
+            // Auto scroll smoothly to tab container top on small devices
+            const tabNav = document.getElementById('education-tab-container');
+            if (tabNav && window.scrollY > 300) {
+                tabNav.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
+
+        // Attach event listeners for tab buttons
+        content.querySelectorAll('.edu-tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetTab = btn.getAttribute('data-edu-tab');
+                if (targetTab) switchEduTab(targetTab);
+            });
+        });
+
+        // Attach event listeners for Next/Previous jump buttons
+        content.querySelectorAll('.btn-edu-jump').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetTab = btn.getAttribute('data-target-tab');
+                if (targetTab) switchEduTab(targetTab);
+            });
+        });
+
+        // Attach event listeners for Hero quick jumps
+        document.getElementById('btn-hero-jump-simulator')?.addEventListener('click', () => {
+            switchEduTab('simulator');
+        });
+        document.getElementById('btn-hero-jump-sixlosses')?.addEventListener('click', () => {
+            switchEduTab('six-losses');
+        });
+
+        // BIND LIVE OEE SIMULATOR CALCULATOR EVENTS
+        const simPlannedTime = document.getElementById('sim-planned-time');
+        const simPlannedBreak = document.getElementById('sim-planned-break');
+        const simDowntime = document.getElementById('sim-downtime');
+        const simSetup = document.getElementById('sim-setup');
+        const simIdleTime = document.getElementById('sim-idletime');
+        const simCycleTime = document.getElementById('sim-cycletime');
+        const simOutput = document.getElementById('sim-output');
+        const simReject = document.getElementById('sim-reject');
+        const simScrap = document.getElementById('sim-scrap');
+
+        const simOeeVal = document.getElementById('sim-oee-val');
+        const simAvailVal = document.getElementById('sim-avail-val');
+        const simPerfVal = document.getElementById('sim-perf-val');
+        const simQualVal = document.getElementById('sim-qual-val');
+        const simEvalBadge = document.getElementById('sim-eval-badge');
+        const simStatusLabel = document.getElementById('sim-status-label');
+        const simTotalLossBadge = document.getElementById('sim-total-losses-badge');
+
+        const simLossEq = document.getElementById('sim-loss-eq');
+        const simLossSetup = document.getElementById('sim-loss-setup');
+        const simLossIdle = document.getElementById('sim-loss-idle');
+        const simLossSpeed = document.getElementById('sim-loss-speed');
+        const simLossDefect = document.getElementById('sim-loss-defect');
+        const simLossScrap = document.getElementById('sim-loss-scrap');
+
+        const recalculateSimulator = () => {
+            const plannedTime = Math.max(1, parseFloat(simPlannedTime?.value || 480));
+            const plannedBreak = Math.max(0, parseFloat(simPlannedBreak?.value || 60));
+            const downtime = Math.max(0, parseFloat(simDowntime?.value || 0));
+            const setupTime = Math.max(0, parseFloat(simSetup?.value || 0));
+            const idleTime = Math.max(0, parseFloat(simIdleTime?.value || 0));
+            const cycleTime = Math.max(0.1, parseFloat(simCycleTime?.value || 9.5));
+            const totalOutput = Math.max(0, parseInt(simOutput?.value || 0));
+            const rejectQty = Math.max(0, parseInt(simReject?.value || 0));
+            const scrapQty = Math.max(0, parseInt(simScrap?.value || 0));
+
+            const availableTime = Math.max(1, plannedTime - plannedBreak);
+            const totalDown = downtime + setupTime;
+            const runTime = Math.max(0, availableTime - totalDown);
+
+            // Availability
+            const availPct = availableTime > 0 ? (runTime / availableTime) * 100 : 0;
+
+            // Performance
+            const idealOperatingSeconds = totalOutput * cycleTime;
+            const runTimeSeconds = runTime * 60;
+            const perfPct = runTimeSeconds > 0 ? Math.min(120, (idealOperatingSeconds / runTimeSeconds) * 100) : 0;
+
+            // Quality
+            const goodQty = Math.max(0, totalOutput - rejectQty - scrapQty);
+            const qualPct = totalOutput > 0 ? (goodQty / totalOutput) * 100 : 100;
+
+            // Overall OEE
+            const oeePct = (availPct * perfPct * qualPct) / 10000;
+
+            // Six Big Losses Minutes
+            const idealRunTimeMins = (cycleTime * totalOutput) / 60.0;
+            const speedLossMins = Math.max(0, runTime - idealRunTimeMins);
+            const defectLossMins = (rejectQty * cycleTime) / 60.0;
+            const scrapLossMins = (scrapQty * cycleTime) / 60.0;
+            const totalLossMins = downtime + setupTime + idleTime + speedLossMins + defectLossMins + scrapLossMins;
+
+            if (simAvailVal) simAvailVal.textContent = availPct.toFixed(2) + '%';
+            if (simPerfVal) simPerfVal.textContent = perfPct.toFixed(2) + '%';
+            if (simQualVal) simQualVal.textContent = qualPct.toFixed(2) + '%';
+            if (simOeeVal) simOeeVal.textContent = oeePct.toFixed(2) + '%';
+
+            if (simLossEq) simLossEq.textContent = downtime.toFixed(1) + 'm';
+            if (simLossSetup) simLossSetup.textContent = setupTime.toFixed(1) + 'm';
+            if (simLossIdle) simLossIdle.textContent = idleTime.toFixed(1) + 'm';
+            if (simLossSpeed) simLossSpeed.textContent = speedLossMins.toFixed(1) + 'm';
+            if (simLossDefect) simLossDefect.textContent = defectLossMins.toFixed(1) + 'm';
+            if (simLossScrap) simLossScrap.textContent = scrapLossMins.toFixed(1) + 'm';
+            if (simTotalLossBadge) simTotalLossBadge.textContent = `Total: ${totalLossMins.toFixed(1)} Menit (${(totalLossMins / 60).toFixed(1)} Jam)`;
+
+            // Evaluation Classification
+            if (simEvalBadge && simStatusLabel) {
+                if (oeePct >= 85.0) {
+                    simEvalBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
+                    simEvalBadge.textContent = 'WORLD CLASS (≥ 85%)';
+                    simStatusLabel.textContent = 'Kelas Dunia - Sangat Kompetitif';
+                    simStatusLabel.className = 'text-[10px] font-mono text-emerald-400 font-bold';
+                    simOeeVal.className = 'text-3xl sm:text-4xl font-black font-mono text-emerald-400 tracking-tight';
+                } else if (oeePct >= 75.0) {
+                    simEvalBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800';
+                    simEvalBadge.textContent = 'GOOD TYPICAL (75-84%)';
+                    simStatusLabel.textContent = 'Standar Manufaktur Baik';
+                    simStatusLabel.className = 'text-[10px] font-mono text-cyan-300 font-bold';
+                    simOeeVal.className = 'text-3xl sm:text-4xl font-black font-mono text-cyan-400 tracking-tight';
+                } else if (oeePct >= 65.0) {
+                    simEvalBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800';
+                    simEvalBadge.textContent = 'WARNING (65-74%)';
+                    simStatusLabel.textContent = 'Perlu Perhatian & Pemetaan Loss';
+                    simStatusLabel.className = 'text-[10px] font-mono text-amber-300 font-bold';
+                    simOeeVal.className = 'text-3xl sm:text-4xl font-black font-mono text-amber-400 tracking-tight';
+                } else {
+                    simEvalBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800 animate-pulse';
+                    simEvalBadge.textContent = 'CRITICAL (< 65%)';
+                    simStatusLabel.textContent = 'Perlu Tindakan Kaizen Darurat';
+                    simStatusLabel.className = 'text-[10px] font-mono text-rose-400 font-bold';
+                    simOeeVal.className = 'text-3xl sm:text-4xl font-black font-mono text-rose-400 tracking-tight';
+                }
+            }
+        };
+
+        [simPlannedTime, simPlannedBreak, simDowntime, simSetup, simIdleTime, simCycleTime, simOutput, simReject, simScrap].forEach(el => {
+            el?.addEventListener('input', recalculateSimulator);
+        });
+
+        document.getElementById('btn-reset-simulator')?.addEventListener('click', () => {
+            if (simPlannedTime) simPlannedTime.value = 480;
+            if (simPlannedBreak) simPlannedBreak.value = 60;
+            if (simDowntime) simDowntime.value = 25;
+            if (simSetup) simSetup.value = 15;
+            if (simIdleTime) simIdleTime.value = 5;
+            if (simCycleTime) simCycleTime.value = 9.5;
+            if (simOutput) simOutput.value = 2350;
+            if (simReject) simReject.value = 20;
+            if (simScrap) simScrap.value = 4;
+            recalculateSimulator();
+        });
+
+        recalculateSimulator();
     }
 }
 

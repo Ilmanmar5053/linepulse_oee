@@ -28,16 +28,22 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!str_contains($loginInput, '@')) {
-            $loginInput = strtolower($loginInput) . '@prodcr.yasunaga.com';
-        }
+        // Support direct email, name, or legacy domain fallback
+        $user = User::with('roles.permissions')
+            ->where('email', $loginInput)
+            ->orWhere('name', $loginInput)
+            ->first();
 
-        $user = User::with('roles.permissions')->where('email', $loginInput)->first();
+        if (!$user && !str_contains($loginInput, '@')) {
+            $user = User::with('roles.permissions')
+                ->where('email', strtolower($loginInput) . '@prodcr.yasunaga.com')
+                ->first();
+        }
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid login credentials. Pastikan username dan password benar (default: "password").',
+                'message' => 'Invalid login credentials. Pastikan email/username dan password benar.',
             ], 401);
         }
 

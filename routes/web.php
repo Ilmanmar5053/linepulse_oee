@@ -90,6 +90,11 @@ Route::prefix('api/v1')->group(function () {
         Route::post('/products', [MasterDataController::class, 'storeProduct']);
         Route::put('/products/{id}', [MasterDataController::class, 'updateProduct']);
         Route::delete('/products/{id}', [MasterDataController::class, 'destroyProduct']);
+        Route::get('/products/resolve-cycle-time', [MasterDataController::class, 'resolveProductCycleTime']);
+        Route::get('/products/{id}/cycle-times', [MasterDataController::class, 'productCycleTimes']);
+        Route::post('/products/{id}/cycle-times', [MasterDataController::class, 'storeProductCycleTime']);
+        Route::put('/products/{productId}/cycle-times/{cycleTimeId}', [MasterDataController::class, 'updateProductCycleTime']);
+        Route::delete('/products/{productId}/cycle-times/{cycleTimeId}', [MasterDataController::class, 'destroyProductCycleTime']);
 
         Route::get('/downtime-categories', [MasterDataController::class, 'downtimeCategories']);
         Route::post('/downtime-categories', [MasterDataController::class, 'storeDowntimeCategory']);
