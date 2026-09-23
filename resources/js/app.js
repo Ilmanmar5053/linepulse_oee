@@ -415,19 +415,60 @@ class OeeApp {
         const app = document.getElementById('app');
         const isLight = this.theme === 'light';
 
-        app.innerHTML = `
-            <div class="min-h-screen ${isLight ? 'animate-aurora-light text-slate-800' : 'animate-aurora-dark text-slate-100'} flex items-center justify-center p-3 sm:p-6 lg:p-8 font-sans relative overflow-y-auto select-none login-landscape-wrapper">
-                
-                <!-- DYNAMIC FLOATING AURA ORBS (LIVING BACKGROUND) -->
-                <div class="absolute -top-24 -left-24 w-[460px] h-[460px] rounded-full blur-3xl pointer-events-none animate-orb-1 ${isLight ? 'bg-gradient-to-tr from-sky-400/25 via-cyan-300/30 to-blue-400/25' : 'bg-gradient-to-tr from-cyan-600/20 via-blue-700/20 to-indigo-800/20'}"></div>
-                <div class="absolute -bottom-28 -right-28 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none animate-orb-2 ${isLight ? 'bg-gradient-to-bl from-indigo-300/30 via-purple-300/25 to-blue-300/20' : 'bg-gradient-to-bl from-purple-600/20 via-indigo-600/20 to-blue-700/20'}"></div>
-                <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[380px] h-[380px] rounded-full blur-3xl pointer-events-none animate-orb-3 ${isLight ? 'bg-gradient-to-r from-amber-300/15 via-teal-200/20 to-sky-300/15' : 'bg-gradient-to-r from-cyan-500/10 via-emerald-500/10 to-blue-500/10'}"></div>
-                
-                <!-- SUBTLE GEOMETRIC GRID OVERLAY -->
-                <div class="absolute inset-0 ${isLight ? 'login-grid-pattern-light opacity-50' : 'login-grid-pattern opacity-40'} pointer-events-none"></div>
+        const profile = this.companyProfile || {
+            company_name: 'PT. YASUNAGA INDONESIA',
+            plant_name: 'ENGINE PARTS & AIR PUMP MFG',
+            company_logo: '/images/yasunaga-logo.png',
+            login_background_image: '/images/yasunaga-factory.jpg',
+            login_background_blur: 'subtle',
+            login_background_darkness: 40,
+            login_background_enabled: true,
+        };
 
-                <!-- MAIN SLIM LOGIN CARD -->
-                <div class="max-w-3xl w-full my-auto ${isLight ? 'bg-white/95 border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] backdrop-blur-xl' : 'bg-[#091124]/95 border-[#1B2C56] shadow-[0_20px_60px_rgba(0,0,0,0.7)] backdrop-blur-xl'} border rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10">
+        const bgImgUrl = profile.login_background_image || '/images/yasunaga-factory.jpg';
+        const darkness = profile.login_background_darkness !== undefined ? Number(profile.login_background_darkness) : 40;
+        const blurLevel = profile.login_background_blur || 'subtle';
+        const blurCss = blurLevel === 'deep' ? 'blur(8px)' : blurLevel === 'medium' ? 'blur(4px)' : blurLevel === 'subtle' ? 'blur(1.5px)' : 'none';
+
+        app.innerHTML = `
+            <div class="min-h-screen text-slate-100 flex items-center justify-center p-3 sm:p-6 lg:p-8 font-sans relative overflow-hidden select-none login-landscape-wrapper bg-slate-950">
+                
+                <!-- 1. FULL-STRETCH FACTORY BACKGROUND LAYER (HIGH RESOLUTION & SMOOTH AMBIENT MOTION) -->
+                <div id="login-full-bg-layer" class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                    <div id="login-full-bg-img" class="login-full-stretch-bg" 
+                         style="background-image: url('${this.escapeHtml(bgImgUrl)}'); filter: ${blurCss};">
+                    </div>
+                </div>
+
+                <!-- 2. LUXURY AMBIENT CONTRAST OVERLAY -->
+                <div id="login-bg-overlay" class="absolute inset-0 z-[1] pointer-events-none transition-all duration-700" 
+                     style="background-color: rgba(2, 6, 23, ${(darkness / 100).toFixed(2)});"></div>
+                
+                <!-- 3. VIGNETTE & SMOOTH TOP/SIDE GRADIENTS -->
+                <div class="login-luxury-vignette"></div>
+                <div class="absolute inset-0 z-[2] pointer-events-none bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-slate-950/60"></div>
+                <div class="absolute inset-0 z-[2] pointer-events-none bg-gradient-to-r from-slate-950/70 via-transparent to-slate-950/70"></div>
+                
+                <!-- 4. LUXURY BOTTOM SOFTBLUR (MEWAH & HIGH QUALITY GRADIENT BLEND) -->
+                <div class="login-bottom-softblur"></div>
+
+                <!-- 5. TOP BRANDING BADGE (PT YASUNAGA INDONESIA) -->
+                <div class="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-white/95 backdrop-blur-md border border-white/50 p-1.5 flex items-center justify-center shadow-xl">
+                        <img id="login-header-logo-img" src="${this.escapeHtml(profile.company_logo || '/images/yasunaga-logo.png')}" class="max-h-full max-w-full object-contain" alt="Logo" />
+                    </div>
+                    <div>
+                        <div id="login-header-comp-name" class="text-xs sm:text-sm font-black tracking-wider uppercase text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                            ${profile.company_name || 'PT. YASUNAGA INDONESIA'}
+                        </div>
+                        <div id="login-header-plant-name" class="text-[10px] sm:text-[11px] font-mono font-bold text-cyan-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                            ${profile.plant_name || 'CONNECTING ROD & AIR PUMP PLANT'}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. MAIN SLIM LOGIN CARD (FLOATING GLASSMORPHISM) -->
+                <div class="max-w-3xl w-full my-auto ${isLight ? 'bg-white/95 border-slate-200 shadow-[0_25px_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl' : 'bg-[#091124]/90 border-[#1B2C56] shadow-[0_25px_70px_rgba(0,0,0,0.85)] backdrop-blur-2xl'} border rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 relative z-10">
                     
                     <!-- SISI KIRI (DYNAMIC DUAL/MULTI-IMAGE SLIDESHOW WITH SMOOTH KEN BURNS MOTION) -->
                     <div class="md:col-span-5 relative overflow-hidden min-h-[220px] sm:min-h-[300px] md:min-h-[460px] flex flex-col justify-end p-5 sm:p-7 border-b md:border-b-0 md:border-r ${isLight ? 'border-slate-200' : 'border-[#152347]'} bg-slate-950 group/slide">
@@ -540,6 +581,31 @@ class OeeApp {
         if (window.lucide) window.lucide.createIcons();
         this.bindLoginEvents();
         this.initLoginSlideshow();
+
+        // Asynchronously fetch latest company profile to update background and logo if changed by admin
+        api.getCompanyProfile().then(res => {
+            if (res.data?.data) {
+                const p = res.data.data;
+                this.companyProfile = p;
+                const bgImg = document.getElementById('login-full-bg-img');
+                const overlay = document.getElementById('login-bg-overlay');
+                const logoImg = document.getElementById('login-header-logo-img');
+                const compName = document.getElementById('login-header-comp-name');
+                const plantName = document.getElementById('login-header-plant-name');
+
+                if (bgImg && p.login_background_image) {
+                    bgImg.style.backgroundImage = `url('${p.login_background_image}')`;
+                    const blurLvl = p.login_background_blur || 'subtle';
+                    bgImg.style.filter = blurLvl === 'deep' ? 'blur(8px)' : blurLvl === 'medium' ? 'blur(4px)' : blurLvl === 'subtle' ? 'blur(1.5px)' : 'none';
+                }
+                if (overlay && p.login_background_darkness !== undefined) {
+                    overlay.style.backgroundColor = `rgba(2, 6, 23, ${(Number(p.login_background_darkness) / 100).toFixed(2)})`;
+                }
+                if (logoImg && p.company_logo) logoImg.src = p.company_logo;
+                if (compName && p.company_name) compName.textContent = p.company_name;
+                if (plantName && p.plant_name) plantName.textContent = p.plant_name;
+            }
+        }).catch(err => console.warn('Login background async fetch:', err));
     }
 
     async initLoginSlideshow() {
@@ -1048,17 +1114,17 @@ class OeeApp {
 
         if (logoContainer) {
             if (this.companyProfile.company_logo) {
-                logoContainer.innerHTML = `<img src="${this.escapeHtml(this.companyProfile.company_logo)}" class="w-9 h-9 object-contain drop-shadow-sm" alt="Logo" />`;
+                logoContainer.innerHTML = `<img src="${this.escapeHtml(this.companyProfile.company_logo)}" class="max-h-9 w-auto max-w-[140px] object-contain drop-shadow transition-transform duration-200 group-hover/header:scale-105" alt="Logo" />`;
             } else {
-                logoContainer.innerHTML = `<i data-lucide="activity" class="w-7 h-7 text-cyan-400"></i>`;
+                logoContainer.innerHTML = `<div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-sm"><i data-lucide="activity" class="w-5 h-5"></i></div>`;
                 if (window.lucide) window.lucide.createIcons();
             }
         }
         if (nameEl) {
-            nameEl.textContent = this.companyProfile.plant_name || this.companyProfile.company_name || 'OEE Sys';
+            nameEl.textContent = this.companyProfile.plant_name || this.companyProfile.company_name || 'CONNECTING ROD';
         }
         if (tagEl) {
-            tagEl.textContent = this.companyProfile.plant_code ? `${this.companyProfile.plant_code} • Enterprise Edition` : 'Enterprise Edition';
+            tagEl.textContent = this.companyProfile.plant_code ? `${this.companyProfile.plant_code} • Enterprise MES` : 'Enterprise MES';
         }
     }
 
@@ -1457,22 +1523,25 @@ class OeeApp {
                 <aside id="sidebar" class="${sidebarClass} flex flex-col justify-between flex-shrink-0 transition-all duration-300 shadow-2xl z-20 select-none">
                     <div class="flex flex-col min-h-0 flex-1">
                         <!-- BRAND LOGO -->
-                        <div id="sidebar-brand-header" class="h-14 px-4 flex items-center justify-between border-b border-[#152347] flex-shrink-0 box-border">
-                            <div class="flex items-center gap-3 min-w-0 flex-1">
-                                <div id="sidebar-brand-logo-container" class="flex-shrink-0 flex items-center justify-center cursor-pointer" title="LinePulse OEE System">
-                                    ${this.companyProfile?.company_logo 
-                                        ? `<img src="${this.escapeHtml(this.companyProfile.company_logo)}" class="w-8 h-8 object-contain drop-shadow-sm" alt="Logo" />` 
-                                        : `<i data-lucide="activity" class="w-6 h-6 text-cyan-400"></i>`
-                                    }
-                                </div>
-                                <div id="sidebar-brand-text-container" class="min-w-0 flex-1">
-                                    <h1 id="sidebar-brand-name" class="font-extrabold text-white tracking-wide leading-tight truncate text-xs">${this.companyProfile?.plant_name || 'OEE Sys'}</h1>
-                                    <span id="sidebar-brand-tagline" class="text-[9.5px] text-cyan-400 font-medium tracking-wider uppercase truncate block">${this.companyProfile?.plant_code ? `${this.companyProfile.plant_code} • MES Standard` : 'Enterprise MES'}</span>
-                                </div>
-                            </div>
-                            <button id="btn-toggle-sidebar-pin" class="p-1 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800/60 transition-colors cursor-pointer flex-shrink-0" title="${this.isSidebarPinned ? 'Kunci Sidebar (Fixed) - Klik untuk Mode Auto Hide' : 'Buka Kunci Sidebar - Klik untuk Kunci Sidebar Tetap'}">
+                        <div id="sidebar-brand-header" class="relative py-3.5 px-3 flex flex-col items-center justify-center border-b border-[#152347] flex-shrink-0 box-border group/header">
+                            <!-- PIN TOGGLE BUTTON (ABSOLUTE TOP RIGHT) -->
+                            <button id="btn-toggle-sidebar-pin" class="absolute top-2 right-2 p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800/60 transition-colors cursor-pointer flex-shrink-0 z-10" title="${this.isSidebarPinned ? 'Kunci Sidebar (Fixed) - Klik untuk Mode Auto Hide' : 'Buka Kunci Sidebar - Klik untuk Kunci Sidebar Tetap'}">
                                 <i data-lucide="${this.isSidebarPinned ? 'pin' : 'pin-off'}" class="w-3.5 h-3.5 ${this.isSidebarPinned ? 'text-cyan-400' : 'text-slate-500'}"></i>
                             </button>
+
+                            <!-- LOGO ON TOP & CENTERED -->
+                            <div id="sidebar-brand-logo-container" class="flex-shrink-0 flex items-center justify-center cursor-pointer w-full" title="${this.escapeHtml(this.companyProfile?.company_name || 'LinePulse OEE System')}">
+                                ${this.companyProfile?.company_logo 
+                                    ? `<img src="${this.escapeHtml(this.companyProfile.company_logo)}" class="max-h-9 w-auto max-w-[140px] object-contain drop-shadow transition-transform duration-200 group-hover/header:scale-105" alt="Logo" />` 
+                                    : `<div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-sm"><i data-lucide="activity" class="w-5 h-5"></i></div>`
+                                }
+                            </div>
+
+                            <!-- TEXT INFORMATION BELOW LOGO -->
+                            <div id="sidebar-brand-text-container" class="mt-2 text-center w-full px-1">
+                                <h1 id="sidebar-brand-name" class="font-extrabold text-white tracking-wider leading-tight text-xs uppercase drop-shadow-sm line-clamp-2">${this.companyProfile?.plant_name || this.companyProfile?.company_name || 'CONNECTING ROD'}</h1>
+                                <span id="sidebar-brand-tagline" class="text-[9.5px] text-cyan-400 font-semibold tracking-wider uppercase block mt-0.5 font-mono truncate">${this.companyProfile?.plant_code ? `${this.companyProfile.plant_code} • Enterprise MES` : 'Enterprise MES'}</span>
+                            </div>
                         </div>
 
                         <!-- NAVIGATION MENU WITH CATEGORIZED MODULE DIVIDERS -->
@@ -1486,8 +1555,8 @@ class OeeApp {
                                     </span>
                                 </div>
                                 ${this.navItem('dashboard', 'layout-dashboard', this.t('nav.dashboard', 'Dasbor'))}
-                                ${this.navItem('daily-report', 'clipboard-edit', this.t('nav.daily_input', 'Input Laporan Harian'))}
-                                ${this.navItem('ng-report', 'shield-alert', this.t('nav.ng_input', 'Input Laporan NG'), this.t('nav.new_badge', 'NEW'))}
+                                ${this.navItem('daily-report', 'clipboard-edit', this.t('nav.daily_input', 'Input Laporan Harian'), this.t('nav.mandatory_badge', 'WAJIB'), 'sonar-emerald')}
+                                ${this.navItem('ng-report', 'shield-alert', this.t('nav.ng_input', 'Input Laporan NG'), this.t('nav.mandatory_badge', 'WAJIB'), 'sonar-amber')}
                                 ${this.navItem('monitoring', 'monitor', this.t('nav.monitoring', 'Monitoring Produksi'))}
                             ` : ''}
 
@@ -1504,7 +1573,7 @@ class OeeApp {
                                 ${this.navItem('lines', 'git-fork', this.t('nav.line_perf', 'Lini Produksi'))}
                                 ${this.navItem('shifts', 'clock', this.t('nav.shift_team_perf', 'Kinerja Shift & Tim'))}
                                 ${this.navItem('downtime', 'alert-triangle', this.t('nav.downtime_analysis', 'Analisis Downtime'))}
-                                ${this.navItem('quality', 'pie-chart', this.t('nav.quality_perf', 'Kinerja Kualitas'), 'PARETO')}
+                                ${this.navItem('quality', 'pie-chart', this.t('nav.quality_perf', 'Kinerja Kualitas'))}
                             ` : ''}
 
                             <!-- MODUL 3: REPORT & DATA MASTER -->
@@ -1518,7 +1587,7 @@ class OeeApp {
                                 </div>
                                 ${this.navItem('reports', 'file-bar-chart', this.t('nav.reports', 'Laporan & Ekspor Data'))}
                                 ${this.navItem('master', 'database', this.t('nav.master_data', 'Master Data'))}
-                                ${this.navItem('oee-education', 'graduation-cap', this.t('nav.oee_education', 'OEE Education'), 'GUIDE')}
+                                ${this.navItem('oee-education', 'graduation-cap', this.t('nav.oee_education', 'OEE Education'))}
                             ` : ''}
 
                             <!-- MODUL 4: PENGATURAN SISTEM -->
@@ -1532,7 +1601,7 @@ class OeeApp {
                                 </div>
                                 ${this.navItem('users', 'users', this.t('nav.users', 'Manajemen Pengguna'))}
                                 ${this.navItem('settings', 'settings', this.t('nav.settings', 'Pengaturan Sistem'))}
-                                ${this.navItem('database', 'hard-drive', this.t('nav.database', 'Manajemen Basis Data'), 'GO-LIVE')}
+                                ${this.navItem('database', 'hard-drive', this.t('nav.database', 'Manajemen Basis Data'))}
                             ` : ''}
                         </nav>
                     </div>
@@ -1699,24 +1768,76 @@ class OeeApp {
         if (window.lucide) window.lucide.createIcons();
     }
 
-    navItem(id, icon, label, badge = null) {
+    navItem(id, icon, label, badge = null, badgeType = null) {
         const isActive = this.currentTab === id || (id === 'shifts' && this.currentTab === 'teams');
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const isMandatory = id === 'daily-report' || id === 'ng-report' || badgeType?.startsWith('sonar-');
+        
         const activeClass = isActive
             ? 'active'
-            : 'text-slate-400';
+            : (isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400');
 
-        const iconColor = isActive 
+        let iconColor = isActive 
             ? 'text-cyan-400' 
-            : 'text-slate-400 group-hover:text-cyan-300';
+            : (isLight ? 'text-slate-500 group-hover:text-cyan-600' : 'text-slate-400 group-hover:text-cyan-300');
+
+        if (!isActive && isMandatory) {
+            iconColor = id === 'daily-report' 
+                ? (isLight ? 'text-emerald-600 group-hover:text-emerald-700' : 'text-emerald-400 group-hover:text-emerald-300')
+                : (isLight ? 'text-amber-600 group-hover:text-amber-700' : 'text-amber-400 group-hover:text-amber-300');
+        }
+
+        let badgeHtml = '';
+        if (badge) {
+            if (badgeType === 'sonar-emerald' || id === 'daily-report') {
+                badgeHtml = `
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="relative flex h-2 w-2 flex-shrink-0">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+                        </span>
+                        <span class="text-[8.5px] font-mono font-black px-1.5 py-0.5 rounded-full ${isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'} tracking-wider uppercase">
+                            ${badge}
+                        </span>
+                    </div>
+                `;
+            } else if (badgeType === 'sonar-amber' || badgeType === 'sonar-rose' || id === 'ng-report') {
+                badgeHtml = `
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="relative flex h-2 w-2 flex-shrink-0">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-80"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_8px_#f59e0b]"></span>
+                        </span>
+                        <span class="text-[8.5px] font-mono font-black px-1.5 py-0.5 rounded-full ${isLight ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-sm' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'} tracking-wider uppercase">
+                            ${badge}
+                        </span>
+                    </div>
+                `;
+            } else {
+                badgeHtml = `<span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${isLight ? 'bg-cyan-100 text-cyan-800 border border-cyan-200' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'}">${badge}</span>`;
+            }
+        }
+
+        const mandatoryContainerClass = isMandatory && !isActive
+            ? (isLight ? 'hover:bg-slate-100/80' : 'hover:bg-slate-800/60')
+            : '';
 
         return `
-            <a href="#" data-tab="${id}" class="nav-link sidebar-nav-item group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs cursor-pointer ${activeClass}" title="${label}">
+            <a href="#" data-tab="${id}" class="nav-link sidebar-nav-item group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs cursor-pointer ${activeClass} ${mandatoryContainerClass}" title="${label}">
                 <div class="nav-item-left flex items-center gap-2.5 min-w-0">
-                    <i data-lucide="${icon}" class="w-4 h-4 nav-icon flex-shrink-0 ${iconColor} transition-all duration-200"></i>
-                    <span class="nav-label truncate tracking-wide text-[11.5px] font-medium ${isActive ? 'text-white font-semibold' : 'text-slate-300 group-hover:text-white'}">${label}</span>
+                    <div class="relative flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="${icon}" class="w-4 h-4 nav-icon flex-shrink-0 ${iconColor} transition-all duration-200"></i>
+                        ${isMandatory ? `
+                            <span class="mini-sonar-dot hidden absolute -top-1 -right-1 h-2 w-2 pointer-events-none">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${id === 'daily-report' ? 'bg-emerald-400' : 'bg-amber-400'} opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 ${id === 'daily-report' ? 'bg-emerald-500' : 'bg-amber-500'}"></span>
+                            </span>
+                        ` : ''}
+                    </div>
+                    <span class="nav-label truncate tracking-wide text-[11.5px] font-medium ${isActive ? (isLight ? 'text-cyan-900 font-bold' : 'text-white font-semibold') : (isLight ? (isMandatory ? 'text-slate-800 font-semibold group-hover:text-slate-950' : 'text-slate-600 group-hover:text-slate-900') : (isMandatory ? 'text-slate-200 font-semibold group-hover:text-white' : 'text-slate-300 group-hover:text-white'))}">${label}</span>
                 </div>
-                <div class="nav-item-right flex items-center gap-1 flex-shrink-0">
-                    ${badge ? `<span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${badge === 'PARETO' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'}">${badge}</span>` : ''}
+                <div class="nav-item-right flex items-center gap-1.5 flex-shrink-0">
+                    ${badgeHtml}
                     ${isActive ? '<span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse"></span>' : ''}
                 </div>
             </a>
@@ -4707,263 +4828,370 @@ tbody.innerHTML = '';
             const filterShiftLabel = this.filters.shift_id
                 ? (this.masterData.shifts?.find(s => s.id == this.filters.shift_id)?.name || `Shift #${this.filters.shift_id}`)
                 : (isJa ? '全直 (All Shifts)' : 'Semua Shift Kerja');
+            // Group losses into 3 Pillars
+            const availLosses = losses.filter(it => {
+                const name = it.loss || '';
+                const cat = (it.category || '').toLowerCase();
+                return cat.includes('avail') || name.includes('Equipment') || name.includes('Setup');
+            });
+            const perfLosses = losses.filter(it => {
+                const name = it.loss || '';
+                const cat = (it.category || '').toLowerCase();
+                return cat.includes('perf') || name.includes('Idling') || name.includes('Speed');
+            });
+            const qualLosses = losses.filter(it => {
+                const name = it.loss || '';
+                const cat = (it.category || '').toLowerCase();
+                return !cat.includes('avail') && !cat.includes('perf') && !name.includes('Equipment') && !name.includes('Setup') && !name.includes('Idling') && !name.includes('Speed');
+            });
+
+            // Helper function to render a single Loss Card in the 3-column landscape view
+            const renderLossCard = (item) => {
+                const meta = sixLossMetadata[item.loss] || {
+                    number: 0,
+                    jaName: item.loss,
+                    pillar: item.category || 'Loss',
+                    jaPillar: '損失',
+                    color: '#3b82f6',
+                    badgeBg: isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-950 text-blue-400',
+                    gradient: 'from-blue-600 to-blue-400',
+                    icon: 'alert-circle',
+                    definition: 'Loss parameter dalam perhitungan OEE.',
+                    formula: 'Total Durasi (Menit)',
+                    categories: ['Downtime Operasional'],
+                    kaizen: 'Penerapan Kaizen & standardisasi proses.'
+                };
+
+                const mins = Number(item.minutes) || 0;
+                const hrs = (mins / 60).toFixed(1);
+                const pct = totalMins > 0 ? ((mins / totalMins) * 100).toFixed(1) : '0.0';
+
+                return `
+                    <div class="${isLight ? 'bg-white border-slate-200/90 shadow-sm hover:shadow-md' : 'bg-[#0F1C3F]/90 border-[#1E3163] hover:border-cyan-500/40 shadow-lg'} border rounded-xl p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-200 gap-3 group">
+                        
+                        <!-- CARD HEADER: NO, TITLE & DURATION METRIC -->
+                        <div>
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-black font-mono text-white text-xs shadow-sm ring-1 ring-white/10" style="background-color: ${meta.color};">
+                                        #${meta.number}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h5 class="font-extrabold text-[13px] sm:text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate group-hover:text-cyan-400 transition-colors" title="${item.loss}">
+                                            ${isJa ? meta.jaName : item.loss}
+                                        </h5>
+                                        <div class="flex items-center gap-1.5 mt-0.5">
+                                            <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold font-mono border ${meta.badgeBg}">
+                                                ${isJa ? meta.jaPillar : meta.pillar}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right font-mono flex-shrink-0">
+                                    <div class="text-sm sm:text-base font-black ${isLight ? 'text-slate-900' : 'text-slate-100'}">
+                                        ${hrs}h <span class="text-[10px] font-normal text-slate-400">(${mins.toFixed(1)}m)</span>
+                                    </div>
+                                    <span class="inline-block text-[9.5px] font-bold px-1.5 py-0.2 rounded ${mins > 0 ? (isLight ? 'bg-rose-100 text-rose-700 font-semibold' : 'bg-rose-950/80 text-rose-300 border border-rose-800/60') : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400')}">
+                                        ${pct}% of Total
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- SLIM GRADIENT PROGRESS BAR -->
+                            <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-100' : 'bg-slate-950'} overflow-hidden border ${isLight ? 'border-slate-200' : 'border-slate-800/80'} mt-2.5">
+                                <div class="h-full rounded-full bg-gradient-to-r ${meta.gradient} transition-all duration-500" style="width: ${Math.min(100, Math.max(0, pct))}%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- BODY: DEFINISI & FORMULA (STRUCTURED & RINGKAS) -->
+                        <div class="space-y-2 text-[11px]">
+                            <!-- DEFINISI -->
+                            <div class="${isLight ? 'bg-slate-50/80 border-slate-200 text-slate-700' : 'bg-slate-900/60 border-slate-800/70 text-slate-300'} p-2.5 rounded-lg border leading-relaxed flex items-start gap-2">
+                                <i data-lucide="info" class="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 mt-0.5"></i>
+                                <div>
+                                    <strong class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}">${isJa ? '定義:' : 'Definisi:'}</strong>
+                                    <span class="text-[10.5px] ${isLight ? 'text-slate-600' : 'text-slate-300'}">${meta.definition}</span>
+                                </div>
+                            </div>
+
+                            <!-- FORMULA BOX -->
+                            <div class="${isLight ? 'bg-sky-50/60 text-sky-950 border-sky-200' : 'bg-[#071126] text-cyan-300 border-cyan-950/80'} p-2 rounded-lg font-mono text-[10px] border flex items-start gap-1.5">
+                                <span class="font-bold text-cyan-500 font-sans flex-shrink-0">${isJa ? '📐 計算式:' : '📐 Rumus:'}</span>
+                                <span class="truncate-two-lines text-[10px] font-semibold">${meta.formula}</span>
+                            </div>
+
+                            <!-- CATEGORY / TYPICAL CAUSES IN FACTORY -->
+                            <div class="pt-1">
+                                <span class="font-bold text-[10px] uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-400'} flex items-center gap-1 mb-1">
+                                    <i data-lucide="alert-triangle" class="w-3 h-3 text-amber-400"></i>
+                                    <span>${isJa ? '主要な発生要因 (Kategori Losstime):' : 'Contoh Faktor & Losstime Penyebab:'}</span>
+                                </span>
+                                <ul class="space-y-1 text-[10.5px] ${isLight ? 'text-slate-600' : 'text-slate-400'} pl-0.5">
+                                    ${meta.categories.slice(0, 3).map(catItem => `
+                                        <li class="flex items-start gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style="background-color: ${meta.color};"></span>
+                                            <span class="leading-tight text-[10px]">${catItem}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- KAIZEN / TPM STRATEGY (DISTINCT ACTIONABLE FOOTER) -->
+                        <div class="${isLight ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' : 'bg-emerald-950/30 border-emerald-800/40 text-emerald-300'} p-2.5 rounded-lg border text-[10.5px]">
+                            <div class="font-bold flex items-center gap-1.5 mb-1 text-emerald-400 text-[10.5px]">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0"></i>
+                                <span>${isJa ? '改善・TPM対策 (Kaizen Strategy):' : 'Solusi & Kaizen TPM:'}</span>
+                            </div>
+                            <p class="${isLight ? 'text-emerald-800' : 'text-emerald-300/90'} text-[10px] leading-relaxed">${meta.kaizen}</p>
+                        </div>
+                    </div>
+                `;
+            };
 
             modalContainer.innerHTML = `
                 <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
-                    <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-[#0B142C] border-[#1B2C56] text-slate-100 shadow-2xl'} border rounded-2xl max-w-5xl w-full my-auto overflow-hidden font-sans flex flex-col max-h-[92vh]">
+                    <div class="${isLight ? 'bg-slate-50 border-slate-200 text-slate-900 shadow-2xl' : 'bg-[#080E21] border-[#18284F] text-slate-100 shadow-2xl'} border rounded-2xl w-full max-w-[1440px] my-auto overflow-hidden font-sans flex flex-col max-h-[95vh]">
                         
-                        <!-- MODAL HEADER -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#070D1E] border-[#152347]'} px-6 py-4 border-b flex items-center justify-between flex-shrink-0">
-                            <div class="flex items-center gap-3">
-                                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-500/20 to-amber-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center shadow-inner flex-shrink-0">
-                                    <i data-lucide="pie-chart" class="w-6 h-6"></i>
+                        <!-- MODAL HEADER (LANDSCAPE HIGH DENSITY) -->
+                        <div class="${isLight ? 'bg-white border-slate-200' : 'bg-[#050A18] border-[#142144]'} px-4 sm:px-6 py-3 border-b flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
+                            
+                            <!-- LEFT: TITLE & ACTIVE FILTER CHIPS -->
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500/20 via-amber-500/20 to-purple-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center shadow-inner flex-shrink-0">
+                                    <i data-lucide="pie-chart" class="w-5 h-5"></i>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <h3 class="font-extrabold text-base sm:text-lg ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                             <span>${isJa ? '6大ロス詳細分析 & TPMブレークダウン' : 'Six Big Losses Breakdown & TPM Analysis'}</span>
                                         </h3>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${isLight ? 'bg-rose-100 text-rose-700 border border-rose-300' : 'bg-rose-950/80 text-rose-400 border border-rose-800/80'}">
-                                            TPM 6 Pillars
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${isLight ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'}">
+                                            JIPM Standard Framework
                                         </span>
                                     </div>
-                                    <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5 flex items-center gap-2 flex-wrap font-mono">
-                                        <span>📅 ${filterPeriodLabel}</span> &bull;
-                                        <span>🏭 ${filterLineLabel}</span> &bull;
-                                        <span>⚙️ ${filterMachineLabel}</span> &bull;
-                                        <span>⏰ ${filterShiftLabel}</span>
-                                    </p>
+                                    <!-- ACTIVE FILTER PILLS -->
+                                    <div class="flex items-center gap-1.5 mt-1 flex-wrap text-[10.5px] font-mono">
+                                        <span class="px-2 py-0.5 rounded-md ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-900 text-slate-300 border border-slate-800'} flex items-center gap-1">
+                                            <span>📅</span> ${filterPeriodLabel}
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-md ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-900 text-slate-300 border border-slate-800'} flex items-center gap-1">
+                                            <span>🏭</span> ${filterLineLabel}
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-md ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-900 text-slate-300 border border-slate-800'} flex items-center gap-1">
+                                            <span>⚙️</span> ${filterMachineLabel}
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-md ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-slate-900 text-slate-300 border border-slate-800'} flex items-center gap-1">
+                                            <span>⏰</span> ${filterShiftLabel}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-2">
-                                <div class="hidden sm:flex flex-col text-right font-mono pr-2">
-                                    <span class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase font-sans">${isJa ? '総損失時間' : 'Total Losses'}</span>
-                                    <span class="text-sm font-black text-rose-400">${totalHours}h <span class="text-[10px] font-normal text-slate-400">(${totalMins}m)</span></span>
+                            <!-- RIGHT: TOTAL LOSSES BADGE, PRINT & CLOSE -->
+                            <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
+                                <div class="${isLight ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-rose-950/60 border-rose-800/80 text-rose-300'} border px-3 py-1.5 rounded-xl flex items-center gap-2.5 font-mono shadow-sm">
+                                    <div class="text-right">
+                                        <div class="text-[9px] uppercase font-sans tracking-wider ${isLight ? 'text-rose-600' : 'text-rose-400'} font-bold">${isJa ? '総損失時間' : 'Total Losses'}</div>
+                                        <div class="text-sm sm:text-base font-black text-rose-500">${totalHours}h <span class="text-xs font-normal opacity-80">(${totalMins.toFixed(1)}m)</span></div>
+                                    </div>
                                 </div>
+
+                                <button type="button" id="btn-print-six-losses-summary" class="px-3 py-2 rounded-xl text-xs font-bold ${isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200' : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700'} flex items-center gap-1.5 cursor-pointer transition-colors" title="Cetak / Export Laporan PDF">
+                                    <i data-lucide="printer" class="w-4 h-4 text-cyan-400"></i>
+                                    <span class="hidden md:inline">${isJa ? '印刷' : 'Cetak'}</span>
+                                </button>
+
                                 <button id="btn-close-six-losses-modal" class="p-2 rounded-xl ${isLight ? 'text-slate-400 hover:text-slate-800 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} cursor-pointer transition-colors" title="Tutup Modal (ESC)">
                                     <i data-lucide="x" class="w-5 h-5"></i>
                                 </button>
                             </div>
                         </div>
 
+                        <!-- NAVIGATION TABS (LANDSCAPE MULTI-VIEW) -->
+                        <div class="${isLight ? 'bg-slate-100/80 border-slate-200' : 'bg-[#0B1530] border-[#16254E]'} px-4 sm:px-6 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto flex-shrink-0">
+                            <div class="flex items-center gap-2">
+                                <button type="button" data-tab-target="tab-landscape-grid" class="six-losses-tab-btn active px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 cursor-pointer transition-all ${isLight ? 'bg-white text-cyan-700 shadow-sm border border-slate-200' : 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30'}">
+                                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                                    <span>${isJa ? '6大ロス 3本柱マトリクス' : 'Matriks 6 Big Losses (Landscape 3 Pillars)'}</span>
+                                </button>
+                                <button type="button" data-tab-target="tab-live-data" class="six-losses-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all ${isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-white/60' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}">
+                                    <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                                    <span>${isJa ? '実績データ内訳 (Downtime & Defect)' : 'Data Riil Downtime & Cacat Pabrik'}</span>
+                                    <span class="px-1.5 py-0.2 rounded text-[9.5px] font-mono ${isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-cyan-300'}">${dtPareto.length + defPareto.length}</span>
+                                </button>
+                                <button type="button" data-tab-target="tab-oee-formula" class="six-losses-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all ${isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-white/60' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}">
+                                    <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                                    <span>${isJa ? '計算体系 & OEE 構造式' : 'Formula & Panduan Standar OEE'}</span>
+                                </button>
+                            </div>
+
+                            <span class="text-[11px] font-mono text-slate-400 hidden xl:inline-flex items-center gap-1.5">
+                                <i data-lucide="info" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                ${isJa ? 'TPM 6大ロス分析 (JIPM World Class TPM Framework)' : 'Standar Analisis Efektivitas Mesin Connecting Rod (PT Yasunaga)'}
+                            </span>
+                        </div>
+
                         <!-- MODAL BODY (SCROLLABLE) -->
-                        <div class="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1 text-xs custom-scrollbar">
+                        <div class="p-3.5 sm:p-5 overflow-y-auto flex-1 text-xs custom-scrollbar space-y-4">
 
-                            <!-- 1. TOP SUMMARY: 3 PILLARS OF OEE LOSSES -->
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <h4 class="font-bold text-xs uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'} flex items-center gap-1.5">
-                                        <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                        <span>${isJa ? 'OEE 3大要素別 損失サマリー' : 'Ringkasan Kerugian Berdasarkan 3 Pilar OEE'}</span>
-                                    </h4>
-                                    <span class="text-[11px] font-mono text-slate-400">${isJa ? '基準: TPM 世界基準フレームワーク' : 'Standar: World-Class TPM Framework'}</span>
-                                </div>
-
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
-                                    <!-- AVAILABILITY LOSS TILE -->
-                                    <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'} border rounded-xl p-3 relative overflow-hidden">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-[11px] font-bold font-sans ${isLight ? 'text-rose-700' : 'text-rose-400'} flex items-center gap-1.5">
-                                                <span class="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e]"></span>
-                                                ${isJa ? '時間稼働ロス (Availability)' : 'Availability Loss'}
-                                            </span>
-                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-rose-100 text-rose-700' : 'bg-rose-950 text-rose-400 border border-rose-800/60'}">${availPct}% of Loss</span>
+                            <!-- ========================================== -->
+                            <!-- TAB 1: 3-PILLAR LANDSCAPE 6 LOSSES MATRIX  -->
+                            <!-- ========================================== -->
+                            <div id="tab-landscape-grid" class="six-losses-tab-content space-y-4">
+                                
+                                <!-- TOP HORIZONTAL SUMMARY RIBBON (3 PILLARS KPI) -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono">
+                                    
+                                    <!-- 1. AVAILABILITY LOSS PILLAR KPI -->
+                                    <div class="${isLight ? 'bg-white border-rose-200 text-slate-800 shadow-sm' : 'bg-[#110B1E]/80 border-rose-900/60 text-slate-200 shadow-md'} border rounded-xl p-3 relative overflow-hidden flex flex-col justify-between">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]"></span>
+                                                <span class="font-bold text-xs font-sans ${isLight ? 'text-rose-800' : 'text-rose-400'}">
+                                                    1. Availability Losses (Ketersediaan)
+                                                </span>
+                                            </div>
+                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-rose-100 text-rose-700' : 'bg-rose-950 text-rose-400 border border-rose-800/80'}">${availPct}%</span>
                                         </div>
-                                        <div class="text-lg font-black text-rose-400 mt-2">
-                                            ${(availLossMins / 60).toFixed(1)}h <span class="text-xs font-normal text-slate-400">(${availLossMins}m)</span>
+                                        <div class="flex items-baseline justify-between mt-2">
+                                            <div class="text-xl font-black text-rose-500">
+                                                ${(availLossMins / 60).toFixed(1)}h <span class="text-xs font-normal text-slate-400">(${availLossMins.toFixed(1)}m)</span>
+                                            </div>
+                                            <span class="text-[10px] font-sans ${isLight ? 'text-slate-500' : 'text-slate-400'}">Faktor: <strong>Availability (A)</strong></span>
                                         </div>
-                                        <p class="text-[10px] font-sans ${isLight ? 'text-slate-600' : 'text-slate-400'} mt-1">
-                                            ${isJa ? '設備故障 + 段取り・調整ロス' : 'Equipment Failure + Setup & Adjustment'}
-                                        </p>
-                                        <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} mt-2 overflow-hidden">
+                                        <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-100' : 'bg-slate-900'} mt-2 overflow-hidden">
                                             <div class="h-full rounded-full bg-rose-500" style="width: ${availPct}%;"></div>
                                         </div>
                                     </div>
 
-                                    <!-- PERFORMANCE LOSS TILE -->
-                                    <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'} border rounded-xl p-3 relative overflow-hidden">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-[11px] font-bold font-sans ${isLight ? 'text-amber-700' : 'text-amber-400'} flex items-center gap-1.5">
-                                                <span class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_#eab308]"></span>
-                                                ${isJa ? '性能稼働ロス (Performance)' : 'Performance Loss'}
-                                            </span>
-                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-amber-100 text-amber-700' : 'bg-amber-950 text-amber-400 border border-amber-800/60'}">${perfPct}% of Loss</span>
+                                    <!-- 2. PERFORMANCE LOSS PILLAR KPI -->
+                                    <div class="${isLight ? 'bg-white border-amber-200 text-slate-800 shadow-sm' : 'bg-[#18130B]/80 border-amber-900/60 text-slate-200 shadow-md'} border rounded-xl p-3 relative overflow-hidden flex flex-col justify-between">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#eab308]"></span>
+                                                <span class="font-bold text-xs font-sans ${isLight ? 'text-amber-800' : 'text-amber-400'}">
+                                                    2. Performance Losses (Unjuk Kerja)
+                                                </span>
+                                            </div>
+                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-amber-100 text-amber-700' : 'bg-amber-950 text-amber-400 border border-amber-800/80'}">${perfPct}%</span>
                                         </div>
-                                        <div class="text-lg font-black text-amber-400 mt-2">
-                                            ${(perfLossMins / 60).toFixed(1)}h <span class="text-xs font-normal text-slate-400">(${perfLossMins}m)</span>
+                                        <div class="flex items-baseline justify-between mt-2">
+                                            <div class="text-xl font-black text-amber-500">
+                                                ${(perfLossMins / 60).toFixed(1)}h <span class="text-xs font-normal text-slate-400">(${perfLossMins.toFixed(1)}m)</span>
+                                            </div>
+                                            <span class="text-[10px] font-sans ${isLight ? 'text-slate-500' : 'text-slate-400'}">Faktor: <strong>Performance (P)</strong></span>
                                         </div>
-                                        <p class="text-[10px] font-sans ${isLight ? 'text-slate-600' : 'text-slate-400'} mt-1">
-                                            ${isJa ? 'チョコ停・空転 + 速度低下ロス' : 'Idling & Minor Stops + Reduced Speed'}
-                                        </p>
-                                        <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} mt-2 overflow-hidden">
+                                        <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-100' : 'bg-slate-900'} mt-2 overflow-hidden">
                                             <div class="h-full rounded-full bg-amber-500" style="width: ${perfPct}%;"></div>
                                         </div>
                                     </div>
 
-                                    <!-- QUALITY LOSS TILE -->
-                                    <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'} border rounded-xl p-3 relative overflow-hidden">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-[11px] font-bold font-sans ${isLight ? 'text-purple-700' : 'text-purple-400'} flex items-center gap-1.5">
-                                                <span class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_6px_#a855f7]"></span>
-                                                ${isJa ? '品質ロス (Quality Rate)' : 'Quality Loss'}
-                                            </span>
-                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-950 text-purple-400 border border-purple-800/60'}">${qualPct}% of Loss</span>
+                                    <!-- 3. QUALITY LOSS PILLAR KPI -->
+                                    <div class="${isLight ? 'bg-white border-purple-200 text-slate-800 shadow-sm' : 'bg-[#150B1E]/80 border-purple-900/60 text-slate-200 shadow-md'} border rounded-xl p-3 relative overflow-hidden flex flex-col justify-between">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7]"></span>
+                                                <span class="font-bold text-xs font-sans ${isLight ? 'text-purple-800' : 'text-purple-400'}">
+                                                    3. Quality Losses (Kualitas Produk)
+                                                </span>
+                                            </div>
+                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-950 text-purple-400 border border-purple-800/80'}">${qualPct}%</span>
                                         </div>
-                                        <div class="text-lg font-black text-purple-400 mt-2">
-                                            ${(qualLossMins / 60).toFixed(1)}h <span class="text-xs font-normal text-slate-400">(${qualLossMins}m)</span>
+                                        <div class="flex items-baseline justify-between mt-2">
+                                            <div class="text-xl font-black text-purple-500">
+                                                ${(qualLossMins / 60).toFixed(1)}h <span class="text-xs font-normal text-slate-400">(${qualLossMins.toFixed(1)}m)</span>
+                                            </div>
+                                            <span class="text-[10px] font-sans ${isLight ? 'text-slate-500' : 'text-slate-400'}">Faktor: <strong>Quality Rate (Q)</strong></span>
                                         </div>
-                                        <p class="text-[10px] font-sans ${isLight ? 'text-slate-600' : 'text-slate-400'} mt-1">
-                                            ${isJa ? '工程不良 (NG) + 立上りスクラップ' : 'Process Defects (NG) + Startup Scrap'}
-                                        </p>
-                                        <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-950'} mt-2 overflow-hidden">
+                                        <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-100' : 'bg-slate-900'} mt-2 overflow-hidden">
                                             <div class="h-full rounded-full bg-purple-500" style="width: ${qualPct}%;"></div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- 2. THE 6 BIG LOSSES DETAILED BREAKDOWN GRID (6 CARDS) -->
-                            <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <h4 class="font-bold text-xs uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'} flex items-center gap-1.5">
-                                        <i data-lucide="grid" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                        <span>${isJa ? '6大ロス詳細分類 & 計算内訳 (6 TPM Losses)' : 'Detail Perhitungan & Kategori 6 Big Losses'}</span>
-                                    </h4>
-                                    <span class="text-[11px] font-mono text-slate-400">${losses.length} ${isJa ? '項目' : 'Kategori Terhitung'}</span>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    ${losses.map((item) => {
-                                        const meta = sixLossMetadata[item.loss] || {
-                                            number: 0,
-                                            jaName: item.loss,
-                                            pillar: item.category || 'Loss',
-                                            jaPillar: '損失',
-                                            color: '#3b82f6',
-                                            badgeBg: isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-950 text-blue-400',
-                                            gradient: 'from-blue-600 to-blue-400',
-                                            icon: 'alert-circle',
-                                            definition: 'Loss parameter dalam perhitungan OEE.',
-                                            formula: 'Total Durasi (Menit)',
-                                            categories: ['Downtime Operasional'],
-                                            kaizen: 'Penerapan Kaizen & standardisasi proses.'
-                                        };
-
-                                        const mins = Number(item.minutes) || 0;
-                                        const hrs = (mins / 60).toFixed(1);
-                                        const pct = totalMins > 0 ? ((mins / totalMins) * 100).toFixed(1) : '0.0';
-
-                                        return `
-                                            <div class="${isLight ? 'bg-white border-slate-200 hover:border-slate-300' : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'} border rounded-xl p-4.5 space-y-3 transition-all shadow-sm">
-                                                <!-- CARD HEADER -->
-                                                <div class="flex items-start justify-between gap-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-2.5">
-                                                    <div class="flex items-center gap-2.5 min-w-0">
-                                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-bold font-mono text-white text-xs shadow-sm" style="background-color: ${meta.color};">
-                                                            #${meta.number}
-                                                        </div>
-                                                        <div class="min-w-0">
-                                                            <h5 class="font-extrabold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate" title="${item.loss}">
-                                                                ${isJa ? meta.jaName : item.loss}
-                                                            </h5>
-                                                            <span class="text-[9.5px] px-1.5 py-0.2 rounded font-semibold border ${meta.badgeBg}">
-                                                                ${isJa ? meta.jaPillar : meta.pillar}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="text-right font-mono flex-shrink-0">
-                                                        <div class="text-base font-black ${isLight ? 'text-slate-900' : 'text-slate-100'}">${hrs}h <span class="text-[10px] font-normal text-slate-400">(${mins}m)</span></div>
-                                                        <div class="text-[10px] font-bold text-cyan-400">${pct}% of Total</div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- PROGRESS BAR -->
-                                                <div class="w-full h-2 rounded-full ${isLight ? 'bg-slate-100' : 'bg-slate-950'} overflow-hidden border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
-                                                    <div class="h-full rounded-full bg-gradient-to-r ${meta.gradient}" style="width: ${pct}%;"></div>
-                                                </div>
-
-                                                <!-- DEFINITION & FORMULA -->
-                                                <div class="space-y-1.5 text-[11px]">
-                                                    <div>
-                                                        <span class="font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'}">${isJa ? '📖 定義:' : '📖 Definisi:'}</span>
-                                                        <span class="${isLight ? 'text-slate-600' : 'text-slate-400'}">${meta.definition}</span>
-                                                    </div>
-                                                    <div class="${isLight ? 'bg-slate-50 text-slate-700 border-slate-200' : 'bg-slate-950/80 text-cyan-300 border-slate-800'} p-2 rounded-lg font-mono text-[10.5px] border">
-                                                        <span class="font-bold text-slate-400 font-sans">${isJa ? '📐 計算式:' : '📐 Rumus:'}</span> ${meta.formula}
-                                                    </div>
-                                                </div>
-
-                                                <!-- TYPICAL SHOP FLOOR CAUSES -->
-                                                <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
-                                                    <span class="font-bold text-[10.5px] ${isLight ? 'text-slate-800' : 'text-slate-300'} block mb-1">
-                                                        ${isJa ? '⚠️ 含まれる停止・ロス要因 (Kategori Losstime):' : '⚠️ Kategori Losstime yang Termasuk (Connecting Rod Process):'}
-                                                    </span>
-                                                    <ul class="space-y-0.5 text-[10.5px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">
-                                                        ${meta.categories.map(catItem => `
-                                                            <li class="flex items-start gap-1.5">
-                                                                <span class="w-1 h-1 rounded-full bg-slate-400 mt-1.5 flex-shrink-0"></span>
-                                                                <span>${catItem}</span>
-                                                            </li>
-                                                        `).join('')}
-                                                    </ul>
-                                                </div>
-
-                                                <!-- KAIZEN / TPM STRATEGY -->
-                                                <div class="${isLight ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900' : 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300'} p-2.5 rounded-lg border text-[10.5px]">
-                                                    <span class="font-bold flex items-center gap-1 mb-0.5">
-                                                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
-                                                        <span>${isJa ? '💡 改善・TPM対策アプローチ:' : '💡 Strategi Solusi & Kaizen TPM:'}</span>
-                                                    </span>
-                                                    <p class="${isLight ? 'text-emerald-800' : 'text-emerald-300/90'} leading-relaxed">${meta.kaizen}</p>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
-                            </div>
-
-                            <!-- 3. LIVE CONTRIBUTING PARETO DOWNTIME & DEFECT LOGS (DATA RIIL DARI SISTEM) -->
-                            <div class="space-y-4 pt-2 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
-                                <div class="flex items-center justify-between">
-                                    <h4 class="font-bold text-xs uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'} flex items-center gap-1.5">
-                                        <i data-lucide="database" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                        <span>${isJa ? '実績データ内訳 (実測停止・不良データ)' : 'Data Riil Penyebab Downtime & Cacat Kualitas'}</span>
-                                    </h4>
-                                    <span class="text-[11px] font-mono text-slate-400">${isJa ? 'フィルター期間の実績集計' : 'Akumulasi Data Aktif'}</span>
-                                </div>
-
-                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    <!-- DOWNTIME CAUSES TABLE -->
-                                    <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'} border rounded-xl p-4 space-y-2">
-                                        <h5 class="font-bold text-xs ${isLight ? 'text-slate-800' : 'text-slate-200'} flex items-center justify-between">
+                                <!-- THE 3-COLUMN LANDSCAPE MATRIX (EACH COLUMN = 1 PILLAR WITH 2 CARDS) -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
+                                    
+                                    <!-- COLUMN 1: AVAILABILITY LOSSES (CARD #1 & #2) -->
+                                    <div class="flex flex-col gap-3.5">
+                                        <div class="px-3 py-1.5 rounded-lg ${isLight ? 'bg-rose-100/70 text-rose-900 border border-rose-200' : 'bg-rose-950/40 text-rose-300 border border-rose-900/50'} flex items-center justify-between font-bold text-xs">
                                             <span class="flex items-center gap-1.5">
                                                 <i data-lucide="clock" class="w-3.5 h-3.5 text-rose-400"></i>
-                                                <span>${isJa ? '主要停止要因 (Top Downtime Reasons)' : 'Alasan Downtime / Trouble Terbesar'}</span>
+                                                <span>Pilar Availability (Waktu Henti)</span>
                                             </span>
-                                            <span class="text-[10px] font-mono font-normal text-slate-400">${dtPareto.length} records</span>
-                                        </h5>
+                                            <span class="font-mono text-[10.5px]">${availLosses.length} Kategori</span>
+                                        </div>
 
-                                        <div class="overflow-x-auto max-h-48 custom-scrollbar">
+                                        ${availLosses.map(item => renderLossCard(item)).join('')}
+                                    </div>
+
+                                    <!-- COLUMN 2: PERFORMANCE LOSSES (CARD #3 & #4) -->
+                                    <div class="flex flex-col gap-3.5">
+                                        <div class="px-3 py-1.5 rounded-lg ${isLight ? 'bg-amber-100/70 text-amber-900 border border-amber-200' : 'bg-amber-950/40 text-amber-300 border border-amber-900/50'} flex items-center justify-between font-bold text-xs">
+                                            <span class="flex items-center gap-1.5">
+                                                <i data-lucide="gauge" class="w-3.5 h-3.5 text-amber-400"></i>
+                                                <span>Pilar Performance (Kecepatan)</span>
+                                            </span>
+                                            <span class="font-mono text-[10.5px]">${perfLosses.length} Kategori</span>
+                                        </div>
+
+                                        ${perfLosses.map(item => renderLossCard(item)).join('')}
+                                    </div>
+
+                                    <!-- COLUMN 3: QUALITY LOSSES (CARD #5 & #6) -->
+                                    <div class="flex flex-col gap-3.5">
+                                        <div class="px-3 py-1.5 rounded-lg ${isLight ? 'bg-purple-100/70 text-purple-900 border border-purple-200' : 'bg-purple-950/40 text-purple-300 border border-purple-900/50'} flex items-center justify-between font-bold text-xs">
+                                            <span class="flex items-center gap-1.5">
+                                                <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-purple-400"></i>
+                                                <span>Pilar Quality (Mutu Produk)</span>
+                                            </span>
+                                            <span class="font-mono text-[10.5px]">${qualLosses.length} Kategori</span>
+                                        </div>
+
+                                        ${qualLosses.map(item => renderLossCard(item)).join('')}
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- ========================================== -->
+                            <!-- TAB 2: LIVE SHOP FLOOR DOWNTIME & DEFECTS   -->
+                            <!-- ========================================== -->
+                            <div id="tab-live-data" class="six-losses-tab-content hidden space-y-4">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <!-- DOWNTIME CAUSES TABLE -->
+                                    <div class="${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-[#0F1A3A]/90 border-[#1B2F60] shadow-lg'} border rounded-xl p-4 space-y-3">
+                                        <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800'} pb-2">
+                                            <h5 class="font-bold text-xs ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-1.5">
+                                                <i data-lucide="clock" class="w-4 h-4 text-rose-400"></i>
+                                                <span>${isJa ? '主要停止要因 (Top Downtime Reasons)' : 'Data Riil Trouble & Alasan Downtime Mesin'}</span>
+                                            </h5>
+                                            <span class="text-[10px] font-mono px-2 py-0.5 rounded ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-800 text-slate-300'}">${dtPareto.length} records</span>
+                                        </div>
+
+                                        <div class="overflow-x-auto max-h-72 custom-scrollbar">
                                             <table class="w-full text-left text-[11px]">
                                                 <thead>
-                                                    <tr class="border-b ${isLight ? 'border-slate-200 text-slate-500' : 'border-slate-800 text-slate-400'} font-mono">
-                                                        <th class="py-1 px-2">Alasan Downtime</th>
-                                                        <th class="py-1 px-2 text-right">Durasi</th>
-                                                        <th class="py-1 px-2 text-right">Freq</th>
-                                                        <th class="py-1 px-2 text-right">%</th>
+                                                    <tr class="border-b ${isLight ? 'border-slate-200 text-slate-500 bg-slate-50' : 'border-slate-800 text-slate-400 bg-slate-900/60'} font-mono">
+                                                        <th class="py-2 px-2.5">Alasan Downtime</th>
+                                                        <th class="py-2 px-2 text-right">Durasi</th>
+                                                        <th class="py-2 px-2 text-right">Frekuensi</th>
+                                                        <th class="py-2 px-2 text-right">% Kontribusi</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="divide-y ${isLight ? 'divide-slate-200/60' : 'divide-slate-800/60'}">
+                                                <tbody class="divide-y ${isLight ? 'divide-slate-100' : 'divide-slate-800/60'} font-mono">
                                                     ${dtPareto.length === 0 ? `
                                                         <tr>
-                                                            <td colspan="4" class="text-center py-4 text-slate-500 font-mono">Tidak ada catatan downtime pada filter ini</td>
+                                                            <td colspan="4" class="text-center py-8 text-slate-500 font-mono">Tidak ada catatan downtime pada filter ini</td>
                                                         </tr>
-                                                    ` : dtPareto.slice(0, 8).map(r => `
-                                                        <tr class="${isLight ? 'hover:bg-slate-100' : 'hover:bg-slate-800/40'}">
-                                                            <td class="py-1.5 px-2 font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[180px]" title="${r.category || r.reason || '-'}">${r.category || r.reason || '-'}</td>
-                                                            <td class="py-1.5 px-2 text-right font-mono font-bold text-rose-400">${Number(r.duration_minutes || 0).toFixed(1)}m</td>
-                                                            <td class="py-1.5 px-2 text-right font-mono text-slate-400">${r.stop_count || 0}x</td>
-                                                            <td class="py-1.5 px-2 text-right font-mono text-cyan-400 font-semibold">${r.percentage || r.cumulative_percentage || 0}%</td>
+                                                    ` : dtPareto.map(r => `
+                                                        <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                                                            <td class="py-2 px-2.5 font-sans font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[220px]" title="${r.category || r.reason || '-'}">${r.category || r.reason || '-'}</td>
+                                                            <td class="py-2 px-2 text-right font-bold text-rose-400">${Number(r.duration_minutes || 0).toFixed(1)}m</td>
+                                                            <td class="py-2 px-2 text-right text-slate-400">${r.stop_count || 0}x</td>
+                                                            <td class="py-2 px-2 text-right text-cyan-400 font-semibold">${r.percentage || r.cumulative_percentage || 0}%</td>
                                                         </tr>
                                                     `).join('')}
                                                 </tbody>
@@ -4972,42 +5200,42 @@ tbody.innerHTML = '';
                                     </div>
 
                                     <!-- DEFECT CAUSES TABLE -->
-                                    <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'} border rounded-xl p-4 space-y-2">
-                                        <h5 class="font-bold text-xs ${isLight ? 'text-slate-800' : 'text-slate-200'} flex items-center justify-between">
-                                            <span class="flex items-center gap-1.5">
-                                                <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-purple-400"></i>
-                                                <span>${isJa ? '主要不良項目 (Top Defect Categories)' : 'Kategori Defect / Cacat Terbesar'}</span>
-                                            </span>
-                                            <span class="text-[10px] font-mono font-normal text-slate-400">${defPareto.length} categories</span>
-                                        </h5>
+                                    <div class="${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-[#0F1A3A]/90 border-[#1B2F60] shadow-lg'} border rounded-xl p-4 space-y-3">
+                                        <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800'} pb-2">
+                                            <h5 class="font-bold text-xs ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-1.5">
+                                                <i data-lucide="shield-alert" class="w-4 h-4 text-purple-400"></i>
+                                                <span>${isJa ? '主要不良項目 (Top Defect Categories)' : 'Data Riil Kategori Cacat (NG) & Reject'}</span>
+                                            </h5>
+                                            <span class="text-[10px] font-mono px-2 py-0.5 rounded ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-800 text-slate-300'}">${defPareto.length} categories</span>
+                                        </div>
 
-                                        <div class="overflow-x-auto max-h-48 custom-scrollbar">
+                                        <div class="overflow-x-auto max-h-72 custom-scrollbar">
                                             <table class="w-full text-left text-[11px]">
                                                 <thead>
-                                                    <tr class="border-b ${isLight ? 'border-slate-200 text-slate-500' : 'border-slate-800 text-slate-400'} font-mono">
-                                                        <th class="py-1 px-2">Kategori Defect</th>
-                                                        <th class="py-1 px-2 text-right">Reject Qty</th>
-                                                        <th class="py-1 px-2 text-right">% Defect</th>
+                                                    <tr class="border-b ${isLight ? 'border-slate-200 text-slate-500 bg-slate-50' : 'border-slate-800 text-slate-400 bg-slate-900/60'} font-mono">
+                                                        <th class="py-2 px-2.5">Kategori Cacat (Defect)</th>
+                                                        <th class="py-2 px-2 text-right">Reject Qty</th>
+                                                        <th class="py-2 px-2 text-right">% Defect</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="divide-y ${isLight ? 'divide-slate-200/60' : 'divide-slate-800/60'}">
+                                                <tbody class="divide-y ${isLight ? 'divide-slate-100' : 'divide-slate-800/60'} font-mono">
                                                     ${defPareto.length === 0 ? `
                                                         <tr>
-                                                            <td colspan="3" class="text-center py-4 text-slate-500 font-mono">Tidak ada catatan defect pada filter ini</td>
+                                                            <td colspan="3" class="text-center py-8 text-slate-500 font-mono">Tidak ada catatan defect pada filter ini</td>
                                                         </tr>
-                                                    ` : defPareto.slice(0, 8).map(d => {
+                                                    ` : defPareto.map(d => {
                                                         const defectName = d.reason || d.defect_name || d.category || '-';
                                                         const rejectQty = Number(d.reject_quantity || d.count || d.quantity || 0);
                                                         const defectPct = Number(d.percentage || d.cumulative_percentage || 0);
                                                         const compBadge = d.component_type ? `<span class="text-[9px] px-1.5 py-0.2 rounded ${isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-950 text-purple-300'} font-mono ml-1.5 border ${isLight ? 'border-purple-200' : 'border-purple-800'}">${d.component_type}</span>` : '';
                                                         return `
-                                                            <tr class="${isLight ? 'hover:bg-slate-100' : 'hover:bg-slate-800/40'}">
-                                                                <td class="py-1.5 px-2 font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[200px]" title="${defectName}">
+                                                            <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                                                                <td class="py-2 px-2.5 font-sans font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate max-w-[240px]" title="${defectName}">
                                                                     <span>${defectName}</span>
                                                                     ${compBadge}
                                                                 </td>
-                                                                <td class="py-1.5 px-2 text-right font-mono font-bold text-purple-400">${rejectQty.toLocaleString()} pcs</td>
-                                                                <td class="py-1.5 px-2 text-right font-mono text-cyan-400 font-semibold">${defectPct}%</td>
+                                                                <td class="py-2 px-2 text-right font-bold text-purple-400">${rejectQty.toLocaleString()} pcs</td>
+                                                                <td class="py-2 px-2 text-right text-cyan-400 font-semibold">${defectPct}%</td>
                                                             </tr>
                                                         `;
                                                     }).join('')}
@@ -5018,16 +5246,66 @@ tbody.innerHTML = '';
                                 </div>
                             </div>
 
-                            <!-- 4. MATHEMATICAL REFERENCE BOX -->
-                            <div class="${isLight ? 'bg-cyan-50/70 border-cyan-200 text-slate-800' : 'bg-cyan-950/20 border-cyan-800/40 text-slate-300'} p-3.5 rounded-xl border text-[11px] font-mono flex items-start gap-3">
-                                <i data-lucide="info" class="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5"></i>
-                                <div>
-                                    <div class="font-bold text-cyan-400 font-sans mb-1">${isJa ? '📐 OEE 総合設備効率 計算構造式' : '📐 Formula Standar OEE (Overall Equipment Effectiveness)'}</div>
-                                    <div class="text-[10.5px] leading-relaxed">
-                                        <strong>OEE (%) = Availability (A) &times; Performance (P) &times; Quality (Q)</strong><br>
-                                        &bull; <strong>Availability (A)</strong> = (Planned Time - Loss #1 - Loss #2) / Planned Time<br>
-                                        &bull; <strong>Performance (P)</strong> = (Run Time - Loss #3 - Loss #4) / Run Time<br>
-                                        &bull; <strong>Quality Rate (Q)</strong> = (Total Output - Loss #5 - Loss #6) / Total Output
+                            <!-- ========================================== -->
+                            <!-- TAB 3: OEE MATH MATRIX & FORMULA GUIDE     -->
+                            <!-- ========================================== -->
+                            <div id="tab-oee-formula" class="six-losses-tab-content hidden space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <!-- AVAILABILITY FORMULA -->
+                                    <div class="${isLight ? 'bg-white border-rose-200' : 'bg-[#120B1C] border-rose-900/60'} border rounded-xl p-4 space-y-2">
+                                        <div class="flex items-center gap-2 text-rose-500 font-bold text-xs">
+                                            <span class="w-6 h-6 rounded-md bg-rose-500/20 flex items-center justify-center font-mono">A</span>
+                                            <span>Availability (Ketersediaan)</span>
+                                        </div>
+                                        <p class="text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">
+                                            Mengukur persentase waktu terencana di mana mesin benar-benar beroperasi tanpa gangguan breakdown atau setup.
+                                        </p>
+                                        <div class="${isLight ? 'bg-slate-50 text-slate-800 border-slate-200' : 'bg-slate-950 text-rose-300 border-rose-950'} p-2.5 rounded-lg border font-mono text-[10px] space-y-1">
+                                            <div><strong>Rumus:</strong> (Planned Time - Loss #1 - Loss #2) / Planned Time &times; 100%</div>
+                                            <div class="text-slate-400 text-[9px]">&bull; Target World Class TPM: &ge; 90.0%</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- PERFORMANCE FORMULA -->
+                                    <div class="${isLight ? 'bg-white border-amber-200' : 'bg-[#18120B] border-amber-900/60'} border rounded-xl p-4 space-y-2">
+                                        <div class="flex items-center gap-2 text-amber-500 font-bold text-xs">
+                                            <span class="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center font-mono">P</span>
+                                            <span>Performance (Unjuk Kerja)</span>
+                                        </div>
+                                        <p class="text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">
+                                            Mengukur efisiensi kecepatan aktual mesin terhadap kecepatan ideal desain (Ideal Cycle Time) selama waktu operasi.
+                                        </p>
+                                        <div class="${isLight ? 'bg-slate-50 text-slate-800 border-slate-200' : 'bg-slate-950 text-amber-300 border-amber-950'} p-2.5 rounded-lg border font-mono text-[10px] space-y-1">
+                                            <div><strong>Rumus:</strong> (Run Time - Loss #3 - Loss #4) / Run Time &times; 100%</div>
+                                            <div class="text-slate-400 text-[9px]">&bull; Target World Class TPM: &ge; 95.0%</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- QUALITY FORMULA -->
+                                    <div class="${isLight ? 'bg-white border-purple-200' : 'bg-[#140B1E] border-purple-900/60'} border rounded-xl p-4 space-y-2">
+                                        <div class="flex items-center gap-2 text-purple-500 font-bold text-xs">
+                                            <span class="w-6 h-6 rounded-md bg-purple-500/20 flex items-center justify-center font-mono">Q</span>
+                                            <span>Quality (Tingkat Mutu)</span>
+                                        </div>
+                                        <p class="text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'}">
+                                            Mengukur rasio produk bagus (Good Finished Pieces) terhadap total output termasuk produk reject/rework & startup scrap.
+                                        </p>
+                                        <div class="${isLight ? 'bg-slate-50 text-slate-800 border-slate-200' : 'bg-slate-950 text-purple-300 border-purple-950'} p-2.5 rounded-lg border font-mono text-[10px] space-y-1">
+                                            <div><strong>Rumus:</strong> (Total Output - Loss #5 - Loss #6) / Total Output &times; 100%</div>
+                                            <div class="text-slate-400 text-[9px]">&bull; Target World Class TPM: &ge; 99.0%</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- FULL OEE MATHEMATICAL FORMULA BANNER -->
+                                <div class="${isLight ? 'bg-cyan-50/80 border-cyan-200 text-slate-800' : 'bg-[#0B1A35] border-cyan-800/60 text-slate-200'} p-4 rounded-xl border flex items-start gap-3">
+                                    <i data-lucide="calculator" class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5"></i>
+                                    <div>
+                                        <h5 class="font-extrabold text-xs text-cyan-400 mb-1">Struktur Formula Standar OEE (Overall Equipment Effectiveness)</h5>
+                                        <p class="text-[11px] font-mono leading-relaxed">
+                                            <strong>OEE (%) = Availability (A) &times; Performance (P) &times; Quality (Q)</strong><br>
+                                            <span class="text-slate-400 text-[10.5px]">Nilai Benchmark Internasional Kelas Dunia (World Class OEE): <strong>&ge; 85.0%</strong> (A: 90% &times; P: 95% &times; Q: 99.9%).</span>
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -5035,16 +5313,13 @@ tbody.innerHTML = '';
                         </div>
 
                         <!-- MODAL FOOTER -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#070D1E] border-[#152347]'} px-6 py-3.5 border-t flex items-center justify-between flex-shrink-0">
-                            <div class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono hidden sm:block">
-                                Total TPM Losses: <strong class="text-rose-400">${totalHours} Jam (${totalMins} Menit)</strong>
+                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#060B1A] border-[#132042]'} px-4 sm:px-6 py-3 border-t flex items-center justify-between flex-shrink-0">
+                            <div class="text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-mono hidden sm:flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                                <span>Akumulasi 6 Losses: <strong class="text-rose-400 font-bold">${totalHours} Jam (${totalMins.toFixed(1)} Menit)</strong></span>
                             </div>
 
                             <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                                <button type="button" id="btn-print-six-losses-summary" class="px-4 py-2 rounded-xl text-xs font-semibold ${isLight ? 'bg-slate-200 hover:bg-slate-300 text-slate-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'} flex items-center gap-1.5 cursor-pointer transition-colors">
-                                    <i data-lucide="printer" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                    <span>${isJa ? '印刷 (Print)' : 'Cetak Ringkasan'}</span>
-                                </button>
                                 <button type="button" id="btn-close-six-losses-footer" class="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/30 flex items-center gap-1.5 cursor-pointer transition-colors">
                                     <span>${isJa ? '閉じる (Tutup)' : 'Tutup Preview'}</span>
                                 </button>
@@ -5059,6 +5334,46 @@ tbody.innerHTML = '';
             if (this.currentLang === 'ja') {
                 i18n.localizeDom(modalContainer);
             }
+
+            // Tab switching logic
+            const tabButtons = modalContainer.querySelectorAll('.six-losses-tab-btn');
+            const tabContents = modalContainer.querySelectorAll('.six-losses-tab-content');
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetId = btn.getAttribute('data-tab-target');
+                    
+                    // Update active state of buttons
+                    tabButtons.forEach(b => {
+                        b.classList.remove('active', 'bg-cyan-600', 'text-white', 'shadow-lg', 'shadow-cyan-600/30', 'bg-white', 'text-cyan-700');
+                        if (isLight) {
+                            b.classList.add('text-slate-600');
+                        } else {
+                            b.classList.add('text-slate-400');
+                        }
+                    });
+
+                    btn.classList.add('active');
+                    if (isLight) {
+                        btn.classList.add('bg-white', 'text-cyan-700', 'shadow-sm', 'border', 'border-slate-200');
+                        btn.classList.remove('text-slate-600');
+                    } else {
+                        btn.classList.add('bg-cyan-600', 'text-white', 'shadow-lg', 'shadow-cyan-600/30');
+                        btn.classList.remove('text-slate-400');
+                    }
+
+                    // Toggle contents
+                    tabContents.forEach(content => {
+                        if (content.id === targetId) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+
+                    if (window.lucide) window.lucide.createIcons();
+                });
+            });
 
             // Bind Event Listeners
             const closeBtn = document.getElementById('btn-close-six-losses-modal');
@@ -5527,6 +5842,14 @@ tbody.innerHTML = '';
     // ==========================================
     async renderMachines() {
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        if (!this.companyProfile) {
+            try {
+                const p = await api.getCompanyProfile();
+                this.companyProfile = p.data?.data;
+            } catch (e) {
+                console.error('Failed to load company profile for machine figure:', e);
+            }
+        }
         const res = await api.getMachineRanking(this.filters);
         const allMachines = res.data.data || [];
 
@@ -5632,19 +5955,53 @@ tbody.innerHTML = '';
                 </div>
             </div>
 
-            <!-- DASHBOARD KPI CARDS -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-                <!-- CARD 1: RUNNING MACHINES -->
-                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Mesin Beroperasi</span>
-                        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                            <i data-lucide="activity" class="w-4 h-4"></i>
+            <!-- DASHBOARD KPI CARDS (WITH PRODUCTION MACHINE FIGURE IN FIRST POSITION) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 ${(this.companyProfile?.production_machine_figure_enabled !== false) ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-5">
+                <!-- CARD 1: FIGUR MESIN PRODUKSI ACUAN (YASUNAGA PRODUCTION MACHINE FIGURE) -->
+                ${(this.companyProfile?.production_machine_figure_enabled !== false) ? `
+                    <div class="relative ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-3 shadow-lg flex flex-col justify-between transition-all group/mfig hover:border-cyan-500/50 hover:shadow-cyan-950/20">
+                        <div class="flex items-center justify-between gap-1 mb-1">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse"></span>
+                                <span class="text-[10.5px] font-bold ${isLight ? 'text-cyan-900' : 'text-cyan-300'} uppercase tracking-wider truncate" title="${this.escapeHtml(this.companyProfile?.production_machine_figure_title || 'CNC Machining Center & Line Telemetry')}">
+                                    ${this.escapeHtml(this.companyProfile?.production_machine_figure_title || 'CNC Machining Center')}
+                                </span>
+                            </div>
+                            <button type="button" id="btn-zoom-machine-figure" class="text-slate-400 hover:text-cyan-400 p-1 rounded transition-colors cursor-pointer" title="Perbesar & Lihat Spesifikasi Mesin">
+                                <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <!-- PROPORTIONAL FIGURE IMAGE -->
+                        <div id="machine-figure-img-box" class="relative flex-1 flex items-center justify-center min-h-[72px] cursor-pointer overflow-hidden rounded-xl py-1 transition-all group-hover/mfig:brightness-110" title="Klik untuk memperbesar gambar & informasi teknis mesin">
+                            <img src="${this.escapeHtml(this.companyProfile?.production_machine_figure || '/images/production-machine-figure.svg')}" 
+                                 class="max-h-[76px] w-auto object-contain drop-shadow-md transition-transform duration-300 group-hover/mfig:scale-105" 
+                                 alt="Production Machine Figure" 
+                                 onerror="this.onerror=null; this.src='/images/production-machine-figure.svg';" />
+                        </div>
+
+                        <!-- BADGE CALLOUTS: CNC LINE, SPINDLE, TELEMETRY -->
+                        <div class="mt-1 pt-1.5 flex items-center justify-center gap-1 text-[9px] font-mono border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
+                            <span class="px-1.5 py-0.5 rounded ${isLight ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'} font-bold shadow-xs">CNC Line</span>
+                            <span class="px-1.5 py-0.5 rounded ${isLight ? 'bg-sky-100 text-sky-800 border border-sky-300' : 'bg-sky-950/80 text-sky-300 border border-sky-800/80'} font-bold shadow-xs">Spindle</span>
+                            <span class="px-1.5 py-0.5 rounded ${isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/80'} font-bold shadow-xs">Telemetry</span>
                         </div>
                     </div>
-                    <div class="flex items-baseline gap-2 mb-2">
-                        <span class="text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono">${runningCount}</span>
-                        <span class="text-xs font-semibold text-slate-400">/ ${totalAll} Total Mesin</span>
+                ` : ''}
+
+                <!-- CARD 2: RUNNING MACHINES -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Mesin Beroperasi</span>
+                            <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                <i data-lucide="activity" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline gap-2 mb-2">
+                            <span class="text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono">${runningCount}</span>
+                            <span class="text-xs font-semibold text-slate-400">/ ${totalAll} Total Mesin</span>
+                        </div>
                     </div>
                     <div class="flex items-center justify-between text-[11px] pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}">
                         <span class="flex items-center gap-1.5 text-emerald-500 font-semibold">
@@ -5655,19 +6012,21 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- CARD 2: RUNNING OEE AVERAGE -->
-                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Rata-Rata OEE Aktif</span>
-                        <div class="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                            <i data-lucide="gauge" class="w-4 h-4"></i>
+                <!-- CARD 3: RUNNING OEE AVERAGE -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Rata-Rata OEE Aktif</span>
+                            <div class="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                <i data-lucide="gauge" class="w-4 h-4"></i>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex items-baseline gap-2 mb-2">
-                        <span class="text-2xl font-black ${Number(runningAvgOee) >= 85 ? 'text-emerald-400' : (Number(runningAvgOee) >= 65 ? 'text-amber-400' : 'text-cyan-400')} font-mono">${runningAvgOee}%</span>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${this.getStatusBadge(Number(runningAvgOee) >= 85 ? 'EXCELLENT' : (Number(runningAvgOee) >= 65 ? 'GOOD' : 'CRITICAL'))}">
-                            ${Number(runningAvgOee) >= 85 ? 'World Class' : (Number(runningAvgOee) >= 65 ? 'Optimal' : 'Low')}
-                        </span>
+                        <div class="flex items-baseline gap-2 mb-2">
+                            <span class="text-2xl font-black ${Number(runningAvgOee) >= 85 ? 'text-emerald-400' : (Number(runningAvgOee) >= 65 ? 'text-amber-400' : 'text-cyan-400')} font-mono">${runningAvgOee}%</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${this.getStatusBadge(Number(runningAvgOee) >= 85 ? 'EXCELLENT' : (Number(runningAvgOee) >= 65 ? 'GOOD' : 'CRITICAL'))}">
+                                ${Number(runningAvgOee) >= 85 ? 'World Class' : (Number(runningAvgOee) >= 65 ? 'Optimal' : 'Low')}
+                            </span>
+                        </div>
                     </div>
                     <div class="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'} font-mono">
                         <span>Avail: <strong class="${isLight ? 'text-slate-800' : 'text-slate-200'}">${runningAvgAv}%</strong></span>
@@ -5676,17 +6035,19 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- CARD 3: TOTAL ACTUAL OUTPUT -->
-                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Total Output Actual</span>
-                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                            <i data-lucide="package-check" class="w-4 h-4"></i>
+                <!-- CARD 4: TOTAL ACTUAL OUTPUT -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Total Output Actual</span>
+                            <div class="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                                <i data-lucide="package-check" class="w-4 h-4"></i>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex items-baseline gap-1 mb-2">
-                        <span class="text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono">${totalActual.toLocaleString()}</span>
-                        <span class="text-xs font-semibold text-slate-400">pcs</span>
+                        <div class="flex items-baseline gap-1 mb-2">
+                            <span class="text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} font-mono">${totalActual.toLocaleString()}</span>
+                            <span class="text-xs font-semibold text-slate-400">pcs</span>
+                        </div>
                     </div>
                     <div class="flex items-center justify-between text-[11px] pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}">
                         <span class="text-slate-400">Target: <strong class="${isLight ? 'text-slate-700' : 'text-slate-300'} font-mono">${totalTarget.toLocaleString()}</strong></span>
@@ -5694,17 +6055,19 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- CARD 4: TOTAL DOWNTIME -->
-                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Total Downtime</span>
-                        <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                            <i data-lucide="clock" class="w-4 h-4"></i>
+                <!-- CARD 5: TOTAL DOWNTIME -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-lg relative overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-wider">Total Downtime</span>
+                            <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                                <i data-lucide="clock" class="w-4 h-4"></i>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex items-baseline gap-1 mb-2">
-                        <span class="text-2xl font-black ${totalDowntime > 0 ? 'text-amber-400' : 'text-slate-400'} font-mono">${totalDowntime.toLocaleString()}</span>
-                        <span class="text-xs font-semibold text-slate-400">menit</span>
+                        <div class="flex items-baseline gap-1 mb-2">
+                            <span class="text-2xl font-black ${totalDowntime > 0 ? 'text-amber-400' : 'text-slate-400'} font-mono">${totalDowntime.toLocaleString()}</span>
+                            <span class="text-xs font-semibold text-slate-400">menit</span>
+                        </div>
                     </div>
                     <div class="flex items-center justify-between text-[11px] pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'} text-slate-400">
                         <span>Stoppage & kendala mesin</span>
@@ -5986,6 +6349,21 @@ tbody.innerHTML = '';
                 }
             });
         });
+
+        // 5. Machine Figure Zoom Handlers
+        const btnZoomMachine = document.getElementById('btn-zoom-machine-figure');
+        const machineImgBox = document.getElementById('machine-figure-img-box');
+        if (btnZoomMachine) {
+            btnZoomMachine.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showMachineFigureModal();
+            });
+        }
+        if (machineImgBox) {
+            machineImgBox.addEventListener('click', () => {
+                this.showMachineFigureModal();
+            });
+        }
 
         if (this.currentLang === 'ja') {
             i18n.localizeDom(document.getElementById('content-body') || document.body);
@@ -8121,9 +8499,41 @@ tbody.innerHTML = '';
                 </div>
             </div>
 
-            <!-- KPI SUMMARY CARDS (STATISTIK ANTRIAN NG & BREAKDOWN) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- CARD 1: TOTAL LAPORAN BER-NG -->
+            <!-- KPI SUMMARY CARDS (FIGUR ACUAN PRODUK NG & STATISTIK ANTRIAN) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+                <!-- CARD 1: FIGUR ACUAN PRODUK NG (TRANSPARAN TANPA BORDER CARD) -->
+                ${(this.companyProfile?.ng_product_figure_enabled !== false) ? `
+                    <div class="relative bg-transparent rounded-2xl p-2.5 flex flex-col justify-between transition-all group/fig hover:bg-slate-900/20">
+                        <div class="flex items-center justify-between gap-1 mb-1">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee] animate-pulse"></span>
+                                <span class="text-[10.5px] font-bold ${isLight ? 'text-cyan-900' : 'text-cyan-300'} uppercase tracking-wider truncate" title="${this.escapeHtml(this.companyProfile?.ng_product_figure_title || 'Acuan Figur NG (Con-Rod)')}">
+                                    ${this.escapeHtml(this.companyProfile?.ng_product_figure_title || 'Acuan Figur NG')}
+                                </span>
+                            </div>
+                            <button type="button" id="btn-zoom-ng-figure" class="text-slate-400 hover:text-cyan-400 p-1 rounded transition-colors cursor-pointer" title="Perbesar Anatomi Produk">
+                                <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <!-- PROPORTIONAL FIGURE IMAGE -->
+                        <div id="ng-figure-img-box" class="relative flex-1 flex items-center justify-center min-h-[76px] cursor-pointer overflow-hidden rounded-xl transition-all group-hover/fig:brightness-110" title="Klik untuk memperbesar gambar & panduan bagian NG">
+                            <img src="${this.escapeHtml(this.companyProfile?.ng_product_figure || '/images/connecting-rod-figure.svg')}" 
+                                 class="max-h-20 w-auto object-contain drop-shadow-md transition-transform duration-300 group-hover/fig:scale-105" 
+                                 alt="Connecting Rod Diagram" 
+                                 onerror="this.onerror=null; this.src='/images/connecting-rod-figure.svg';" />
+                        </div>
+
+                        <!-- BADGE CALLOUTS: ASSY, ROD, CAP -->
+                        <div class="mt-2 pt-1.5 flex items-center justify-center gap-1 text-[9px] font-mono">
+                            <span class="px-1.5 py-0.5 rounded ${isLight ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80'} font-bold shadow-xs">Assy</span>
+                            <span class="px-1.5 py-0.5 rounded ${isLight ? 'bg-sky-100 text-sky-800 border border-sky-300' : 'bg-sky-950/80 text-sky-300 border border-sky-800/80'} font-bold shadow-xs">Rod</span>
+                            <span class="px-1.5 py-0.5 rounded ${isLight ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/80'} font-bold shadow-xs">Cap</span>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- CARD 2: TOTAL LAPORAN BER-NG -->
                 <div class="${isLight ? 'bg-gradient-to-br from-rose-50/90 via-white to-slate-50/90 border-rose-200 shadow-lg shadow-rose-100/50' : 'bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 border-rose-800/40 shadow-xl'} border rounded-2xl p-4 flex flex-col justify-between transition-all">
                     <div class="flex items-center justify-between">
                         <div>
@@ -8140,7 +8550,7 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- CARD 2: STATUS PENGISIAN (PENDING VS COMPLETED) -->
+                <!-- CARD 3: STATUS PENGISIAN (PENDING VS COMPLETED) -->
                 <div class="${isLight ? 'bg-gradient-to-br from-amber-50/90 via-white to-slate-50/90 border-amber-200 shadow-lg shadow-amber-100/50' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-4 flex flex-col justify-between transition-all">
                     <div class="flex items-center justify-between">
                         <div>
@@ -8157,7 +8567,7 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- CARD 3: BREAKDOWN KOMPONEN WAJIB (OEE) -->
+                <!-- CARD 4: BREAKDOWN KOMPONEN WAJIB (OEE) -->
                 <div class="${isLight ? 'bg-gradient-to-br from-cyan-50/90 via-white to-slate-50/90 border-cyan-200 shadow-lg shadow-cyan-100/50' : 'bg-slate-900 border-cyan-800/40 shadow-xl'} border rounded-2xl p-4 flex flex-col justify-between transition-all">
                     <div class="flex items-center justify-between">
                         <div>
@@ -8184,7 +8594,7 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- CARD 4: BREAKDOWN PELENGKAP (OPSIONAL NON-OEE) -->
+                <!-- CARD 5: BREAKDOWN PELENGKAP (OPSIONAL NON-OEE) -->
                 <div class="${isLight ? 'bg-gradient-to-br from-purple-50/90 via-white to-slate-50/90 border-purple-200 shadow-lg shadow-purple-100/50' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-4 flex flex-col justify-between transition-all">
                     <div class="flex items-center justify-between">
                         <div>
@@ -8534,6 +8944,13 @@ tbody.innerHTML = '';
         document.getElementById('btn-ng-fullscreen-popup')?.addEventListener('click', openNgFullscreen);
         document.getElementById('btn-ng-fullscreen-popup-table')?.addEventListener('click', openNgFullscreen);
 
+        // 1c. Bind Product Figure Zoom Modal Button & Container
+        const openNgFigureZoom = () => {
+            this.showNgFigureModal();
+        };
+        document.getElementById('btn-zoom-ng-figure')?.addEventListener('click', openNgFigureZoom);
+        document.getElementById('ng-figure-img-box')?.addEventListener('click', openNgFigureZoom);
+
         // 2. Bind Open NG Detail Modal Buttons
         document.querySelectorAll('.btn-open-ng-modal').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -8629,6 +9046,218 @@ tbody.innerHTML = '';
         if (this.currentLang === 'ja') {
             i18n.localizeDom(content);
         }
+    }
+
+    // ==========================================
+    // 3C. NG PRODUCT FIGURE MODAL (ANATOMI & BAGIAN NG ACUAN)
+    // ==========================================
+    showNgFigureModal() {
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) return;
+
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const figureImg = this.companyProfile?.ng_product_figure || '/images/connecting-rod-figure.svg';
+        const figureTitle = this.companyProfile?.ng_product_figure_title || 'Anatomi Connecting Rod (Assy, Rod, Cap)';
+
+        modalContainer.innerHTML = `
+            <div id="ng-figure-modal-wrapper" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn">
+                <div class="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border ${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} overflow-hidden">
+                    
+                    <!-- HEADER -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex-shrink-0">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} tracking-tight">${this.escapeHtml(figureTitle)}</h3>
+                                <p class="text-xs text-slate-400">Panduan Identifikasi Bagian Cacat & Reject Komponen Connecting Rod</p>
+                            </div>
+                        </div>
+                        <button id="btn-close-ng-figure-modal" class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer" title="Tutup">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- BODY SCROLLABLE -->
+                    <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
+                        <!-- MAIN IMAGE PREVIEW (CRISP & FULL) -->
+                        <div class="relative rounded-2xl p-4 flex items-center justify-center ${isLight ? 'bg-slate-50 border border-slate-200 shadow-inner' : 'bg-slate-950 border border-slate-800 shadow-inner'}">
+                            <img src="${this.escapeHtml(figureImg)}" class="max-h-80 w-auto max-w-full object-contain drop-shadow-xl" alt="Connecting Rod Anatomy" onerror="this.onerror=null; this.src='/images/connecting-rod-figure.svg';" />
+                        </div>
+
+                        <!-- EXPLANATION GRID (ASSY, ROD, CAP, PELENGKAP) -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- ASSY -->
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-cyan-50/70 border-cyan-200 text-slate-800' : 'bg-cyan-950/30 border-cyan-800/40 text-slate-200'} space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase text-cyan-400 font-mono tracking-wider">★ Bagian ASSY</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">Full Assembly</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Unit rakitan utuh Connecting Rod (Rod Body + Cap + Fasteners). Digunakan saat reject ditemukan pada status perakitan atau dimensi total rakitan (misal berat tidak seimbang, misalignment gabungan, dsb).
+                                </p>
+                            </div>
+
+                            <!-- ROD -->
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-sky-50/70 border-sky-200 text-slate-800' : 'bg-sky-950/30 border-sky-800/40 text-slate-200'} space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase text-sky-400 font-mono tracking-wider">1. Bagian ROD</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-950 text-sky-300 border border-sky-800">Body & Small End</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Batang utama (Shank / I-Beam) dan kepala kecil (Small End / Pin Bore). Kategori cacat meliputi cacat tempa, goresan batang, deviasi diameter lubang pin bushing, keretakan, dsb.
+                                </p>
+                            </div>
+
+                            <!-- CAP -->
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-emerald-50/70 border-emerald-200 text-slate-800' : 'bg-emerald-950/30 border-emerald-800/40 text-slate-200'} space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase text-emerald-400 font-mono tracking-wider">2. Bagian CAP</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Bearing Cap</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Tutup bantalan bawah poros engkol (Big End Cap & Journal Bore). Kategori cacat meliputi cacat fracture split serration, thread ulir baut rusak, cacat radius cap, deviasi kebulatan, dsb.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- SUB-INFO: PELENGKAP NON-OEE -->
+                        <div class="p-3.5 rounded-xl border ${isLight ? 'bg-amber-50/60 border-amber-200 text-slate-700' : 'bg-amber-950/20 border-amber-800/30 text-slate-300'} flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="info" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
+                                <span><strong>Komponen Pelengkap (Non-OEE):</strong> Baut (Bolt), Bushing kuningan, Mur (Nut), dan Pin dowel dihitung secara terpisah untuk rekonsiliasi material.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FOOTER -->
+                    <div class="px-6 py-3 border-t ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex justify-end">
+                        <button id="btn-close-ng-figure-modal-footer" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-colors cursor-pointer">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+
+        const closeModal = () => {
+            modalContainer.innerHTML = '';
+        };
+
+        document.getElementById('btn-close-ng-figure-modal')?.addEventListener('click', closeModal);
+        document.getElementById('btn-close-ng-figure-modal-footer')?.addEventListener('click', closeModal);
+        document.getElementById('ng-figure-modal-wrapper')?.addEventListener('click', (e) => {
+            if (e.target.id === 'ng-figure-modal-wrapper') closeModal();
+        });
+    }
+
+    // ==========================================
+    // 3C-2. SHOW PRODUCTION MACHINE FIGURE MODAL
+    // ==========================================
+    showMachineFigureModal() {
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) return;
+
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const figureImg = this.companyProfile?.production_machine_figure || '/images/production-machine-figure.svg';
+        const figureTitle = this.companyProfile?.production_machine_figure_title || 'CNC Machining Center & Line Telemetry';
+
+        modalContainer.innerHTML = `
+            <div id="machine-figure-modal-wrapper" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn">
+                <div class="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border ${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} overflow-hidden">
+                    
+                    <!-- HEADER -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex-shrink-0">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
+                                <i data-lucide="cpu" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} tracking-tight">${this.escapeHtml(figureTitle)}</h3>
+                                <p class="text-xs text-slate-400">Spesifikasi Figur Mesin & Arsitektur Telemetri OEE PT Yasunaga Indonesia</p>
+                            </div>
+                        </div>
+                        <button id="btn-close-machine-figure-modal" class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer" title="Tutup">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- BODY SCROLLABLE -->
+                    <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
+                        <!-- MAIN IMAGE PREVIEW (CRISP & FULL) -->
+                        <div class="relative rounded-2xl p-4 flex items-center justify-center ${isLight ? 'bg-slate-50 border border-slate-200 shadow-inner' : 'bg-slate-950 border border-slate-800 shadow-inner'}">
+                            <img src="${this.escapeHtml(figureImg)}" class="max-h-80 w-auto max-w-full object-contain drop-shadow-xl" alt="Production Machine Figure" onerror="this.onerror=null; this.src='/images/production-machine-figure.svg';" />
+                        </div>
+
+                        <!-- EXPLANATION GRID (SPINDLE, TELEMETRY, CLAMPING) -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- 1. SPINDLE -->
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-cyan-50/70 border-cyan-200 text-slate-800' : 'bg-cyan-950/30 border-cyan-800/40 text-slate-200'} space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase text-cyan-400 font-mono tracking-wider">1. High-Speed Spindle</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">BT40 / HSK</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Unit pemesinan presisi tinggi untuk proses boring, milling, dan chamfering komponen Connecting Rod dengan toleransi mikron dan pergantian tool otomatis (ATC).
+                                </p>
+                            </div>
+
+                            <!-- 2. TELEMETRY & IOT -->
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-sky-50/70 border-sky-200 text-slate-800' : 'bg-sky-950/30 border-sky-800/40 text-slate-200'} space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase text-sky-400 font-mono tracking-wider">2. Line Telemetry & PLC</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-950 text-sky-300 border border-sky-800">Realtime IoT</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Koneksi data real-time sensor cycle time, status alarm, downtime stoppage, dan penghitung output otomatis yang langsung terhubung ke dashboard LinePulse OEE.
+                                </p>
+                            </div>
+
+                            <!-- 3. CLAMPING & JIG -->
+                            <div class="p-4 rounded-2xl border ${isLight ? 'bg-emerald-50/70 border-emerald-200 text-slate-800' : 'bg-emerald-950/30 border-emerald-800/40 text-slate-200'} space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black uppercase text-emerald-400 font-mono tracking-wider">3. Workpiece Clamping</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">Zero-Point Jig</span>
+                                </div>
+                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed">
+                                    Sistem pencekaman hidrolik presisi untuk menjaga kestabilan posisi Connecting Rod (Assy/Rod/Cap) selama proses pemesinan berlangsung.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- SUB-INFO: OEE LINE INTEGRATION -->
+                        <div class="p-3.5 rounded-xl border ${isLight ? 'bg-amber-50/60 border-amber-200 text-slate-700' : 'bg-amber-950/20 border-amber-800/30 text-slate-300'} flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="info" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
+                                <span><strong>Konfigurasi Dinamis:</strong> Gambar acuan figur mesin ini dapat disesuaikan atau diunggah gambar mesin aktual lini PT Yasunaga Indonesia melalui menu <em>Pengaturan Sistem &rarr; Profil Perusahaan</em>.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FOOTER -->
+                    <div class="px-6 py-3 border-t ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex justify-end">
+                        <button id="btn-close-machine-figure-modal-footer" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-colors cursor-pointer">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+
+        const closeModal = () => {
+            modalContainer.innerHTML = '';
+        };
+
+        document.getElementById('btn-close-machine-figure-modal')?.addEventListener('click', closeModal);
+        document.getElementById('btn-close-machine-figure-modal-footer')?.addEventListener('click', closeModal);
+        document.getElementById('machine-figure-modal-wrapper')?.addEventListener('click', (e) => {
+            if (e.target.id === 'machine-figure-modal-wrapper') closeModal();
+        });
     }
 
     // ==========================================
@@ -10341,8 +10970,8 @@ tbody.innerHTML = '';
             const isLightModal = this.theme === 'light' || document.documentElement.classList.contains('light');
 
             modalContainer.innerHTML = `
-                <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col md:items-center md:justify-center z-50 overflow-hidden font-sans p-0 md:p-3">
-                    <div class="w-full md:max-w-xl h-full md:h-auto md:max-h-[94vh] flex flex-col ${isLightModal ? 'bg-white text-slate-900' : 'bg-slate-900 text-slate-100'} md:rounded-3xl shadow-2xl border ${isLightModal ? 'border-slate-200' : 'border-slate-800'} overflow-hidden">
+                <div id="mobile-ng-modal-wrapper" class="fixed inset-0 z-50 ${isLightModal ? 'bg-slate-900/50' : 'bg-slate-950/80'} backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-y-auto font-sans animate-fadeIn custom-scrollbar">
+                    <div class="w-full md:max-w-xl h-full md:h-auto md:max-h-[94vh] flex flex-col ${isLightModal ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#0B142C] text-slate-100 border-slate-700/80'} rounded-none md:rounded-3xl shadow-2xl shadow-cyan-950/40 border overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)]">
                         
                         <!-- STICKY TOP HEADER -->
                         <div class="shrink-0 px-4 py-3 ${isLightModal ? 'bg-slate-50/95 border-slate-200' : 'bg-slate-950/95 border-slate-800'} border-b flex items-center justify-between z-30">
@@ -10811,6 +11440,9 @@ tbody.innerHTML = '';
             };
             document.getElementById('btn-close-mobile-ng-modal')?.addEventListener('click', closeModal);
             document.getElementById('btn-mobile-cancel-ng-modal')?.addEventListener('click', closeModal);
+            document.getElementById('mobile-ng-modal-wrapper')?.addEventListener('click', (e) => {
+                if (e.target.id === 'mobile-ng-modal-wrapper') closeModal();
+            });
 
             // 3. Delete / Reset Detail Handler
             const deleteBtn = document.getElementById('btn-mobile-delete-ng-detail');
@@ -13441,9 +14073,8 @@ tbody.innerHTML = '';
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                 <i data-lucide="bar-chart-3" class="w-4 h-4 text-cyan-500"></i>
-                                <span>Diagram Pareto Penyebab Reject (Vital Few vs Useful Many)</span>
+                                <span>Diagram Pareto Penyebab Reject</span>
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} mt-0.5">Distribusi frekuensi defect aktual (Batang Rose) & Kurva Kumulatif 80/20 (Garis Neon Cyan)</p>
                         </div>
                         <div class="flex items-center gap-4 text-xs">
                             <div class="flex items-center gap-1.5">
@@ -13469,11 +14100,10 @@ tbody.innerHTML = '';
                     <!-- PANEL 1: DONUT DISTRIBUSI KOMPONEN -->
                     <div class="${isLight ? 'bg-white border-slate-200 shadow-xl' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-2xl p-5 flex flex-col justify-between">
                         <div>
-                            <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} mb-1 flex items-center gap-2">
+                            <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} mb-3 flex items-center gap-2">
                                 <i data-lucide="layers" class="w-4 h-4 text-amber-500"></i>
-                                <span>Proporsi Reject per Komponen</span>
+                                <span>Distribusi NG Per Komponen</span>
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-3">Distribusi produk cacat antara Assy, Rod, Cap & Fasteners</p>
                             <div id="chart-defect-component" class="w-full min-h-[220px]"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-2 pt-3 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} mt-2">
@@ -13495,9 +14125,8 @@ tbody.innerHTML = '';
                             <div>
                                 <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                     <i data-lucide="crosshair" class="w-4 h-4 text-cyan-500"></i>
-                                    <span>Ranking Bagian NG Terbanyak (Defect Section Breakdown)</span>
+                                    <span>Ranking Bagian NG Terbanyak</span>
                                 </h3>
-                                <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} mt-0.5">Area anatomi komponen manufaktur yang paling sering mengalami defect</p>
                             </div>
                             <span class="text-xs font-mono ${isLight ? 'text-slate-600' : 'text-slate-400'}">${topSections.length} Area Terdeteksi</span>
                         </div>
@@ -13532,9 +14161,8 @@ tbody.innerHTML = '';
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                 <i data-lucide="list-ordered" class="w-4 h-4 text-emerald-500"></i>
-                                <span>Matriks Top 10 Defect Reason & Rekomendasi Solusi Teknis</span>
+                                <span>Top 10 Defect Reason & Rekomendasi Solusi Teknis</span>
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} mt-0.5">Analisis prioritas perbaikan continuous improvement berbasis prinsip Kaizen & Six Sigma</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${isLight ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-rose-500/10 text-rose-400 border-rose-500/30'} border">
@@ -23650,8 +24278,8 @@ tbody.innerHTML = '';
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
 
         modalContainer.innerHTML = `
-            <div class="fixed inset-0 z-50 bg-slate-950 flex flex-col justify-between items-center p-0 sm:p-3 overflow-hidden animate-fadeIn">
-                <div class="w-full h-full max-w-lg ${isLight ? 'bg-slate-50 text-slate-900 border-slate-200' : 'bg-[#0B142C] text-slate-100 border-slate-800'} border sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
+            <div id="mobile-production-modal-wrapper" class="fixed inset-0 z-50 ${isLight ? 'bg-slate-900/50' : 'bg-slate-950/80'} backdrop-blur-md flex items-center justify-center p-0 sm:p-4 overflow-y-auto animate-fadeIn custom-scrollbar">
+                <div class="w-full max-w-lg h-full sm:h-auto sm:max-h-[94vh] ${isLight ? 'bg-slate-50 text-slate-900 border-slate-200' : 'bg-[#0B142C] text-slate-100 border-slate-700/80'} border rounded-none sm:rounded-3xl shadow-2xl shadow-cyan-950/40 flex flex-col overflow-hidden relative shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)]">
                     
                     <!-- 1. MOBILE STICKY HEADER -->
                     <div class="sticky top-0 z-30 px-4 py-3 border-b ${isLight ? 'bg-white/95 border-slate-200 shadow-xs' : 'bg-[#070D1E]/95 border-slate-800 shadow-sm'} backdrop-blur-md flex items-center justify-between flex-shrink-0">
@@ -24158,6 +24786,11 @@ tbody.innerHTML = '';
         // Action Buttons
         document.getElementById('btn-close-mobile-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
         document.getElementById('btn-cancel-mobile-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
+        document.getElementById('mobile-production-modal-wrapper')?.addEventListener('click', (e) => {
+            if (e.target.id === 'mobile-production-modal-wrapper') {
+                modalContainer.innerHTML = '';
+            }
+        });
         document.getElementById('btn-mobile-to-desktop')?.addEventListener('click', () => {
             this.showProductionModal();
         });
@@ -25182,6 +25815,251 @@ tbody.innerHTML = '';
                             </form>
                         </div>
                     </div>
+
+                    <!-- CARD: FIGUR MESIN PRODUKSI ACUAN (YASUNAGA PRODUCTION MACHINE FIGURE) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                    <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
+                                    Figur Foto Mesin Produksi Acuan (Production Machine Figure)
+                                </h3>
+                                <p class="text-xs text-slate-400">Foto/diagram acuan visual mesin produksi PT Yasunaga Indonesia yang tampil di urutan pertama dashboard Performa & Analisa Mesin.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btn-reset-default-machine-figure" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-amber-400"></i>
+                                    <span>Reset Figur Standar</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            <!-- PREVIEW FIGUR MESIN -->
+                            <div class="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950/80 border border-slate-800 rounded-2xl">
+                                <div id="machine-figure-preview-box" class="w-full flex items-center justify-center min-h-[160px] p-2">
+                                    <img id="form-machine-figure-thumb" src="${this.escapeHtml(profile.production_machine_figure || '/images/production-machine-figure.svg')}" class="max-h-40 max-w-full object-contain rounded-xl drop-shadow-md" alt="Machine Figure" onerror="this.src='/images/production-machine-figure.svg';" />
+                                </div>
+                                <div class="mt-3 flex items-center gap-2 text-[10px] font-mono">
+                                    <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 font-bold">CNC Line</span>
+                                    <span class="px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800 font-bold">Spindle</span>
+                                    <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">Telemetry</span>
+                                </div>
+                            </div>
+
+                            <!-- CONTROLS & UPLOAD -->
+                            <div class="lg:col-span-7 space-y-4">
+                                <!-- QUICK PRESETS -->
+                                <div>
+                                    <label class="block text-xs text-slate-300 mb-1.5 font-medium">Pilihan Preset Figur Mesin Pabrik:</label>
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        <button type="button" class="btn-preset-machine-fig p-2 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-950/80 text-left transition-all cursor-pointer group" data-fig="/images/production-machine-figure.svg" data-title="CNC Machining Center & Line Telemetry">
+                                            <div class="text-[10.5px] font-bold text-slate-200 group-hover:text-cyan-400 truncate">CNC Vector</div>
+                                            <div class="text-[9px] text-slate-500 truncate">Diagram Standar</div>
+                                        </button>
+                                        <button type="button" class="btn-preset-machine-fig p-2 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-950/80 text-left transition-all cursor-pointer group" data-fig="/images/slideshow/slide-2-machining.webp" data-title="CNC Machining Center Yasunaga">
+                                            <div class="text-[10.5px] font-bold text-slate-200 group-hover:text-cyan-400 truncate">Machining Line</div>
+                                            <div class="text-[9px] text-slate-500 truncate">Foto Plant Yasunaga</div>
+                                        </button>
+                                        <button type="button" class="btn-preset-machine-fig p-2 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-950/80 text-left transition-all cursor-pointer group" data-fig="/images/slideshow/slide-3-measuring.webp" data-title="Measuring Machine & Quality Station">
+                                            <div class="text-[10.5px] font-bold text-slate-200 group-hover:text-cyan-400 truncate">Measuring Stn</div>
+                                            <div class="text-[9px] text-slate-500 truncate">Foto Plant Yasunaga</div>
+                                        </button>
+                                        <button type="button" class="btn-preset-machine-fig p-2 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-950/80 text-left transition-all cursor-pointer group" data-fig="/images/slideshow/slide-4-assembly.webp" data-title="Assembly Line & Fastening Station">
+                                            <div class="text-[10.5px] font-bold text-slate-200 group-hover:text-cyan-400 truncate">Assembly Line</div>
+                                            <div class="text-[9px] text-slate-500 truncate">Foto Plant Yasunaga</div>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs text-slate-300 mb-1 font-medium">Judul / Keterangan Card Figur Mesin</label>
+                                    <input type="text" id="input-machine-figure-title" value="${this.escapeHtml(profile.production_machine_figure_title || 'CNC Machining Center & Line Telemetry')}" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-bold" />
+                                </div>
+
+                                <!-- DRAG & DROP UPLOAD BOX FOR MACHINE FIGURE -->
+                                <div id="machine-figure-drop-zone" class="border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-2xl p-4 text-center cursor-pointer transition-all bg-slate-950/60 group">
+                                    <input type="file" id="input-machine-figure-file" accept="image/png, image/jpeg, image/svg+xml, image/webp" class="hidden" />
+                                    <div class="flex flex-col items-center justify-center py-2">
+                                        <div class="w-10 h-10 rounded-xl bg-cyan-950/60 border border-cyan-800/80 text-cyan-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                            <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                                        </div>
+                                        <div class="text-xs font-bold text-slate-200">Klik / Tarik Foto Mesin Baru ke Sini</div>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">Format: PNG, JPG, SVG, WebP (Otomatis Dikonversi & Dikompresi Ringan)</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                                    <label class="flex items-center gap-2.5 cursor-pointer text-slate-200">
+                                        <input type="checkbox" id="check-machine-figure-enabled" ${profile.production_machine_figure_enabled !== false ? 'checked' : ''} class="w-4 h-4 rounded text-cyan-500 bg-slate-900 border-slate-700 cursor-pointer" />
+                                        <span class="text-xs font-semibold">Tampilkan Card Figur Mesin di Dashboard Performa & Analisa Mesin</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD: FIGUR PRODUK ACUAN NG (CONNECTING ROD SECTIONS) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                    <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
+                                    Figur Foto Produk Acuan NG (Connecting Rod Reference)
+                                </h3>
+                                <p class="text-xs text-slate-400">Foto/diagram acuan visual bagian NG (Assy, Rod, Cap) yang tampil di urutan pertama dashboard Input Laporan NG.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btn-reset-default-ng-figure" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-amber-400"></i>
+                                    <span>Reset Diagram Standar</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            <!-- PREVIEW FIGUR -->
+                            <div class="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950/80 border border-slate-800 rounded-2xl">
+                                <div id="ng-figure-preview-box" class="w-full flex items-center justify-center min-h-[160px] p-2">
+                                    <img id="form-ng-figure-thumb" src="${this.escapeHtml(profile.ng_product_figure || '/images/connecting-rod-figure.svg')}" class="max-h-40 max-w-full object-contain rounded-xl drop-shadow-md" alt="NG Product Figure" onerror="this.src='/images/connecting-rod-figure.svg';" />
+                                </div>
+                                <div class="mt-3 flex items-center gap-2 text-[10px] font-mono">
+                                    <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 font-bold">Assy</span>
+                                    <span class="px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800 font-bold">Rod</span>
+                                    <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">Cap</span>
+                                </div>
+                            </div>
+
+                            <!-- CONTROLS & UPLOAD -->
+                            <div class="lg:col-span-7 space-y-4">
+                                <div>
+                                    <label class="block text-xs text-slate-300 mb-1 font-medium">Judul / Keterangan Card Acuan NG</label>
+                                    <input type="text" id="input-ng-figure-title" value="${this.escapeHtml(profile.ng_product_figure_title || 'Anatomi Connecting Rod (Assy, Rod, Cap)')}" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-bold" />
+                                </div>
+
+                                <!-- DRAG & DROP UPLOAD BOX FOR PRODUCT FIGURE -->
+                                <div id="ng-figure-drop-zone" class="border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-2xl p-4 text-center cursor-pointer transition-all bg-slate-950/60 group">
+                                    <input type="file" id="input-ng-figure-file" accept="image/png, image/jpeg, image/svg+xml, image/webp" class="hidden" />
+                                    <div class="flex flex-col items-center justify-center py-2">
+                                        <div class="w-10 h-10 rounded-xl bg-cyan-950/60 border border-cyan-800/80 text-cyan-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                            <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                                        </div>
+                                        <div class="text-xs font-bold text-slate-200">Klik / Tarik Foto Produk Baru ke Sini</div>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">Format: PNG, JPG, SVG, WebP (Maks. 3MB)</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                                    <label class="flex items-center gap-2.5 cursor-pointer text-slate-200">
+                                        <input type="checkbox" id="check-ng-figure-enabled" ${profile.ng_product_figure_enabled !== false ? 'checked' : ''} class="w-4 h-4 rounded text-cyan-500 bg-slate-900 border-slate-700 cursor-pointer" />
+                                        <span class="text-xs font-semibold">Tampilkan Card Figur Produk di Dashboard Input Laporan NG</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD: FOTO LATAR BELAKANG HALAMAN LOGIN (FULL-STRETCH FACTORY BUILDING VIEW) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                    <i data-lucide="image" class="w-4 h-4 text-cyan-400"></i>
+                                    Foto Latar Belakang Layar Login (Full-Stretch Factory Building)
+                                </h3>
+                                <p class="text-xs text-slate-400">Latar belakang layar penuh halaman login dengan foto gedung pabrik PT Yasunaga Indonesia, efek soft-blur bawah, dan nuansa mewah.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btn-reset-default-login-bg" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-amber-400"></i>
+                                    <span>Reset Foto Pabrik Default</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            <!-- LIVE PREVIEW LOGIN BACKGROUND -->
+                            <div class="lg:col-span-5 flex flex-col items-center justify-center p-3 bg-slate-950/80 border border-slate-800 rounded-2xl relative overflow-hidden group">
+                                <div class="w-full relative h-48 rounded-xl overflow-hidden border border-slate-700/60 shadow-2xl flex items-center justify-center">
+                                    <!-- Full background image simulation -->
+                                    <div id="settings-login-bg-preview" class="absolute inset-0 bg-cover bg-center transition-all duration-500" style="background-image: url('${this.escapeHtml(profile.login_background_image || '/images/yasunaga-factory.jpg')}');"></div>
+                                    <!-- Darkness overlay -->
+                                    <div id="settings-login-bg-overlay" class="absolute inset-0 transition-all duration-300" style="background-color: rgba(2, 6, 23, ${(profile.login_background_darkness !== undefined ? Number(profile.login_background_darkness) : 40) / 100});"></div>
+                                    <!-- Soft blur bottom -->
+                                    <div class="login-bottom-softblur !h-28"></div>
+                                    
+                                    <!-- Mini Login Card Simulation -->
+                                    <div class="relative z-10 w-44 p-2.5 rounded-lg bg-slate-900/90 border border-slate-700/80 shadow-xl backdrop-blur-md text-center">
+                                        <div class="w-5 h-5 mx-auto mb-1 rounded-md bg-white p-0.5"><img src="${this.escapeHtml(profile.company_logo || '/images/yasunaga-logo.png')}" class="w-full h-full object-contain" /></div>
+                                        <div class="text-[9px] font-black text-white truncate">${this.escapeHtml(profile.company_name || 'PT. YASUNAGA INDONESIA')}</div>
+                                        <div class="text-[7.5px] text-cyan-300 font-mono">Sign In to Workstation</div>
+                                    </div>
+                                </div>
+                                <div class="w-full mt-2.5 flex items-center justify-between text-[10px] text-slate-400 font-mono px-1">
+                                    <span>Tampilan Layar Login (Live Preview)</span>
+                                    <span id="label-bg-status" class="text-emerald-400 font-bold">● High Quality Active</span>
+                                </div>
+                            </div>
+
+                            <!-- CONTROLS & UPLOAD -->
+                            <div class="lg:col-span-7 space-y-4">
+                                <!-- QUICK PRESETS -->
+                                <div>
+                                    <label class="block text-xs text-slate-300 mb-1.5 font-medium">Pilihan Preset Foto Pabrik & Area Produksi:</label>
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        <button type="button" class="btn-preset-login-bg p-2 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-950/80 text-left transition-all cursor-pointer group" data-bg="/images/yasunaga-factory.jpg">
+                                            <div class="text-[10.5px] font-bold text-slate-200 group-hover:text-cyan-400 truncate">Pabrik Yasunaga</div>
+                                            <div class="text-[9px] text-slate-500 truncate">Fasad Gedung Utama</div>
+                                        </button>
+                                        <button type="button" class="btn-preset-login-bg p-2 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-950/80 text-left transition-all cursor-pointer group" data-bg="/images/slideshow/slide-1-plant.webp">
+                                            <div class="text-[10.5px] font-bold text-slate-200 group-hover:text-cyan-400 truncate">Plant Cikande</div>
+                                            <div class="text-[9px] text-slate-500 truncate">Outdoor Landscape</div>
+                                        </button>
+                                        <button type="button" class="btn-preset-login-bg p-2 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-950/80 text-left transition-all cursor-pointer group" data-bg="/images/slideshow/slide-2-machining.webp">
+                                            <div class="text-[10.5px] font-bold text-slate-200 group-hover:text-cyan-400 truncate">Machining Line</div>
+                                            <div class="text-[9px] text-slate-500 truncate">High Precision CNC</div>
+                                        </button>
+                                        <button type="button" class="btn-preset-login-bg p-2 rounded-xl border border-slate-700 hover:border-cyan-500 bg-slate-950/80 text-left transition-all cursor-pointer group" data-bg="/images/slideshow/slide-4-assembly.webp">
+                                            <div class="text-[10.5px] font-bold text-slate-200 group-hover:text-cyan-400 truncate">Assembly Line</div>
+                                            <div class="text-[9px] text-slate-500 truncate">Air Pump Monozukuri</div>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- DRAG & DROP UPLOAD BOX FOR LOGIN BACKGROUND -->
+                                <div id="login-bg-drop-zone" class="border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-2xl p-4 text-center cursor-pointer transition-all bg-slate-950/60 group">
+                                    <input type="file" id="input-login-bg-file" accept="image/png, image/jpeg, image/jpg, image/webp" class="hidden" />
+                                    <div class="flex flex-col items-center justify-center py-2">
+                                        <div class="w-10 h-10 rounded-xl bg-cyan-950/60 border border-cyan-800/80 text-cyan-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                            <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                                        </div>
+                                        <div class="text-xs font-bold text-slate-200">Klik / Tarik Foto Gedung Pabrik Baru ke Sini</div>
+                                        <span class="text-[10px] text-slate-500 mt-0.5">Format: JPG, PNG, WebP (Rekomendasi 1920x1080px atau lebih tinggi, Maks. 5MB)</span>
+                                    </div>
+                                </div>
+
+                                <!-- ADJUSTMENT CONTROLS -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                    <div>
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="text-xs text-slate-300 font-medium">Overlay Kegelapan / Kontras:</label>
+                                            <span id="val-darkness-label" class="text-[11px] font-mono text-cyan-400 font-bold">${profile.login_background_darkness !== undefined ? profile.login_background_darkness : 40}%</span>
+                                        </div>
+                                        <input type="range" id="slider-bg-darkness" min="10" max="80" step="5" value="${profile.login_background_darkness !== undefined ? profile.login_background_darkness : 40}" class="w-full accent-cyan-500 cursor-pointer" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-300 font-medium mb-1">Intensitas Soft Blur Bawah:</label>
+                                        <select id="select-bg-blur" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-sans">
+                                            <option value="subtle" ${profile.login_background_blur === 'subtle' || !profile.login_background_blur ? 'selected' : ''}>Soft Blur Halus (Rekomendasi Mewah)</option>
+                                            <option value="medium" ${profile.login_background_blur === 'medium' ? 'selected' : ''}>Soft Blur Sedang</option>
+                                            <option value="deep" ${profile.login_background_blur === 'deep' ? 'selected' : ''}>Soft Blur Tebal / Dreamy</option>
+                                            <option value="none" ${profile.login_background_blur === 'none' ? 'selected' : ''}>Tanpa Blur (Ultra Sharp)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- TAB 2: SLIDESHOW LOGIN CONFIGURATION (MODUL SYSTEM) -->
@@ -25616,6 +26494,299 @@ tbody.innerHTML = '';
             });
         }
 
+        // Image Compression Utility (Converts and scales PNG/WebP to lightweight formats)
+        const compressImageFile = (file, maxWidth = 1280, maxHeight = 1280, quality = 0.85) => {
+            return new Promise((resolve, reject) => {
+                if (!file) return resolve(null);
+                if (file.type === 'image/svg+xml') {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(e);
+                    reader.readAsDataURL(file);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth || height > maxHeight) {
+                            if (width / height > maxWidth / maxHeight) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            } else {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const outputType = file.type === 'image/png' ? 'image/png' : 'image/webp';
+                        const compressedDataUrl = canvas.toDataURL(outputType, quality);
+                        resolve(compressedDataUrl);
+                    };
+                    img.onerror = (err) => reject(err);
+                    img.src = e.target.result;
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsDataURL(file);
+            });
+        };
+
+        // 3b-1. Production Machine Figure Upload & Reset Handling
+        let activeBase64MachineFigure = profile.production_machine_figure || '/images/production-machine-figure.svg';
+        const machineFigureFileInput = document.getElementById('input-machine-figure-file');
+        const machineFigureDropZone = document.getElementById('machine-figure-drop-zone');
+        const btnResetMachineFigure = document.getElementById('btn-reset-default-machine-figure');
+
+        // Presets for Machine Figure
+        document.querySelectorAll('.btn-preset-machine-fig').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetFig = btn.getAttribute('data-fig');
+                const targetTitle = btn.getAttribute('data-title');
+                if (targetFig) {
+                    activeBase64MachineFigure = targetFig;
+                    const thumb = document.getElementById('form-machine-figure-thumb');
+                    if (thumb) thumb.src = targetFig;
+                    if (targetTitle) {
+                        const titleInput = document.getElementById('input-machine-figure-title');
+                        if (titleInput) titleInput.value = targetTitle;
+                    }
+                    const name = btn.querySelector('.font-bold')?.textContent || '';
+                    this.showNotification('Preset Mesin Dipilih', `Figur mesin: ${name}`, 'info');
+                }
+            });
+        });
+
+        if (machineFigureDropZone && machineFigureFileInput) {
+            machineFigureDropZone.addEventListener('click', () => machineFigureFileInput.click());
+            machineFigureDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                machineFigureDropZone.classList.add('border-cyan-400', 'bg-cyan-950/20');
+            });
+            machineFigureDropZone.addEventListener('dragleave', () => {
+                machineFigureDropZone.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+            });
+            machineFigureDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                machineFigureDropZone.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleMachineFigureFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        const handleMachineFigureFile = async (file) => {
+            if (!file) return;
+            if (!file.type.match(/image\/(png|jpeg|jpg|svg\+xml|webp)/)) {
+                this.showNotification('Format Tidak Didukung', 'Harap pilih file gambar PNG, JPG, SVG, atau WebP.', 'delete');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                this.showNotification('Ukuran Terlalu Besar', 'Maksimal ukuran file gambar mesin adalah 10MB sebelum kompresi.', 'delete');
+                return;
+            }
+
+            try {
+                const compressedBase64 = await compressImageFile(file, 1280, 1280, 0.85);
+                activeBase64MachineFigure = compressedBase64;
+                const thumb = document.getElementById('form-machine-figure-thumb');
+                if (thumb) thumb.src = activeBase64MachineFigure;
+                this.showNotification('Foto Mesin Dipilih', 'Foto figur mesin berhasil dikompresi ringan & siap disimpan.', 'info');
+            } catch (err) {
+                console.error('Failed to compress machine figure:', err);
+                this.showNotification('Gagal Memproses', 'Gagal memproses file gambar mesin.', 'delete');
+            }
+        };
+
+        if (machineFigureFileInput) {
+            machineFigureFileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    handleMachineFigureFile(e.target.files[0]);
+                }
+            });
+        }
+
+        if (btnResetMachineFigure) {
+            btnResetMachineFigure.addEventListener('click', () => {
+                activeBase64MachineFigure = '/images/production-machine-figure.svg';
+                const thumb = document.getElementById('form-machine-figure-thumb');
+                if (thumb) thumb.src = '/images/production-machine-figure.svg';
+                const titleInput = document.getElementById('input-machine-figure-title');
+                if (titleInput) titleInput.value = 'CNC Machining Center & Line Telemetry';
+                this.showNotification('Figur Dipulihkan', 'Diagram standar CNC Machining Center telah dipulihkan.', 'update');
+            });
+        }
+
+        // 3b-2. NG Product Figure Upload & Reset Handling
+        let activeBase64NgFigure = profile.ng_product_figure || '/images/connecting-rod-figure.svg';
+        const ngFigureFileInput = document.getElementById('input-ng-figure-file');
+        const ngFigureDropZone = document.getElementById('ng-figure-drop-zone');
+        const btnResetNgFigure = document.getElementById('btn-reset-default-ng-figure');
+
+        if (ngFigureDropZone && ngFigureFileInput) {
+            ngFigureDropZone.addEventListener('click', () => ngFigureFileInput.click());
+            ngFigureDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                ngFigureDropZone.classList.add('border-cyan-400', 'bg-cyan-950/20');
+            });
+            ngFigureDropZone.addEventListener('dragleave', () => {
+                ngFigureDropZone.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+            });
+            ngFigureDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                ngFigureDropZone.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleNgFigureFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        const handleNgFigureFile = async (file) => {
+            if (!file) return;
+            if (!file.type.match(/image\/(png|jpeg|jpg|svg\+xml|webp)/)) {
+                this.showNotification('Format Tidak Didukung', 'Harap pilih file gambar PNG, JPG, SVG, atau WebP.', 'delete');
+                return;
+            }
+            if (file.size > 8 * 1024 * 1024) {
+                this.showNotification('Ukuran Terlalu Besar', 'Maksimal ukuran file gambar produk adalah 8MB sebelum kompresi.', 'delete');
+                return;
+            }
+
+            try {
+                const compressedBase64 = await compressImageFile(file, 1280, 1280, 0.85);
+                activeBase64NgFigure = compressedBase64;
+                const thumb = document.getElementById('form-ng-figure-thumb');
+                if (thumb) thumb.src = activeBase64NgFigure;
+                this.showNotification('Foto Dipilih', 'Gambar figur produk siap disimpan.', 'info');
+            } catch (err) {
+                console.error('Failed to compress NG figure:', err);
+                this.showNotification('Gagal Memproses', 'Gagal memproses file gambar produk.', 'delete');
+            }
+        };
+
+        if (ngFigureFileInput) {
+            ngFigureFileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    handleNgFigureFile(e.target.files[0]);
+                }
+            });
+        }
+
+        if (btnResetNgFigure) {
+            btnResetNgFigure.addEventListener('click', () => {
+                activeBase64NgFigure = '/images/connecting-rod-figure.svg';
+                const thumb = document.getElementById('form-ng-figure-thumb');
+                if (thumb) thumb.src = '/images/connecting-rod-figure.svg';
+                const titleInput = document.getElementById('input-ng-figure-title');
+                if (titleInput) titleInput.value = 'Anatomi Connecting Rod (Assy, Rod, Cap)';
+                this.showNotification('Diagram Dipulihkan', 'Diagram standar anatomi Connecting Rod telah dipulihkan.', 'update');
+            });
+        }
+
+        // 3c. Login Full-Stretch Background Upload & Controls Handling
+        let activeLoginBgImage = profile.login_background_image || '/images/yasunaga-factory.jpg';
+        const loginBgFileInput = document.getElementById('input-login-bg-file');
+        const loginBgDropZone = document.getElementById('login-bg-drop-zone');
+        const btnResetLoginBg = document.getElementById('btn-reset-default-login-bg');
+        const sliderBgDarkness = document.getElementById('slider-bg-darkness');
+        const selectBgBlur = document.getElementById('select-bg-blur');
+        const valDarknessLabel = document.getElementById('val-darkness-label');
+        const previewBgImg = document.getElementById('settings-login-bg-preview');
+        const previewBgOverlay = document.getElementById('settings-login-bg-overlay');
+
+        const updateLoginBgLivePreview = () => {
+            if (previewBgImg) {
+                previewBgImg.style.backgroundImage = `url('${activeLoginBgImage}')`;
+            }
+            if (previewBgOverlay && sliderBgDarkness) {
+                const darkVal = Number(sliderBgDarkness.value) || 40;
+                previewBgOverlay.style.backgroundColor = `rgba(2, 6, 23, ${darkVal / 100})`;
+                if (valDarknessLabel) valDarknessLabel.textContent = `${darkVal}%`;
+            }
+        };
+
+        if (sliderBgDarkness) {
+            sliderBgDarkness.addEventListener('input', updateLoginBgLivePreview);
+        }
+
+        document.querySelectorAll('.btn-preset-login-bg').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetBg = btn.getAttribute('data-bg');
+                if (targetBg) {
+                    activeLoginBgImage = targetBg;
+                    updateLoginBgLivePreview();
+                    const name = btn.querySelector('.font-bold')?.textContent || '';
+                    this.showNotification('Preset Dipilih', `Latar belakang foto: ${name}`, 'info');
+                }
+            });
+        });
+
+        if (loginBgDropZone && loginBgFileInput) {
+            loginBgDropZone.addEventListener('click', () => loginBgFileInput.click());
+            loginBgDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                loginBgDropZone.classList.add('border-cyan-400', 'bg-cyan-950/20');
+            });
+            loginBgDropZone.addEventListener('dragleave', () => {
+                loginBgDropZone.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+            });
+            loginBgDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                loginBgDropZone.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleLoginBgFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        const handleLoginBgFile = async (file) => {
+            if (!file) return;
+            if (!file.type.match(/image\/(png|jpeg|jpg|webp)/)) {
+                this.showNotification('Format Tidak Didukung', 'Harap pilih file gambar JPG, PNG, atau WebP.', 'delete');
+                return;
+            }
+            if (file.size > 15 * 1024 * 1024) {
+                this.showNotification('Ukuran Terlalu Besar', 'Maksimal ukuran file gambar adalah 15MB sebelum kompresi.', 'delete');
+                return;
+            }
+
+            try {
+                const compressedBase64 = await compressImageFile(file, 1920, 1080, 0.85);
+                activeLoginBgImage = compressedBase64;
+                updateLoginBgLivePreview();
+                this.showNotification('Foto Dipilih', 'Foto gedung pabrik siap disimpan.', 'info');
+            } catch (err) {
+                console.error('Failed to compress login background:', err);
+                this.showNotification('Gagal Memproses', 'Gagal memproses file gambar latar belakang.', 'delete');
+            }
+        };
+
+        if (loginBgFileInput) {
+            loginBgFileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    handleLoginBgFile(e.target.files[0]);
+                }
+            });
+        }
+
+        if (btnResetLoginBg) {
+            btnResetLoginBg.addEventListener('click', () => {
+                activeLoginBgImage = '/images/yasunaga-factory.jpg';
+                if (sliderBgDarkness) sliderBgDarkness.value = 40;
+                if (selectBgBlur) selectBgBlur.value = 'subtle';
+                updateLoginBgLivePreview();
+                this.showNotification('Latar Belakang Dipulihkan', 'Foto gedung pabrik PT Yasunaga Indonesia dipulihkan.', 'update');
+            });
+        }
+
         // 4. Form Submit: Save Company Profile
         const formProfile = document.getElementById('form-company-profile');
         if (formProfile) {
@@ -25625,6 +26796,16 @@ tbody.innerHTML = '';
                 const payload = Object.fromEntries(formData.entries());
                 payload.company_logo = activeBase64Logo;
                 payload.letterhead_enabled = true;
+                payload.production_machine_figure = activeBase64MachineFigure || '/images/production-machine-figure.svg';
+                payload.production_machine_figure_title = document.getElementById('input-machine-figure-title')?.value || 'CNC Machining Center & Line Telemetry';
+                payload.production_machine_figure_enabled = document.getElementById('check-machine-figure-enabled')?.checked ?? true;
+                payload.ng_product_figure = activeBase64NgFigure || '/images/connecting-rod-figure.svg';
+                payload.ng_product_figure_title = document.getElementById('input-ng-figure-title')?.value || 'Anatomi Connecting Rod (Assy, Rod, Cap)';
+                payload.ng_product_figure_enabled = document.getElementById('check-ng-figure-enabled')?.checked ?? true;
+                payload.login_background_image = activeLoginBgImage || '/images/yasunaga-factory.jpg';
+                payload.login_background_darkness = parseInt(sliderBgDarkness?.value || 40, 10);
+                payload.login_background_blur = selectBgBlur?.value || 'subtle';
+                payload.login_background_enabled = true;
 
                 const submitBtn = document.getElementById('btn-save-company-profile');
                 if (submitBtn) {
@@ -25637,7 +26818,7 @@ tbody.innerHTML = '';
                     this.companyProfile = saveRes.data.data;
                     this.applyCompanyBranding();
                     this.playClingSound();
-                    this.showNotification('Profil Perusahaan Tersimpan', 'Informasi kop surat dan logo perusahaan berhasil diperbarui ke seluruh sistem.', 'update');
+                    this.showNotification('Pengaturan Tersimpan', 'Informasi profil perusahaan, foto latar belakang, dan figur mesin/produk berhasil diperbarui.', 'update');
                 } catch (err) {
                     console.error('Error saving company profile:', err);
                     this.showNotification('Gagal Menyimpan', err.response?.data?.message || 'Terjadi kesalahan saat menyimpan profil.', 'delete');

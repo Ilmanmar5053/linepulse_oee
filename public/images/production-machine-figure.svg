@@ -1,0 +1,226 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" width="100%" height="100%">
+  <defs>
+    <!-- Modern Metallic Gradients -->
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <linearGradient id="metalChamber" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="30%" stop-color="#1e293b"/>
+      <stop offset="70%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"/>
+      <stop offset="40%" stop-color="#0284c7" stop-opacity="0.15"/>
+      <stop offset="80%" stop-color="#0369a1" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.25"/>
+    </linearGradient>
+
+    <linearGradient id="cyanAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="spindleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="50%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+
+    <linearGradient id="tableGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="50%" stop-color="#475569"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="hmiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Glowing Filters -->
+    <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#06b6d4" flood-opacity="0.6"/>
+    </filter>
+    <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#10b981" flood-opacity="0.8"/>
+    </filter>
+    <filter id="ambientShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- BACKGROUND SUBTLE TELEMETRY GRID -->
+  <g opacity="0.12">
+    <line x1="30" y1="60" x2="690" y2="60" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="4 4"/>
+    <line x1="30" y1="180" x2="690" y2="180" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="6 6"/>
+    <line x1="30" y1="300" x2="690" y2="300" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="4 4"/>
+    <line x1="180" y1="20" x2="180" y2="340" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="4 4"/>
+    <line x1="360" y1="20" x2="360" y2="340" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="6 6"/>
+    <line x1="540" y1="20" x2="540" y2="340" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="4 4"/>
+  </g>
+
+  <!-- ================================================================ -->
+  <!-- CNC MACHINING CENTER / SMART PRODUCTION MACHINE                  -->
+  <!-- ================================================================ -->
+  <g filter="url(#ambientShadow)">
+    
+    <!-- 1. BASE FOUNDATION / MACHINE BED -->
+    <rect x="140" y="270" width="440" height="50" rx="8" fill="#090d16" stroke="#334155" stroke-width="1.5"/>
+    <rect x="160" y="310" width="50" height="15" rx="3" fill="#1e293b"/>
+    <rect x="510" y="310" width="50" height="15" rx="3" fill="#1e293b"/>
+    <line x1="150" y1="295" x2="570" y2="295" stroke="#1e293b" stroke-width="2"/>
+    <!-- Leveling vibration pads -->
+    <rect x="175" y="325" width="20" height="5" rx="2" fill="#64748b"/>
+    <rect x="525" y="325" width="20" height="5" rx="2" fill="#64748b"/>
+
+    <!-- 2. MAIN ENCLOSURE HOUSING -->
+    <rect x="150" y="45" width="420" height="230" rx="16" fill="url(#bodyGrad)" stroke="#1e293b" stroke-width="2"/>
+    <!-- Top Chamfer Stripe / Yasunaga Brand Strip -->
+    <path d="M 150 70 L 150 55 C 150 48, 155 45, 162 45 L 558 45 C 565 45, 570 48, 570 55 L 570 70 Z" fill="#0b1329"/>
+    <line x1="150" y1="70" x2="570" y2="70" stroke="#0284c7" stroke-width="1.5"/>
+    
+    <!-- Yasunaga Machine Model Badge -->
+    <rect x="168" y="52" width="130" height="12" rx="4" fill="#0284c7" opacity="0.2"/>
+    <text x="174" y="61" fill="#38bdf8" font-family="system-ui, -apple-system, sans-serif" font-size="7.5" font-weight="900" letter-spacing="0.5">YASUNAGA CNC-F500</text>
+
+    <!-- ANDON SIGNAL TOWER (TOP LEFT) -->
+    <g transform="translate(180, 15)">
+      <!-- Pole -->
+      <rect x="7" y="16" width="4" height="15" fill="#475569"/>
+      <!-- Tower Body -->
+      <rect x="5" y="0" width="8" height="16" rx="2" fill="#0f172a" stroke="#334155" stroke-width="0.8"/>
+      <!-- Red Light -->
+      <circle cx="9" cy="3" r="2.2" fill="#ef4444" opacity="0.3"/>
+      <!-- Yellow Light -->
+      <circle cx="9" cy="8" r="2.2" fill="#f59e0b" opacity="0.3"/>
+      <!-- Green Light (Active Glowing) -->
+      <circle cx="9" cy="13" r="2.5" fill="#10b981" filter="url(#emeraldGlow)"/>
+    </g>
+
+    <!-- 3. INNER MACHINING CHAMBER -->
+    <rect x="175" y="82" width="280" height="175" rx="8" fill="url(#metalChamber)" stroke="#0f172a" stroke-width="2"/>
+    
+    <!-- Chamber Inner LED Light Ceiling -->
+    <rect x="185" y="85" width="260" height="4" rx="2" fill="#e0f2fe" opacity="0.85" filter="url(#cyanGlow)"/>
+
+    <!-- WORKTABLE (X/Y AXIS SLIDE) -->
+    <g transform="translate(195, 205)">
+      <!-- Slideway base -->
+      <rect x="0" y="25" width="240" height="18" rx="3" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+      <line x1="10" y1="34" x2="230" y2="34" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="10 4"/>
+      <!-- Precision T-Slot Table -->
+      <rect x="30" y="5" width="180" height="22" rx="3" fill="url(#tableGrad)" stroke="#64748b" stroke-width="1"/>
+      <!-- T-Slots -->
+      <line x1="45" y1="12" x2="195" y2="12" stroke="#0f172a" stroke-width="2"/>
+      <line x1="45" y1="18" x2="195" y2="18" stroke="#0f172a" stroke-width="2"/>
+
+      <!-- WORKPIECE JIG & FIXTURE (Connecting Rod Clamp) -->
+      <rect x="85" y="-12" width="70" height="17" rx="3" fill="#0284c7" stroke="#38bdf8" stroke-width="1"/>
+      <text x="96" y="-1" fill="#ffffff" font-family="system-ui, sans-serif" font-size="6.5" font-weight="bold">CON-ROD JIG</text>
+      <!-- Workpiece Outline -->
+      <path d="M 100 -6 L 140 -6" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+    </g>
+
+    <!-- SPINDLE HEAD & TOOL HOLDER (Z-AXIS) -->
+    <g transform="translate(285, 95)">
+      <!-- Column Guide Rail -->
+      <rect x="25" y="0" width="10" height="75" fill="#1e293b" stroke="#334155" stroke-width="0.8"/>
+      <!-- Spindle Motor Housing -->
+      <rect x="10" y="10" width="40" height="42" rx="4" fill="url(#spindleGrad)" stroke="#475569" stroke-width="1.2"/>
+      <!-- Cooling Vents -->
+      <line x1="16" y1="20" x2="44" y2="20" stroke="#0f172a" stroke-width="1.5"/>
+      <line x1="16" y1="26" x2="44" y2="26" stroke="#0f172a" stroke-width="1.5"/>
+      <line x1="16" y1="32" x2="44" y2="32" stroke="#0f172a" stroke-width="1.5"/>
+      <line x1="16" y1="38" x2="44" y2="38" stroke="#0f172a" stroke-width="1.5"/>
+
+      <!-- High-Speed Spindle Nose (BT40/HSK) -->
+      <polygon points="18,52 42,52 38,68 22,68" fill="#cbd5e1" stroke="#475569" stroke-width="1"/>
+      <rect x="26" y="68" width="8" height="10" fill="#94a3b8"/>
+      <!-- End Mill / Tool Cutter -->
+      <polygon points="28,78 32,78 30.5,90 29.5,90" fill="#38bdf8" filter="url(#cyanGlow)"/>
+      <!-- Precision Machining Spark/Laser Center point -->
+      <circle cx="30" cy="95" r="3" fill="#22d3ee" filter="url(#cyanGlow)"/>
+      <line x1="22" y1="95" x2="38" y2="95" stroke="#38bdf8" stroke-width="1" stroke-dasharray="1 1"/>
+      <line x1="30" y1="87" x2="30" y2="103" stroke="#38bdf8" stroke-width="1" stroke-dasharray="1 1"/>
+    </g>
+
+    <!-- AUTOMATIC TOOL CHANGER (ATC MAGAZINE) -->
+    <g transform="translate(182, 100)" opacity="0.85">
+      <circle cx="22" cy="30" r="18" fill="#0f172a" stroke="#334155" stroke-width="1.2"/>
+      <circle cx="22" cy="30" r="8" fill="#1e293b"/>
+      <!-- Tools in carousel -->
+      <circle cx="22" cy="15" r="3" fill="#0284c7"/>
+      <circle cx="35" cy="24" r="3" fill="#0284c7"/>
+      <circle cx="32" cy="39" r="3" fill="#0284c7"/>
+      <circle cx="12" cy="39" r="3" fill="#0284c7"/>
+      <circle cx="9" cy="24" r="3" fill="#0284c7"/>
+    </g>
+
+    <!-- SAFETY GLASS WINDOW / DOOR ENCLOSURE -->
+    <rect x="180" y="86" width="270" height="168" rx="6" fill="url(#glassGrad)" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.4"/>
+    <!-- Glass Highlight Reflection -->
+    <path d="M 190 92 L 320 92 L 240 248 L 190 248 Z" fill="#ffffff" opacity="0.04"/>
+
+    <!-- 4. RIGHT SIDE: SMART HMI TOUCHSCREEN CONTROL PANEL -->
+    <g transform="translate(470, 85)">
+      <!-- Console Arm / Mounting -->
+      <path d="M 0 40 L 15 35 L 15 125 L 0 120 Z" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+      
+      <!-- HMI Panel Enclosure -->
+      <rect x="15" y="10" width="75" height="150" rx="8" fill="url(#hmiGrad)" stroke="#0284c7" stroke-width="1.5" filter="url(#cyanGlow)"/>
+      
+      <!-- Screen Bezel -->
+      <rect x="20" y="16" width="65" height="75" rx="4" fill="#020617" stroke="#1e293b" stroke-width="1"/>
+      
+      <!-- Digital OEE Display UI on HMI Screen -->
+      <rect x="23" y="20" width="59" height="10" rx="2" fill="#0369a1" opacity="0.4"/>
+      <text x="25" y="27" fill="#38bdf8" font-family="monospace" font-size="5" font-weight="bold">LINEPULSE OEE</text>
+      
+      <!-- Mini Gauges / Realtime Stats -->
+      <circle cx="34" cy="45" r="10" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+      <circle cx="34" cy="45" r="10" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="45 15"/>
+      <text x="30" y="47" fill="#10b981" font-family="monospace" font-size="5.5" font-weight="bold">94%</text>
+
+      <circle cx="66" cy="45" r="10" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+      <circle cx="66" cy="45" r="10" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="50 10"/>
+      <text x="61" y="47" fill="#38bdf8" font-family="monospace" font-size="5.5" font-weight="bold">RUN</text>
+
+      <!-- Mini Waveform / Telemetry Graph -->
+      <rect x="23" y="62" width="59" height="24" rx="2" fill="#0b1329"/>
+      <polyline points="26,78 35,72 44,75 53,68 62,70 71,65 79,66" fill="none" stroke="#06b6d4" stroke-width="1.2"/>
+
+      <!-- Operator Keypad & Emergency Stop -->
+      <!-- Emergency Stop Button -->
+      <circle cx="52" cy="110" r="9" fill="#ef4444" stroke="#991b1b" stroke-width="1.5" filter="url(#cyanGlow)"/>
+      <circle cx="52" cy="110" r="5" fill="#dc2626"/>
+      <!-- Start Button (Green) -->
+      <circle cx="33" cy="135" r="6" fill="#10b981" stroke="#059669" stroke-width="1"/>
+      <!-- Feed Hold / Pause (Yellow) -->
+      <circle cx="52" cy="135" r="6" fill="#f59e0b" stroke="#d97706" stroke-width="1"/>
+      <!-- Reset (Blue) -->
+      <circle cx="71" cy="135" r="6" fill="#0284c7" stroke="#0369a1" stroke-width="1"/>
+    </g>
+
+    <!-- 5. STATUS & TELEMETRY CALLOUT LABELS -->
+    <!-- Status: ACTIVE PRODUCTION -->
+    <g transform="translate(195, 32)">
+      <rect x="0" y="0" width="105" height="16" rx="4" fill="#064e3b" stroke="#059669" stroke-width="1"/>
+      <circle cx="8" cy="8" r="3" fill="#10b981" filter="url(#emeraldGlow)"/>
+      <text x="16" y="11" fill="#6ee7b7" font-family="system-ui, sans-serif" font-size="7" font-weight="bold">STATUS: RUNNING</text>
+    </g>
+
+    <!-- Yasunaga Plant Mark -->
+    <g transform="translate(420, 32)">
+      <rect x="0" y="0" width="135" height="16" rx="4" fill="#082f49" stroke="#0284c7" stroke-width="1"/>
+      <text x="8" y="11" fill="#7dd3fc" font-family="system-ui, sans-serif" font-size="7" font-weight="bold">PT YASUNAGA INDONESIA</text>
+    </g>
+
+  </g>
+</svg>

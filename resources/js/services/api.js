@@ -112,6 +112,9 @@ export const api = {
     updateSetting: (key, value) => axios.post(`${API_BASE}/master/settings`, { key, value }),
     getCompanyProfile: () => axios.get(`${API_BASE}/company-profile`),
     saveCompanyProfile: (data) => axios.post(`${API_BASE}/company-profile`, data),
+    uploadLoginBackground: (formData) => axios.post(`${API_BASE}/company-profile/background/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 
     // Login Page Dynamic Slideshow Settings
     getLoginSlideshow: () => axios.get(`${API_BASE}/login-slideshow`),

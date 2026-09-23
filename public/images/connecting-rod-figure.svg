@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 340" width="100%" height="100%">
+  <defs>
+    <!-- Gradients for Metallic Industrial Finish -->
+    <linearGradient id="rodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9"/>
+      <stop offset="35%" stop-color="#0284c7" stop-opacity="0.95"/>
+      <stop offset="70%" stop-color="#0369a1" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#075985" stop-opacity="1"/>
+    </linearGradient>
+
+    <linearGradient id="capGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#059669" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#047857" stop-opacity="1"/>
+    </linearGradient>
+
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#94a3b8" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.4"/>
+    </linearGradient>
+
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="bushGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+
+    <!-- Glow & Shadow Filters -->
+    <filter id="neonCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#06b6d4" flood-opacity="0.45"/>
+    </filter>
+    <filter id="neonEmerald" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#10b981" flood-opacity="0.45"/>
+    </filter>
+    <filter id="neonRose" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#f43f5e" flood-opacity="0.4"/>
+    </filter>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- BACKGROUND SUBTLE GRID (TRANSPARENT-FRIENDLY) -->
+  <g opacity="0.15">
+    <line x1="40" y1="40" x2="640" y2="40" stroke="#06b6d4" stroke-width="0.5" stroke-dasharray="4 4"/>
+    <line x1="40" y1="170" x2="640" y2="170" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="6 6"/>
+    <line x1="40" y1="300" x2="640" y2="300" stroke="#06b6d4" stroke-width="0.5" stroke-dasharray="4 4"/>
+    <line x1="160" y1="20" x2="160" y2="320" stroke="#06b6d4" stroke-width="0.5" stroke-dasharray="4 4"/>
+    <line x1="340" y1="20" x2="340" y2="320" stroke="#06b6d4" stroke-width="0.75" stroke-dasharray="6 6"/>
+    <line x1="520" y1="20" x2="520" y2="320" stroke="#06b6d4" stroke-width="0.5" stroke-dasharray="4 4"/>
+  </g>
+
+  <!-- CENTER AXIS REFERENCE LINE -->
+  <line x1="60" y1="170" x2="620" y2="170" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="12 4 3 4" opacity="0.6"/>
+
+  <!-- ================================================================ -->
+  <!-- 1. CONNECTING ROD BODY & SMALL END (ROD SECTION)                 -->
+  <!-- ================================================================ -->
+  <g filter="url(#softShadow)">
+    <!-- Main Rod Body Profile (Horizontal Layout) -->
+    <!-- Small End (Left: x=140, y=170) -> I-Beam Shank -> Big End Half (Right: x=460, y=170) -->
+    
+    <!-- Small End Outer Ring (Pin Bore Boss) -->
+    <circle cx="150" cy="170" r="46" fill="url(#rodGrad)" stroke="#38bdf8" stroke-width="2"/>
+    
+    <!-- I-Beam Shank (Tapered Body) -->
+    <path d="M 190 148 L 415 125 L 430 115 L 440 125 L 420 145 L 420 195 L 440 215 L 430 225 L 415 215 L 190 192 Z" 
+          fill="url(#rodGrad)" stroke="#38bdf8" stroke-width="1.8"/>
+    
+    <!-- I-Beam Recess (Forged Center Channel) -->
+    <path d="M 210 156 L 395 138 L 395 202 L 210 184 Z" 
+          fill="#0c4a6e" stroke="#0284c7" stroke-width="1.5" opacity="0.95"/>
+    <path d="M 215 159 L 390 142 L 390 198 L 215 181 Z" 
+          fill="url(#metalGrad)" opacity="0.7"/>
+
+    <!-- Small End Pin Bore Inner Opening (Bush Area) -->
+    <circle cx="150" cy="170" r="32" fill="#032b43" stroke="#0284c7" stroke-width="2"/>
+    <!-- Bushing Layer -->
+    <circle cx="150" cy="170" r="28" fill="none" stroke="url(#bushGrad)" stroke-width="4.5" stroke-dasharray="180"/>
+    <!-- Small End Center Bore (Hollow) -->
+    <circle cx="150" cy="170" r="23.5" fill="#021324" stroke="#38bdf8" stroke-width="1"/>
+
+    <!-- Rod Big-End Half Arch (Crank Journal Upper Half) -->
+    <path d="M 415 125 C 445 105, 500 105, 525 125 L 535 152 L 490 152 C 480 142, 460 142, 450 152 L 405 152 Z" 
+          fill="url(#rodGrad)" stroke="#38bdf8" stroke-width="2"/>
+    
+    <!-- Big End Rod-Side Outer Shoulder & Bolt Hole Bosses -->
+    <path d="M 430 115 C 455 95, 510 95, 535 115 L 542 168 L 478 168 C 478 152, 465 140, 450 140 C 435 140, 422 152, 422 168 L 418 168 Z" 
+          fill="url(#rodGrad)" stroke="#38bdf8" stroke-width="1.8"/>
+
+    <!-- Upper Big End Journal Half Bore -->
+    <path d="M 432 168 C 432 144, 452 125, 478 125 C 504 125, 524 144, 524 168 Z" 
+          fill="#021324" stroke="#0284c7" stroke-width="2"/>
+  </g>
+
+  <!-- ================================================================ -->
+  <!-- 2. CONNECTING ROD CAP (CAP SECTION)                              -->
+  <!-- ================================================================ -->
+  <g filter="url(#softShadow)">
+    <!-- Split Line Gap / Joint (Fracture Split Plane) -->
+    <line x1="416" y1="172" x2="544" y2="172" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.9"/>
+
+    <!-- Rod Cap Lower Half Arch -->
+    <path d="M 418 174 L 432 174 C 432 198, 452 217, 478 217 C 504 217, 524 198, 524 174 L 542 174 L 536 226 C 512 248, 450 248, 424 226 Z" 
+          fill="url(#capGrad)" stroke="#34d399" stroke-width="2"/>
+    
+    <!-- Lower Big End Journal Half Bore -->
+    <path d="M 432 174 C 432 198, 452 217, 478 217 C 504 217, 524 198, 524 174 Z" 
+          fill="#021324" stroke="#10b981" stroke-width="2"/>
+
+    <!-- Cap Reinforcing Rib / Crown Profile -->
+    <path d="M 440 220 C 458 234, 498 234, 516 220 L 512 212 C 496 222, 460 222, 444 212 Z" 
+          fill="#064e3b" stroke="#34d399" stroke-width="1"/>
+  </g>
+
+  <!-- ================================================================ -->
+  <!-- 3. CONNECTING ROD BOLTS (BOLT SECTION / FASTENERS)               -->
+  <!-- ================================================================ -->
+  <!-- Left Rod Bolt -->
+  <g filter="url(#softShadow)">
+    <rect x="420" y="145" width="8" height="52" rx="2" fill="url(#boltGrad)" stroke="#fef08a" stroke-width="0.8"/>
+    <rect x="419" y="196" width="10" height="7" rx="1.5" fill="#f59e0b" stroke="#fef08a" stroke-width="1"/>
+    <!-- Right Rod Bolt -->
+    <rect x="532" y="145" width="8" height="52" rx="2" fill="url(#boltGrad)" stroke="#fef08a" stroke-width="0.8"/>
+    <rect x="531" y="196" width="10" height="7" rx="1.5" fill="#f59e0b" stroke="#fef08a" stroke-width="1"/>
+  </g>
+
+  <!-- Big End Crank Journal Center Point Marker -->
+  <circle cx="478" cy="171" r="3" fill="#38bdf8"/>
+  <circle cx="478" cy="171" r="1.2" fill="#ffffff"/>
+
+  <!-- ================================================================ -->
+  <!-- 4. CALLOUT ANNOTATIONS & LABELS (ASSY, ROD, CAP, PELENGKAP)       -->
+  <!-- ================================================================ -->
+
+  <!-- TOP CALLOUT: ROD SECTION -->
+  <g filter="url(#neonCyan)">
+    <!-- Callout Pointer Lines -->
+    <path d="M 285 142 L 285 68 L 240 68" fill="none" stroke="#38bdf8" stroke-width="1.8"/>
+    <circle cx="285" cy="142" r="3.5" fill="#38bdf8" stroke="#ffffff" stroke-width="1"/>
+    
+    <!-- BADGE: BAGIAN ROD -->
+    <rect x="70" y="48" width="160" height="38" rx="10" fill="#082f49" stroke="#38bdf8" stroke-width="1.8"/>
+    <circle cx="92" cy="67" r="9" fill="#0284c7"/>
+    <text x="92" y="71" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">1</text>
+    <text x="110" y="63" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#38bdf8" letter-spacing="0.5">BAGIAN: ROD</text>
+    <text x="110" y="77" font-family="monospace" font-size="8.5" font-weight="600" fill="#7dd3fc">Body, Shank &amp; Small End</text>
+  </g>
+
+  <!-- BOTTOM CALLOUT: CAP SECTION -->
+  <g filter="url(#neonEmerald)">
+    <!-- Callout Pointer Lines -->
+    <path d="M 485 235 L 485 285 L 440 285" fill="none" stroke="#34d399" stroke-width="1.8"/>
+    <circle cx="485" cy="235" r="3.5" fill="#34d399" stroke="#ffffff" stroke-width="1"/>
+    
+    <!-- BADGE: BAGIAN CAP -->
+    <rect x="270" y="266" width="160" height="38" rx="10" fill="#022c22" stroke="#34d399" stroke-width="1.8"/>
+    <circle cx="292" cy="285" r="9" fill="#059669"/>
+    <text x="292" y="289" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">2</text>
+    <text x="310" y="281" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#34d399" letter-spacing="0.5">BAGIAN: CAP</text>
+    <text x="310" y="295" font-family="monospace" font-size="8.5" font-weight="600" fill="#6ee7b7">Big End Bearing Cap</text>
+  </g>
+
+  <!-- TOP-RIGHT CALLOUT: ASSY (OVERALL ASSEMBLY) -->
+  <g filter="url(#neonCyan)">
+    <!-- Bracket / Enclosing Indicator for Assy -->
+    <path d="M 450 68 L 520 68 L 520 100" fill="none" stroke="#22d3ee" stroke-width="1.8"/>
+    <circle cx="520" cy="100" r="3.5" fill="#22d3ee" stroke="#ffffff" stroke-width="1"/>
+    
+    <!-- BADGE: ASSY -->
+    <rect x="530" y="48" width="135" height="38" rx="10" fill="#164e63" stroke="#22d3ee" stroke-width="1.8"/>
+    <circle cx="550" cy="67" r="9" fill="#0891b2"/>
+    <text x="550" y="71" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">★</text>
+    <text x="568" y="63" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#a5f3fc" letter-spacing="0.5">BAGIAN: ASSY</text>
+    <text x="568" y="77" font-family="monospace" font-size="8.5" font-weight="600" fill="#67e8f9">Full Set Con-Rod</text>
+  </g>
+
+  <!-- BOTTOM-RIGHT SUB-CALLOUT: BOLT / BUSH / PIN (PELENGKAP) -->
+  <g opacity="0.95">
+    <path d="M 548 185 L 590 185 L 590 230 L 570 230" fill="none" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3 2"/>
+    <circle cx="548" cy="185" r="2.5" fill="#fbbf24"/>
+    
+    <!-- MINI PILL: PELENGKAP -->
+    <rect x="460" y="215" width="110" height="22" rx="6" fill="#451a03" stroke="#f59e0b" stroke-width="1"/>
+    <text x="515" y="229" font-family="system-ui, -apple-system, sans-serif" font-size="8.5" font-weight="700" fill="#fde68a" text-anchor="middle">⚡ Bolt / Bush / Pin</text>
+  </g>
+
+  <!-- BOTTOM LEFT: PRODUCTION QUALITY MONOZUKURI WATERMARK / STAMP -->
+  <g opacity="0.85">
+    <text x="25" y="325" font-family="monospace" font-size="9" font-weight="700" fill="#38bdf8" letter-spacing="1">STANDAR ACUAN NG: CONNECTING ROD PRODUCTION (ASSY • ROD • CAP)</text>
+  </g>
+</svg>

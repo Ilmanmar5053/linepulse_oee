@@ -1279,6 +1279,16 @@ class MasterDataController extends Controller
             'app_title' => 'LinePulse | Smart Production Performance Monitoring',
             'company_logo' => '/images/yasunaga-logo.png',
             'letterhead_enabled' => true,
+            'ng_product_figure' => '/images/connecting-rod-figure.svg',
+            'ng_product_figure_title' => 'Anatomi Connecting Rod (Assy, Rod, Cap)',
+            'ng_product_figure_enabled' => true,
+            'production_machine_figure' => '/images/production-machine-figure.svg',
+            'production_machine_figure_title' => 'CNC Machining Center & Line Telemetry',
+            'production_machine_figure_enabled' => true,
+            'login_background_image' => '/images/yasunaga-factory.jpg',
+            'login_background_blur' => 'subtle', // 'none' | 'subtle' | 'medium' | 'deep'
+            'login_background_darkness' => 40,
+            'login_background_enabled' => true,
         ];
 
         if ($profileRaw) {
@@ -1290,6 +1300,15 @@ class MasterDataController extends Controller
 
         if (empty($profile['company_logo'])) {
             $profile['company_logo'] = '/images/yasunaga-logo.png';
+        }
+        if (empty($profile['ng_product_figure'])) {
+            $profile['ng_product_figure'] = '/images/connecting-rod-figure.svg';
+        }
+        if (empty($profile['production_machine_figure'])) {
+            $profile['production_machine_figure'] = '/images/production-machine-figure.svg';
+        }
+        if (empty($profile['login_background_image'])) {
+            $profile['login_background_image'] = '/images/yasunaga-factory.jpg';
         }
 
         return response()->json([
@@ -1314,9 +1333,33 @@ class MasterDataController extends Controller
             'app_title' => 'nullable|string|max:255',
             'company_logo' => 'nullable|string', // Base64 data string or URL
             'letterhead_enabled' => 'nullable|boolean',
+            'ng_product_figure' => 'nullable|string', // Base64 data string or URL for NG Product Figure
+            'ng_product_figure_title' => 'nullable|string|max:255',
+            'ng_product_figure_enabled' => 'nullable|boolean',
+            'production_machine_figure' => 'nullable|string', // Base64 data string or URL for Production Machine Figure
+            'production_machine_figure_title' => 'nullable|string|max:255',
+            'production_machine_figure_enabled' => 'nullable|boolean',
+            'login_background_image' => 'nullable|string', // Base64 data string or URL
+            'login_background_blur' => 'nullable|string',
+            'login_background_darkness' => 'nullable|numeric|min:0|max:100',
+            'login_background_enabled' => 'nullable|boolean',
         ]);
 
-        SystemSetting::set('company_profile', $validated, 'company', 'Profil Perusahaan, Logo, dan Kop Surat Laporan Resmi');
+        // Process Base64 images to static files to optimize storage and caching
+        if (!empty($validated['company_logo'])) {
+            $validated['company_logo'] = $this->processBase64Image($validated['company_logo'], 'company_logo');
+        }
+        if (!empty($validated['ng_product_figure'])) {
+            $validated['ng_product_figure'] = $this->processBase64Image($validated['ng_product_figure'], 'ng_product_figure');
+        }
+        if (!empty($validated['production_machine_figure'])) {
+            $validated['production_machine_figure'] = $this->processBase64Image($validated['production_machine_figure'], 'machine_fig');
+        }
+        if (!empty($validated['login_background_image'])) {
+            $validated['login_background_image'] = $this->processBase64Image($validated['login_background_image'], 'login_bg');
+        }
+
+        SystemSetting::set('company_profile', $validated, 'company', 'Profil Perusahaan, Logo, Latar Belakang Login, dan Kop Surat Laporan Resmi');
 
         // Also update individual related settings for backward compatibility
         SystemSetting::set('company_name', $validated['company_name']);
@@ -1325,9 +1368,46 @@ class MasterDataController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Profil Perusahaan dan Kop Laporan berhasil disimpan.',
+            'message' => 'Profil Perusahaan dan Latar Belakang berhasil disimpan.',
             'data' => $validated,
         ]);
+    }
+
+    private function processBase64Image(?string $dataString, string $prefix = 'upload'): ?string
+    {
+        if (empty($dataString)) {
+            return $dataString;
+        }
+
+        // Check if string is a base64 data URI
+        if (preg_match('/^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/s', $dataString, $matches)) {
+            $rawExt = strtolower($matches[1]);
+            $base64Data = $matches[2];
+
+            $extMap = [
+                'png' => 'png',
+                'jpeg' => 'jpg',
+                'jpg' => 'jpg',
+                'gif' => 'gif',
+                'webp' => 'webp',
+                'svg+xml' => 'svg',
+                'svg' => 'svg',
+            ];
+            $ext = $extMap[$rawExt] ?? 'png';
+
+            $decoded = base64_decode($base64Data);
+            if ($decoded !== false) {
+                $filename = $prefix . '_' . time() . '_' . uniqid() . '.' . $ext;
+                $destDir = public_path('images/uploads');
+                if (!file_exists($destDir)) {
+                    mkdir($destDir, 0755, true);
+                }
+                file_put_contents($destDir . DIRECTORY_SEPARATOR . $filename, $decoded);
+                return '/images/uploads/' . $filename;
+            }
+        }
+
+        return $dataString;
     }
 
     // GROUPS (TEAM LEADERS)
@@ -1561,6 +1641,45 @@ class MasterDataController extends Controller
         return response()->json([
             'success' => false,
             'message' => 'Gagal mengunggah file gambar.',
+        ], 400);
+    }
+
+    public function uploadLoginBackground(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp,svg|max:10240',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = 'login_bg_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $destPath = public_path('images/uploads');
+            if (!file_exists($destPath)) {
+                mkdir($destPath, 0755, true);
+            }
+            $file->move($destPath, $filename);
+            $url = '/images/uploads/' . $filename;
+
+            // Automatically update company_profile with the new background
+            $raw = SystemSetting::get('company_profile');
+            $profile = $raw ? (is_array($raw) ? $raw : json_decode($raw, true)) : [];
+            if (is_array($profile)) {
+                $profile['login_background_image'] = $url;
+                $profile['login_background_enabled'] = true;
+                SystemSetting::set('company_profile', $profile, 'company');
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Foto latar belakang login pabrik berhasil diunggah.',
+                'url' => $url,
+                'data' => ['url' => $url],
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengunggah file gambar background.',
         ], 400);
     }
 }

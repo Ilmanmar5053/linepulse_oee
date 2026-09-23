@@ -132,16 +132,19 @@ Route::prefix('api/v1')->group(function () {
         Route::post('/settings', [MasterDataController::class, 'updateSetting']);
         Route::get('/company-profile', [MasterDataController::class, 'getCompanyProfile']);
         Route::post('/company-profile', [MasterDataController::class, 'saveCompanyProfile']);
+        Route::post('/company-profile/background/upload', [MasterDataController::class, 'uploadLoginBackground']);
         Route::get('/login-slideshow', [MasterDataController::class, 'getLoginSlideshow']);
         Route::post('/login-slideshow', [MasterDataController::class, 'saveLoginSlideshow']);
         Route::post('/login-slideshow/upload', [MasterDataController::class, 'uploadSlideshowImage']);
     });
     Route::get('/company-profile', [MasterDataController::class, 'getCompanyProfile']);
     Route::post('/company-profile', [MasterDataController::class, 'saveCompanyProfile']);
+    Route::post('/company-profile/background/upload', [MasterDataController::class, 'uploadLoginBackground']);
     Route::get('/login-slideshow', [MasterDataController::class, 'getLoginSlideshow']);
     Route::post('/login-slideshow', [MasterDataController::class, 'saveLoginSlideshow']);
     Route::post('/system/login-slideshow', [MasterDataController::class, 'saveLoginSlideshow']);
     Route::post('/system/login-slideshow/upload', [MasterDataController::class, 'uploadSlideshowImage']);
+    Route::post('/system/login-background/upload', [MasterDataController::class, 'uploadLoginBackground']);
 });
 
 // Legacy / Alias Endpoints

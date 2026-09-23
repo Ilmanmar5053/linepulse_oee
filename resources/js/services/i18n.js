@@ -148,6 +148,7 @@ const translations = {
             user_role: 'Super Admin',
             live_active: 'LIVE',
             new_badge: 'NEW',
+            mandatory_badge: 'WAJIB',
         },
         ja: {
             brand_subtitle: 'エンジン部品・エアーポンプ製造',
@@ -179,6 +180,7 @@ const translations = {
             user_role: '管理者権限',
             live_active: '稼働中',
             new_badge: '新機能',
+            mandatory_badge: '必須',
         }
     },
 
@@ -2937,19 +2939,19 @@ const MONOZUKURI_MASTER_DICTIONARY = [
         "直別OEE及び3要素比較指標"
     ],
     [
-        "Diagram Pareto Penyebab Reject (Vital Few vs Useful Many)",
+        "Diagram Pareto Penyebab Reject",
         "不良原因パレート図 (重点項目 vs その他)"
     ],
     [
-        "Proporsi Reject per Komponen",
+        "Distribusi NG Per Komponen",
         "部品別 不良発生比率"
     ],
     [
-        "Ranking Bagian NG Terbanyak (Defect Section Breakdown)",
+        "Ranking Bagian NG Terbanyak",
         "ワースト不良部位ランキング"
     ],
     [
-        "Matriks Top 10 Defect Reason & Rekomendasi Solusi Teknis",
+        "Top 10 Defect Reason & Rekomendasi Solusi Teknis",
         "ワースト10不良要因マトリクス及び技術対策提案"
     ],
     [
