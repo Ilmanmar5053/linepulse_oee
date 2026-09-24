@@ -29215,82 +29215,55 @@ tbody.innerHTML = '';
         ];
 
         content.innerHTML = `
-            <div class="space-y-6 pb-12">
-                <!-- HERO HEADER BANNER -->
-                <div class="relative overflow-hidden rounded-2xl border ${isLight ? 'bg-gradient-to-r from-cyan-50 via-sky-50 to-indigo-50 border-cyan-200' : 'bg-gradient-to-r from-cyan-950/50 via-[#0C1938] to-[#121B3B] border-cyan-800/40'} p-5 sm:p-7 shadow-xl">
-                    <div class="absolute -right-10 -top-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <div class="absolute right-32 -bottom-10 w-48 h-48 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
-                        <div class="space-y-1.5 max-w-2xl">
-                            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${isLight ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-700/60'}">
-                                <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                <span>${isJa ? 'OEE 教育・標準ガイド' : 'Pusat Edukasi & Standar OEE'}</span>
+            <div class="space-y-4 pb-12">
+                <!-- UNIFIED COMPACT OEE EDUCATION HEADER & TAB NAVIGATION CARD -->
+                <div class="rounded-2xl border ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900/90 border-slate-800 shadow-xl'} p-4 sm:p-5 space-y-3.5">
+                    <!-- HEADER BAR -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl ${isLight ? 'bg-cyan-100 text-cyan-700 border border-cyan-200' : 'bg-gradient-to-br from-cyan-950 to-blue-950 text-cyan-400 border border-cyan-800/80'} flex items-center justify-center shrink-0 shadow-inner">
+                                <i data-lucide="graduation-cap" class="w-5 h-5"></i>
                             </div>
-                            <h2 class="text-lg sm:text-xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight">
-                                ${isJa ? 'OEE 総合設備効率 ガイド＆シミュレーター' : 'Panduan & Simulasi Standar OEE'}
-                            </h2>
-                            <p class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'} leading-relaxed">
-                                ${isJa 
-                                    ? 'OEE 3要素（時間稼働率・性能稼働率・良品率）と6大ロスの構造を学び、シミュレーターで即時計算できます。'
-                                    : 'Pelajari konsep 3 pilar OEE (Availability, Performance, Quality), analisis Six Big Losses, dan uji simulasi kalkulasi secara realtime.'}
-                            </p>
+                            <div>
+                                <h2 class="text-base sm:text-lg font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight flex items-center gap-2">
+                                    <span>${isJa ? 'OEE ガイド＆シミュレーター' : 'Panduan & Simulasi Standar OEE'}</span>
+                                </h2>
+                            </div>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-2.5 flex-shrink-0">
-                            <button type="button" id="btn-hero-jump-simulator" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition-all cursor-pointer transform hover:-translate-y-0.5">
-                                <i data-lucide="calculator" class="w-4 h-4"></i>
-                                <span>${isJa ? 'OEE シミュレーターを開く' : 'Uji Live OEE Simulator'}</span>
-                            </button>
-                            <button type="button" id="btn-hero-jump-sixlosses" class="px-4 py-2.5 rounded-xl text-xs font-semibold ${isLight ? 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300' : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700'} flex items-center gap-2 transition-all cursor-pointer transform hover:-translate-y-0.5">
-                                <i data-lucide="layers" class="w-4 h-4 text-amber-400"></i>
-                                <span>${isJa ? '6大ロス解説へ' : 'Pelajari 6 Big Losses'}</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- DYNAMIC TAB NAVIGATION BAR -->
-                <div class="rounded-2xl border ${isLight ? 'bg-white/90 border-slate-200 shadow-sm' : 'bg-slate-950/80 border-slate-800 shadow-lg'} p-2">
-                    <div class="flex items-center justify-between px-3 py-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} mb-2">
+                        <!-- RIGHT STATUS INDICATOR -->
                         <div class="flex items-center gap-2">
-                            <span class="flex h-2 w-2 relative">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-                            </span>
-                            <span class="text-xs font-mono font-bold uppercase tracking-wider ${isLight ? 'text-slate-600' : 'text-slate-400'}">
-                                ${isJa ? '学習メニュー選択 (タブ別表示)' : 'Pilih Modul Pembelajaran (Navigasi Tab Interaktif):'}
+                            <span id="edu-tab-indicator" class="text-xs font-mono font-bold px-3 py-1 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-cyan-950/80 text-cyan-400 border border-cyan-800/80'} shadow-sm">
+                                ${isJa ? '項目 1 / 6' : 'Materi 1 dari 6'}
                             </span>
                         </div>
-                        <span id="edu-tab-indicator" class="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-cyan-950/80 text-cyan-400 border border-cyan-800'}">
-                            Materi 1 dari 6
-                        </span>
                     </div>
 
-                    <!-- TAB BUTTONS -->
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2" id="education-tab-container">
+                    <!-- 6 TAB NAVIGATION BUTTONS GRID (1 ROW ON DESKTOP) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5" id="education-tab-container">
                         ${tabs.map((tab, idx) => {
                             const isActive = this.activeEducationTab === tab.id;
                             return `
                                 <button type="button" 
                                     data-edu-tab="${tab.id}"
-                                    class="edu-tab-btn text-left p-3 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between border relative overflow-hidden group
+                                    class="edu-tab-btn text-left p-2.5 sm:p-3 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between border relative overflow-hidden group
                                     ${isActive 
                                         ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white border-cyan-400/80 shadow-md shadow-cyan-600/30 ring-2 ring-cyan-400/40' 
                                         : isLight 
                                             ? 'bg-slate-50 hover:bg-slate-100/80 text-slate-700 border-slate-200 hover:border-cyan-300' 
-                                            : 'bg-slate-900/70 hover:bg-slate-900 text-slate-300 border-slate-800/90 hover:border-slate-700'
+                                            : 'bg-slate-950/60 hover:bg-slate-950 text-slate-300 border-slate-800/80 hover:border-slate-700'
                                     }">
-                                    <div class="flex items-center justify-between w-full mb-1.5">
-                                        <span class="w-6 h-6 rounded-lg ${isActive ? 'bg-white/20 text-white' : isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-cyan-400'} text-[11px] font-mono font-bold flex items-center justify-center">
+                                    <div class="flex items-center justify-between w-full mb-1">
+                                        <span class="w-5 h-5 rounded-md ${isActive ? 'bg-white/20 text-white' : isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-cyan-400'} text-[10px] font-mono font-bold flex items-center justify-center">
                                             ${tab.num}
                                         </span>
-                                        <i data-lucide="${tab.icon}" class="w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-cyan-400'} transition-colors"></i>
+                                        <i data-lucide="${tab.icon}" class="w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-cyan-400'} transition-colors"></i>
                                     </div>
                                     <div>
                                         <div class="text-xs font-bold leading-snug line-clamp-1 ${isActive ? 'text-white' : isLight ? 'text-slate-800' : 'text-slate-200'}">
                                             ${tab.title}
                                         </div>
-                                        <div class="text-[10px] font-mono mt-0.5 ${isActive ? 'text-cyan-100' : isLight ? 'text-slate-500' : 'text-slate-400'}">
+                                        <div class="text-[9.5px] font-mono mt-0.5 ${isActive ? 'text-cyan-100' : isLight ? 'text-slate-500' : 'text-slate-400'} line-clamp-1">
                                             ${tab.subtitle}
                                         </div>
                                     </div>
