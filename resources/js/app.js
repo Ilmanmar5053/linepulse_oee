@@ -28681,207 +28681,136 @@ tbody.innerHTML = '';
                     </div>
                 </div>
 
-                <!-- SECTION: PEMBERSIHAN DATA GO-LIVE (SUITE PEMBERSIH MASSAL) -->
+                <!-- SECTION: PEMBERSIHAN DATA GO-LIVE (CHECKLIST MATRIX & SAFETY SHIELD) -->
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-6 shadow-xl space-y-5">
+                    
                     <!-- SECTION TITLE & SAFETY SHIELD BADGE -->
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-4">
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                 <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
-                                Pembersihan Data Massal untuk Persiapan Live (Go-Live Preparation)
+                                Pembersihan Data Massal Persiapan Go-Live (Selective Go-Live Data Cleanup)
                             </h3>
                             <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">
-                                Bersihkan data uji coba / simulasi agar aplikasi bersih dan siap digunakan secara resmi oleh operator & supervisor lini.
+                                Pilih secara spesifik tabel data transaksi uji coba yang ingin dibersihkan dengan checklist di bawah sebelum sistem dijalankan secara resmi.
                             </p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
                                 <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-                                Master Data Shield: Aktif & Terproteksi
+                                <span>Master Data Shield: AKTIF & TERPROTEKSI</span>
                             </span>
                         </div>
                     </div>
 
-                    <!-- SAFETY NOTICE CALLOUT -->
-                    <div class="p-4 rounded-xl ${isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300'} border text-xs leading-relaxed flex items-start gap-3">
-                        <div class="p-1 rounded-lg ${isLight ? 'bg-emerald-200' : 'bg-emerald-900/80'} shrink-0 mt-0.5">
-                            <i data-lucide="info" class="w-4 h-4 text-emerald-400"></i>
+                    <!-- SAFETY NOTICE CALLOUT (STRICT GUARANTEE) -->
+                    <div class="p-4 rounded-xl ${isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-emerald-950/40 border-emerald-800/60 text-emerald-200'} border text-xs leading-relaxed flex items-start gap-3">
+                        <div class="p-1 rounded-lg ${isLight ? 'bg-emerald-200' : 'bg-emerald-900/80'} shrink-0 mt-0.5 text-emerald-600">
+                            <i data-lucide="shield-alert" class="w-4 h-4"></i>
                         </div>
                         <div class="space-y-1">
-                            <div class="font-bold text-emerald-400 uppercase tracking-wider text-[11px]">Jaminan Keamanan Master Data</div>
-                            <div>
-                                Tindakan pembersihan data transaksional di bawah ini **TIDAK AKAN** menghapus akun user, setting target OEE, daftar mesin (225 unit), lini produksi (27 line), part produk (69 item), seksi defect (522 seksi), alasan downtime, shift kerja, maupun profil kop surat perusahaan.
+                            <div class="font-bold text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                <span>Jaminan Keamanan Sistem & Proteksi Master Data</span>
+                            </div>
+                            <div class="text-[11.5px] leading-relaxed">
+                                Tindakan pembersihan ini <strong>HANYA</strong> membersihkan data transaksi operasional yang Anda centang pada checklist. Seluruh <strong>Master Data (Akun Pengguna, Role, Target OEE, 225 Mesin, 27 Lini Produksi, 69 Part Produk, 522 Seksi Defect, 50+ Alasan Downtime, Jam Kerja Shift, Regu, Background Pabrik, dan Profil Perusahaan)</strong> dijamin <strong>100% TIDAK AKAN DIHAPUS</strong> dan tetap aman.
                             </div>
                         </div>
                     </div>
 
-                    <!-- 4 GRID ACTION CARDS FOR CLEANUP -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
-                        <!-- ACTION CARD 1: FACTORY RESET (ALL TRANSACTIONS) -->
-                        <div class="${isLight ? 'bg-rose-50/50 border-rose-200' : 'bg-rose-950/20 border-rose-800/40'} border rounded-2xl p-4.5 flex flex-col justify-between space-y-4 hover:border-rose-500/60 transition-all">
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <div class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center">
-                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                                        REKOMENDASI GO-LIVE
-                                    </span>
-                                </div>
-                                <h4 class="font-bold text-xs ${isLight ? 'text-rose-900' : 'text-rose-200'}">Pembersihan Total Transaksi</h4>
-                                <p class="text-[11px] ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-snug">
-                                    Bersihkan seluruh record hasil produksi, kalkulasi OEE, trouble log downtime, dan defect NG.
-                                </p>
-                            </div>
-                            <button type="button" data-action="clean-scope" data-scope="all_transactions" data-label="Seluruh Data Uji Coba Transaksional" class="w-full py-2 px-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/30 flex items-center justify-center gap-1.5 cursor-pointer transition-all">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                <span>Bersihkan Semua Transaksi</span>
+                    <!-- CHECKLIST PRESET TOOLBAR -->
+                    <div class="p-3.5 rounded-xl ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950/80 border-slate-800'} border flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-[11px] font-bold uppercase font-mono text-slate-400 mr-1 flex items-center gap-1">
+                                <i data-lucide="check-square" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                <span>Pilihan Cepat:</span>
+                            </span>
+                            <button type="button" id="btn-select-all-clean" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-white hover:bg-slate-200 text-slate-800 border border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'} flex items-center gap-1">
+                                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                <span>Pilih Semua Transaksi</span>
+                            </button>
+                            <button type="button" id="btn-deselect-all-clean" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-white hover:bg-slate-200 text-slate-800 border border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'} flex items-center gap-1">
+                                <i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>
+                                <span>Kosongkan Pilihan</span>
+                            </button>
+                            <span class="text-slate-500 font-mono">|</span>
+                            <button type="button" id="btn-preset-production" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-300' : 'bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/80'}">
+                                🏭 Data Produksi & OEE
+                            </button>
+                            <button type="button" id="btn-preset-downtime" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 border border-amber-800/80'}">
+                                ⚠️ Log Downtime & Trouble
+                            </button>
+                            <button type="button" id="btn-preset-ng" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-300' : 'bg-orange-950/60 hover:bg-orange-900/60 text-orange-300 border border-orange-800/80'}">
+                                🔍 Defect & Mutu NG
+                            </button>
+                            <button type="button" id="btn-preset-monitoring" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${isLight ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300' : 'bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800/80'}">
+                                📡 Sensor & Event IoT
                             </button>
                         </div>
 
-                        <!-- ACTION CARD 2: PRODUKSI & OEE ONLY -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-2xl p-4.5 flex flex-col justify-between space-y-4 hover:border-cyan-500/40 transition-all">
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
-                                        <i data-lucide="clipboard-edit" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-mono text-slate-400 border border-slate-700">
-                                        PRODUKSI & OEE
-                                    </span>
-                                </div>
-                                <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-200'}">Data Laporan Produksi</h4>
-                                <p class="text-[11px] text-slate-400 leading-snug">
-                                    Hanya membersihkan tabel record produksi harian, snapshot kalkulasi OEE (A/P/Q), dan ringkasan shift.
-                                </p>
+                        <!-- LIVE SELECTION SUMMARY & ACTION TRIGGER -->
+                        <div class="flex items-center gap-3 ml-auto">
+                            <div class="text-xs font-mono ${isLight ? 'text-slate-700' : 'text-slate-300'} text-right">
+                                Terpilih: <strong id="clean-selected-count" class="text-rose-400 font-extrabold text-sm">0</strong> dari <span id="clean-total-count">${tables.transactional.length}</span> Tabel 
+                                (<strong id="clean-selected-rows" class="text-amber-400 font-bold">0</strong> Baris)
                             </div>
-                            <button type="button" data-action="clean-scope" data-scope="production" data-label="Data Laporan Produksi & OEE" class="w-full py-2 px-3 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all">
-                                <i data-lucide="eraser" class="w-3.5 h-3.5"></i>
-                                <span>Bersihkan Data Produksi</span>
-                            </button>
-                        </div>
-
-                        <!-- ACTION CARD 3: DOWNTIME ONLY -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-2xl p-4.5 flex flex-col justify-between space-y-4 hover:border-amber-500/40 transition-all">
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
-                                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-mono text-slate-400 border border-slate-700">
-                                        TROUBLE LOG
-                                    </span>
-                                </div>
-                                <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-200'}">Log Trouble & Downtime</h4>
-                                <p class="text-[11px] text-slate-400 leading-snug">
-                                    Hanya membersihkan riwayat pencatatan breakdown mesin, kendala perbaikan, dan deskripsi CAPA.
-                                </p>
-                            </div>
-                            <button type="button" data-action="clean-scope" data-scope="downtime" data-label="Log Trouble & Downtime" class="w-full py-2 px-3 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all">
-                                <i data-lucide="eraser" class="w-3.5 h-3.5"></i>
-                                <span>Bersihkan Log Trouble</span>
-                            </button>
-                        </div>
-
-                        <!-- ACTION CARD 4: NG & QUALITY ONLY -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-2xl p-4.5 flex flex-col justify-between space-y-4 hover:border-orange-500/40 transition-all">
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <div class="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center">
-                                        <i data-lucide="shield-alert" class="w-4 h-4"></i>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-mono text-slate-400 border border-slate-700">
-                                        DEFECT & MUTU
-                                    </span>
-                                </div>
-                                <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-200'}">Rekap Defect & NG Mutu</h4>
-                                <p class="text-[11px] text-slate-400 leading-snug">
-                                    Hanya membersihkan antrean laporan NG, rincian item reject part, dan catatan sampling QC.
-                                </p>
-                            </div>
-                            <button type="button" data-action="clean-scope" data-scope="ng_quality" data-label="Rekap Defect Mutu & NG Records" class="w-full py-2 px-3 bg-orange-600/20 hover:bg-orange-600/30 text-orange-300 border border-orange-500/40 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all">
-                                <i data-lucide="eraser" class="w-3.5 h-3.5"></i>
-                                <span>Bersihkan Data Defect NG</span>
+                            <button type="button" id="btn-clean-selected-checklist" disabled class="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-600/30 flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                <span>Bersihkan Tabel Terpilih Sesuai Checklist</span>
                             </button>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- SECTION: DETAIL TABEL DATABASE (2 KOLOM: TRANSAKSI VS MASTER) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- KOLOM 1: TABEL TRANSAKSI (DAPAT DIBERSIHKAN) -->
+                    
+                    <!-- KOLOM 1: CHECKLIST TABEL DATA TRANSAKSIONAL -->
                     <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl space-y-4">
                         <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-3">
                             <div>
                                 <h3 class="text-sm font-bold ${isLight ? 'text-rose-900' : 'text-rose-400'} flex items-center gap-2">
-                                    <i data-lucide="list-filter" class="w-4 h-4"></i>
-                                    Tabel Data Transaksional (${tables.transactional.length} Tabel)
+                                    <i data-lucide="check-square" class="w-4 h-4"></i>
+                                    Checklist Tabel Data Transaksional (${tables.transactional.length} Tabel)
                                 </h3>
-                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Tabel yang berisi riwayat aktivitas dan dapat dibersihkan untuk Go-Live.</p>
+                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Centang tabel yang ingin dibersihkan datanya untuk persiapan Live.</p>
                             </div>
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800">
-                                TRANSAKSI
+                                PILIH / CHECKLIST
                             </span>
                         </div>
 
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left text-xs" id="table-clean-checklist">
+                                <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} font-mono">
                                     <tr>
+                                        <th class="p-2.5 text-center w-10">
+                                            <input type="checkbox" id="chk-master-toggle" class="w-4 h-4 rounded cursor-pointer accent-rose-600" title="Centang / Hapus Semua Checklist" />
+                                        </th>
                                         <th class="p-2.5">Nama Tabel</th>
-                                        <th class="p-2.5">Deskripsi Fungsi</th>
+                                        <th class="p-2.5">Deskripsi Fungsi Transaksi</th>
                                         <th class="p-2.5 text-right">Jumlah Baris</th>
                                         <th class="p-2.5 text-right">Ukuran</th>
+                                        <th class="p-2.5 text-center">Status Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
+                                <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono text-xs">
                                     ${tables.transactional.map(t => `
-                                        <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
-                                            <td class="p-2.5 font-bold text-cyan-400">${t.table}</td>
-                                            <td class="p-2.5 font-sans ${isLight ? 'text-slate-700' : 'text-slate-300'} text-[11px]">${t.label}</td>
+                                        <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors cursor-pointer row-clean-item" data-table="${t.table}">
+                                            <td class="p-2.5 text-center" onclick="event.stopPropagation()">
+                                                <input type="checkbox" class="w-4 h-4 rounded cursor-pointer accent-rose-600 chk-clean-table" value="${t.table}" data-category="${t.category}" data-rows="${t.count}" data-label="${t.label}" checked />
+                                            </td>
+                                            <td class="p-2.5 font-bold text-cyan-400 whitespace-nowrap">${t.table}</td>
+                                            <td class="p-2.5 font-sans ${isLight ? 'text-slate-700' : 'text-slate-300'} text-[11px]">
+                                                <div class="font-bold">${t.label}</div>
+                                                <div class="text-[10px] text-slate-500">${t.description || ''}</div>
+                                            </td>
                                             <td class="p-2.5 text-right font-extrabold ${t.count > 0 ? 'text-amber-400' : 'text-slate-500'}">${t.count.toLocaleString()}</td>
-                                            <td class="p-2.5 text-right text-slate-400 text-[10px]">${t.size_kb} KB</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- KOLOM 2: TABEL MASTER DATA & KONFIGURASI (TERLINDUNGI) -->
-                    <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl space-y-4">
-                        <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-3">
-                            <div>
-                                <h3 class="text-sm font-bold ${isLight ? 'text-emerald-900' : 'text-emerald-400'} flex items-center gap-2">
-                                    <i data-lucide="lock" class="w-4 h-4"></i>
-                                    Tabel Master & Konfigurasi (${tables.master.length} Tabel)
-                                </h3>
-                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Master data terproteksi permanen dan tidak akan tersentuh saat pembersihan.</p>
-                            </div>
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
-                                🔒 TERPROTEKSI
-                            </span>
-                        </div>
-
-                        <div class="overflow-x-auto max-h-[420px] overflow-y-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} sticky top-0 bg-slate-900">
-                                    <tr>
-                                        <th class="p-2.5">Nama Tabel</th>
-                                        <th class="p-2.5">Kategori Master</th>
-                                        <th class="p-2.5 text-right">Data Tersimpan</th>
-                                        <th class="p-2.5 text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
-                                    ${tables.master.map(t => `
-                                        <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
-                                            <td class="p-2.5 font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${t.table}</td>
-                                            <td class="p-2.5 font-sans ${isLight ? 'text-slate-700' : 'text-slate-400'} text-[11px]">${t.label}</td>
-                                            <td class="p-2.5 text-right font-bold text-emerald-400">${t.count.toLocaleString()}</td>
-                                            <td class="p-2.5 text-center">
-                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                                                    AMAN
+                                            <td class="p-2.5 text-right text-slate-400 text-[10px] whitespace-nowrap">${t.size_kb} KB</td>
+                                            <td class="p-2.5 text-center whitespace-nowrap">
+                                                <span class="status-clean-badge px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                                                    DIBERSIHKAN
                                                 </span>
                                             </td>
                                         </tr>
@@ -28890,6 +28819,50 @@ tbody.innerHTML = '';
                             </table>
                         </div>
                     </div>
+
+                    <!-- KOLOM 2: TABEL MASTER DATA & KONFIGURASI (TERLINDUNGI PERMANEN) -->
+                    <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-xl space-y-4">
+                        <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-3">
+                            <div>
+                                <h3 class="text-sm font-bold ${isLight ? 'text-emerald-900' : 'text-emerald-400'} flex items-center gap-2">
+                                    <i data-lucide="lock" class="w-4 h-4"></i>
+                                    Tabel Master Data & Profil Terproteksi (${tables.master.length} Tabel)
+                                </h3>
+                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Master data, target OEE, dan profil perusahaan dijamin kebal dan tidak dapat dihapus.</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                                🔒 100% TERPROTEKSI
+                            </span>
+                        </div>
+
+                        <div class="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
+                            <table class="w-full text-left text-xs">
+                                <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} sticky top-0 bg-slate-900 font-mono">
+                                    <tr>
+                                        <th class="p-2.5">Nama Tabel Master</th>
+                                        <th class="p-2.5">Kategori Master</th>
+                                        <th class="p-2.5 text-right">Data Tersimpan</th>
+                                        <th class="p-2.5 text-center">Status Perlindungan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800/60'} font-mono">
+                                    ${tables.master.map(t => `
+                                        <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                                            <td class="p-2.5 font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'} whitespace-nowrap">${t.table}</td>
+                                            <td class="p-2.5 font-sans ${isLight ? 'text-slate-700' : 'text-slate-400'} text-[11px]">${t.label}</td>
+                                            <td class="p-2.5 text-right font-bold text-emerald-400">${t.count.toLocaleString()}</td>
+                                            <td class="p-2.5 text-center whitespace-nowrap">
+                                                <span class="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                                    🔒 AMAN / PERMANEN
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         `;
@@ -28932,13 +28905,135 @@ tbody.innerHTML = '';
             }
         });
 
-        // 4. Cleanup Scope Triggers
-        document.querySelectorAll('[data-action="clean-scope"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const scope = e.currentTarget.getAttribute('data-scope');
-                const label = e.currentTarget.getAttribute('data-label');
-                this.showCleanConfirmationModal(scope, label);
+        // 4. CHECKLIST LOGIC & DYNAMIC SELECTION
+        const checkboxes = document.querySelectorAll('.chk-clean-table');
+        const masterToggle = document.getElementById('chk-master-toggle');
+        const cleanCountEl = document.getElementById('clean-selected-count');
+        const cleanRowsEl = document.getElementById('clean-selected-rows');
+        const executeCleanBtn = document.getElementById('btn-clean-selected-checklist');
+
+        const updateSelectionState = () => {
+            let selectedCount = 0;
+            let selectedRows = 0;
+            const checkedTables = [];
+
+            checkboxes.forEach(chk => {
+                const row = chk.closest('tr');
+                const badge = row.querySelector('.status-clean-badge');
+                const rows = parseInt(chk.getAttribute('data-rows') || '0', 10);
+
+                if (chk.checked) {
+                    selectedCount++;
+                    selectedRows += rows;
+                    checkedTables.push({
+                        table: chk.value,
+                        label: chk.getAttribute('data-label') || chk.value,
+                        rows: rows
+                    });
+                    if (badge) {
+                        badge.className = 'status-clean-badge px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40';
+                        badge.textContent = 'DIBERSIHKAN';
+                    }
+                } else {
+                    if (badge) {
+                        badge.className = 'status-clean-badge px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-slate-500/20 text-slate-400 border border-slate-700';
+                        badge.textContent = 'DILEWATI (AMAN)';
+                    }
+                }
             });
+
+            if (cleanCountEl) cleanCountEl.textContent = selectedCount;
+            if (cleanRowsEl) cleanRowsEl.textContent = selectedRows.toLocaleString();
+            if (executeCleanBtn) {
+                executeCleanBtn.disabled = selectedCount === 0;
+            }
+            if (masterToggle) {
+                masterToggle.checked = selectedCount === checkboxes.length && checkboxes.length > 0;
+                masterToggle.indeterminate = selectedCount > 0 && selectedCount < checkboxes.length;
+            }
+
+            return checkedTables;
+        };
+
+        // Initial state update
+        updateSelectionState();
+
+        // Individual checkbox change
+        checkboxes.forEach(chk => {
+            chk.addEventListener('change', updateSelectionState);
+        });
+
+        // Row click to toggle checkbox
+        document.querySelectorAll('.row-clean-item').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+                const chk = row.querySelector('.chk-clean-table');
+                if (chk) {
+                    chk.checked = !chk.checked;
+                    updateSelectionState();
+                }
+            });
+        });
+
+        // Master toggle
+        masterToggle?.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            checkboxes.forEach(chk => { chk.checked = isChecked; });
+            updateSelectionState();
+        });
+
+        // Preset 1: Select All
+        document.getElementById('btn-select-all-clean')?.addEventListener('click', () => {
+            checkboxes.forEach(chk => { chk.checked = true; });
+            updateSelectionState();
+        });
+
+        // Preset 2: Deselect All
+        document.getElementById('btn-deselect-all-clean')?.addEventListener('click', () => {
+            checkboxes.forEach(chk => { chk.checked = false; });
+            updateSelectionState();
+        });
+
+        // Preset 3: Production only
+        document.getElementById('btn-preset-production')?.addEventListener('click', () => {
+            checkboxes.forEach(chk => {
+                chk.checked = chk.getAttribute('data-category') === 'production';
+            });
+            updateSelectionState();
+        });
+
+        // Preset 4: Downtime only
+        document.getElementById('btn-preset-downtime')?.addEventListener('click', () => {
+            checkboxes.forEach(chk => {
+                chk.checked = chk.getAttribute('data-category') === 'downtime';
+            });
+            updateSelectionState();
+        });
+
+        // Preset 5: NG & Quality only
+        document.getElementById('btn-preset-ng')?.addEventListener('click', () => {
+            checkboxes.forEach(chk => {
+                chk.checked = chk.getAttribute('data-category') === 'ng_quality';
+            });
+            updateSelectionState();
+        });
+
+        // Preset 6: Monitoring IoT only
+        document.getElementById('btn-preset-monitoring')?.addEventListener('click', () => {
+            checkboxes.forEach(chk => {
+                chk.checked = chk.getAttribute('data-category') === 'monitoring';
+            });
+            updateSelectionState();
+        });
+
+        // Execute Cleanup Button Trigger
+        executeCleanBtn?.addEventListener('click', () => {
+            const selectedItems = updateSelectionState();
+            if (selectedItems.length === 0) {
+                this.showNotification('Peringatan', 'Pilih minimal satu tabel transaksi pada checklist sebelum melanjutkan.', 'warning');
+                return;
+            }
+            this.showCleanConfirmationModal('custom', `${selectedItems.length} Tabel Transaksi Terpilih`, selectedItems);
         });
 
         if (this.currentLang === 'ja') {
@@ -28947,58 +29042,88 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 13B. CLEANUP CONFIRMATION MODAL WITH TYPE-TO-CONFIRM SECURITY
+    // 13B. CLEANUP CONFIRMATION MODAL WITH TYPE-TO-CONFIRM SECURITY & TABLE BREAKDOWN
     // ==========================================
-    showCleanConfirmationModal(scope, label) {
+    showCleanConfirmationModal(scope, label, selectedTables = []) {
         const modalContainer = document.getElementById('modal-container');
         if (!modalContainer) return;
 
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
 
+        const tableNames = selectedTables.map(t => typeof t === 'string' ? t : t.table);
+        const totalRows = selectedTables.reduce((acc, t) => acc + (typeof t === 'object' ? (t.rows || 0) : 0), 0);
+
         modalContainer.innerHTML = `
-            <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-lg w-full my-auto overflow-hidden font-sans">
+            <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto animate-fadeIn">
+                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-3xl max-w-xl w-full my-auto overflow-hidden font-sans">
+                    
                     <!-- MODAL HEADER -->
                     <div class="${isLight ? 'bg-rose-50 border-rose-200' : 'bg-rose-950/40 border-rose-900/50'} px-6 py-4 border-b flex items-center justify-between">
                         <div class="flex items-center gap-3 text-rose-400">
-                            <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center shrink-0">
+                            <div class="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center shrink-0">
                                 <i data-lucide="alert-octagon" class="w-5 h-5"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-sm ${isLight ? 'text-rose-900' : 'text-rose-100'}">Konfirmasi Pembersihan Data Go-Live</h3>
-                                <p class="text-[11px] ${isLight ? 'text-rose-700' : 'text-rose-300'}">Tindakan ini memerlukan verifikasi frasa keamanan.</p>
+                                <h3 class="font-bold text-sm ${isLight ? 'text-rose-900' : 'text-rose-100'}">Konfirmasi Pembersihan Selektif Data Go-Live</h3>
+                                <p class="text-[11px] ${isLight ? 'text-rose-700' : 'text-rose-300'}">Tindakan penghapusan data uji coba memerlukan verifikasi frasa keamanan.</p>
                             </div>
                         </div>
-                        <button type="button" id="btn-close-clean-modal" class="p-1 rounded-lg ${isLight ? 'text-slate-400 hover:text-slate-800 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} cursor-pointer transition-colors">
+                        <button type="button" id="btn-close-clean-modal" class="p-1.5 rounded-xl ${isLight ? 'text-slate-400 hover:text-slate-800 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} cursor-pointer transition-colors">
                             <i data-lucide="x" class="w-5 h-5"></i>
                         </button>
                     </div>
 
                     <!-- MODAL BODY -->
-                    <div class="p-6 space-y-4 text-xs">
-                        <div class="p-3.5 rounded-xl ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950/80 border-slate-800'} border space-y-2">
-                            <div class="text-[11px] text-slate-400">Target Cakupan Pembersihan:</div>
-                            <div class="font-bold text-sm text-rose-400 flex items-center gap-2">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                <span>${label}</span>
+                    <div class="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto custom-scrollbar">
+                        
+                        <!-- TARGET SCOPE & TABLE LIST -->
+                        <div class="p-4 rounded-2xl ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/80 border-slate-800'} border space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-mono uppercase text-slate-400 font-bold">Daftar Tabel yang Akan Dikosongkan:</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                    ${tableNames.length} Tabel Terpilih
+                                </span>
                             </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-40 overflow-y-auto custom-scrollbar p-1">
+                                ${selectedTables.map(t => {
+                                    const name = typeof t === 'string' ? t : t.table;
+                                    const lbl = typeof t === 'object' ? (t.label || name) : name;
+                                    const count = typeof t === 'object' ? (t.rows || 0) : 0;
+                                    return `
+                                        <div class="flex items-center justify-between p-2 rounded-xl ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border text-[11px]">
+                                            <div class="truncate mr-1">
+                                                <div class="font-bold text-cyan-400 font-mono truncate">${name}</div>
+                                                <div class="text-[10px] text-slate-400 truncate">${lbl}</div>
+                                            </div>
+                                            <span class="font-mono text-amber-400 font-extrabold shrink-0 text-[10px]">${count.toLocaleString()} baris</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            ${totalRows > 0 ? `
+                                <div class="text-right text-[11px] font-mono text-slate-400 pt-1 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                    Total Data Terhapus: <strong class="text-rose-400 font-bold">${totalRows.toLocaleString()} baris</strong>
+                                </div>
+                            ` : ''}
                         </div>
 
-                        <div class="p-3.5 rounded-xl ${isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300'} border space-y-1 text-[11.5px] leading-relaxed">
+                        <!-- MASTER DATA SHIELD GUARANTEE NOTICE -->
+                        <div class="p-3.5 rounded-2xl ${isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300'} border space-y-1 text-[11.5px] leading-relaxed">
                             <div class="font-bold flex items-center gap-1.5 text-emerald-400">
                                 <i data-lucide="shield-check" class="w-4 h-4"></i>
-                                <span>Jaminan Keamanan Master Data</span>
+                                <span>Master Data & Pengaturan Terproteksi 100%</span>
                             </div>
                             <div>
-                                Master Data (Akun User, Mesin, Lini, Part Produk, Seksi Defect, Shift, Alasan Downtime, dan Pengaturan Kop Surat) <strong>TIDAK AKAN DIHAPUS</strong>.
+                                Akun User, Setting Target OEE, 225 Mesin, 27 Lini, 69 Produk, 522 Seksi Defect, Alasan Downtime, Shift, Background Pabrik, dan Profil Perusahaan <strong>DIJAMIN AMAN & TIDAK DIHAPUS</strong>.
                             </div>
                         </div>
 
+                        <!-- SECURITY TYPE-TO-CONFIRM INPUT -->
                         <div class="space-y-2 pt-1">
                             <label class="block font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'} text-xs">
                                 Untuk mengonfirmasi, ketik kata <span class="font-mono font-bold text-rose-400 bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-800/50">BERSIHKAN</span> pada kotak di bawah:
                             </label>
-                            <input type="text" id="input-clean-confirm-phrase" placeholder="Ketik BERSIHKAN di sini..." autocomplete="off" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900 focus:border-rose-500' : 'bg-slate-950 border-slate-700 text-slate-100 focus:border-rose-500'} border-2 rounded-xl px-3 py-2.5 font-mono font-bold text-xs uppercase tracking-wider outline-none transition-all" />
+                            <input type="text" id="input-clean-confirm-phrase" placeholder="Ketik BERSIHKAN di sini..." autocomplete="off" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900 focus:border-rose-500' : 'bg-slate-950 border-slate-700 text-slate-100 focus:border-rose-500'} border-2 rounded-xl px-3.5 py-2.5 font-mono font-bold text-xs uppercase tracking-wider outline-none transition-all shadow-inner" />
                         </div>
                     </div>
 
@@ -29007,11 +29132,12 @@ tbody.innerHTML = '';
                         <button type="button" id="btn-cancel-clean-modal" class="px-4 py-2 ${isLight ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} rounded-xl text-xs font-semibold cursor-pointer transition-colors">
                             Batal
                         </button>
-                        <button type="button" id="btn-execute-clean-modal" disabled class="px-5 py-2 bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-600/30 flex items-center gap-1.5 cursor-pointer transition-all">
+                        <button type="button" id="btn-execute-clean-modal" disabled class="px-5 py-2.5 bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-rose-500 text-white font-black text-xs rounded-xl shadow-lg shadow-rose-600/30 flex items-center gap-1.5 cursor-pointer transition-all">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                            <span>Konfirmasi & Bersihkan Data</span>
+                            <span>Konfirmasi & Bersihkan Data Terpilih</span>
                         </button>
                     </div>
+
                 </div>
             </div>
         `;
@@ -29044,6 +29170,7 @@ tbody.innerHTML = '';
                 try {
                     const res = await api.cleanTransactions({
                         scope: scope,
+                        tables: tableNames,
                         confirmation_phrase: phraseInput.value.trim().toUpperCase()
                     });
 
@@ -29059,7 +29186,7 @@ tbody.innerHTML = '';
                 } catch (err) {
                     alert('Gagal membersihkan data: ' + (err.response?.data?.message || err.message));
                     executeBtn.disabled = false;
-                    executeBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span>Konfirmasi & Bersihkan Data</span>`;
+                    executeBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span>Konfirmasi & Bersihkan Data Terpilih</span>`;
                     if (window.lucide) window.lucide.createIcons();
                 }
             });

@@ -14,8 +14,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class DatabaseManagementController extends Controller
 {
     /**
-     * Whitelist of transactional tables that can be cleaned for Go-Live.
-     * Master data and configuration tables are STRICTLY EXCLUDED.
+     * Whitelist of transactional tables created by user daily operations that can be cleaned for Go-Live.
+     * Master data, profiles, and configurations are STRICTLY EXCLUDED and PERMANENTLY PROTECTED.
      */
     protected array $transactionalTables = [
         'production_records' => [
@@ -28,6 +28,16 @@ class DatabaseManagementController extends Controller
             'desc' => 'Data skor Availability, Performance, Quality, dan Total OEE harian.',
             'category' => 'production'
         ],
+        'daily_production_summaries' => [
+            'label' => 'Ringkasan Produksi Harian',
+            'desc' => 'Snapshot ringkasan hasil produksi harian untuk pelaporan cepat.',
+            'category' => 'production'
+        ],
+        'shift_summaries' => [
+            'label' => 'Rekapitulasi Shift Handover',
+            'desc' => 'Log akumulasi performa serah terima antar shift kerja.',
+            'category' => 'production'
+        ],
         'downtimes' => [
             'label' => 'Log Trouble & Downtime Mesin',
             'desc' => 'Riwayat kendala operasional, breakdown, perbaikan teknisi, dan CAPA.',
@@ -35,7 +45,7 @@ class DatabaseManagementController extends Controller
         ],
         'ng_records' => [
             'label' => 'Data Rekap Defect / NG Queue',
-            'desc' => 'Daftar rekap pemeriksaan mutu reject part dari lini per shift.',
+            'desc' => 'Daftar antrean rekap pemeriksaan mutu reject part dari lini per shift.',
             'category' => 'ng_quality'
         ],
         'ng_record_items' => [
@@ -48,19 +58,9 @@ class DatabaseManagementController extends Controller
             'desc' => 'Riwayat inspeksi sampling mutu dan verifikasi reject rate.',
             'category' => 'ng_quality'
         ],
-        'daily_production_summaries' => [
-            'label' => 'Ringkasan Produksi Harian',
-            'desc' => 'Snapshot ringkasan harian untuk pelaporan cepat.',
-            'category' => 'production'
-        ],
-        'shift_summaries' => [
-            'label' => 'Rekapitulasi Shift Handover',
-            'desc' => 'Log akumulasi performa antar shift produksi.',
-            'category' => 'production'
-        ],
         'machine_events' => [
             'label' => 'Log Event Sensor Mesin',
-            'desc' => 'Pencatatan sinyal start/stop dan perubahan status IoT.',
+            'desc' => 'Pencatatan sinyal start/stop dan perubahan status sensor IoT.',
             'category' => 'monitoring'
         ],
         'machine_status_logs' => [
@@ -68,15 +68,11 @@ class DatabaseManagementController extends Controller
             'desc' => 'Log perubahan status Running, Idle, dan Maintenance.',
             'category' => 'monitoring'
         ],
-        'audit_logs' => [
-            'label' => 'Log Audit Aktivitas Uji Coba',
-            'desc' => 'Riwayat aktivitas user selama masa pengujian sistem.',
-            'category' => 'monitoring'
-        ],
     ];
 
     /**
-     * Master & Configuration tables that are PROTECTED by safety shield.
+     * Master Data, System Configurations, Company Profile, & Auth Tables
+     * that are HARD-CODED & PROTECTED by safety shield (NEVER DELETED).
      */
     protected array $protectedMasterTables = [
         'users' => 'Akun Pengguna & Profil',
@@ -84,17 +80,18 @@ class DatabaseManagementController extends Controller
         'permissions' => 'Izin Akses Fitur',
         'permission_role' => 'Pemetaan Role-Izin',
         'role_user' => 'Penugasan Role User',
-        'system_settings' => 'Pengaturan Target OEE & Standar',
+        'system_settings' => 'Target OEE & Pengaturan Sistem',
+        'company_profiles' => 'Profil Perusahaan & Background Pabrik',
         'plants' => 'Master Pabrik / Site',
-        'production_lines' => 'Master Lini Produksi',
-        'machines' => 'Master Mesin Operasional',
-        'products' => 'Master Part Number & Produk',
+        'production_lines' => 'Master Lini Produksi (27 Lines)',
+        'machines' => 'Master Mesin Operasional (225 Unit)',
+        'products' => 'Master Part Number & Produk (69 Items)',
         'product_categories' => 'Kategori Part / Produk',
         'shifts' => 'Master Jam Kerja Shift',
         'groups' => 'Master Regu & Leader PIC',
         'downtime_categories' => 'Kategori Trouble Downtime',
-        'downtime_reasons' => 'Master Alasan Downtime Mesin',
-        'ng_sections' => 'Master Seksi Defect NG',
+        'downtime_reasons' => 'Master 50+ Alasan Downtime Mesin',
+        'ng_sections' => 'Master Seksi Defect NG (522 Seksi)',
         'defect_categories' => 'Kategori Defect Mutu',
         'defect_reasons' => 'Master Jenis Defect Part',
         'departments' => 'Master Departemen Pabrik',
@@ -103,7 +100,8 @@ class DatabaseManagementController extends Controller
         'machine_types' => 'Master Jenis / Tipe Mesin',
         'operators' => 'Master Data Operator',
         'employees' => 'Master Data Karyawan',
-        'company_profiles' => 'Profil Perusahaan & Kop Surat',
+        'oee_educations' => 'Panduan & Edukasi OEE',
+        'audit_logs' => 'Audit Trail & Log Integritas (ISO 27001)',
     ];
 
     /**
@@ -238,13 +236,15 @@ class DatabaseManagementController extends Controller
     }
 
     /**
-     * Safely clean transactional data for Go-Live.
-     * Guaranteed never to delete master data or configurations.
+     * Safely clean transactional data for Go-Live with granular checklist support.
+     * Guaranteed 100% never to delete master data, system settings, or configurations.
      */
     public function cleanTransactions(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'scope' => 'required|string|in:all_transactions,production,downtime,ng_quality,monitoring',
+            'scope' => 'required|string|in:all_transactions,production,downtime,ng_quality,monitoring,custom',
+            'tables' => 'nullable|array',
+            'tables.*' => 'string',
             'confirmation_phrase' => 'required|string',
         ]);
 
@@ -266,10 +266,34 @@ class DatabaseManagementController extends Controller
         $scope = $request->input('scope');
         $tablesToClean = [];
 
-        foreach ($this->transactionalTables as $tableName => $info) {
-            if ($scope === 'all_transactions' || $info['category'] === $scope) {
-                if (Schema::hasTable($tableName)) {
-                    $tablesToClean[] = $tableName;
+        if ($scope === 'custom') {
+            $requestedTables = $request->input('tables', []);
+            if (empty($requestedTables)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Harap pilih minimal satu tabel transaksi yang ingin dibersihkan dari daftar checklist.',
+                ], 422);
+            }
+
+            foreach ($requestedTables as $tbl) {
+                // HARD SECURITY: Table must be in the whitelist of transactional tables
+                if (!array_key_exists($tbl, $this->transactionalTables)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Tindakan ditolak: Tabel '{$tbl}' bukan merupakan tabel data transaksi dan tidak diizinkan untuk dihapus.",
+                    ], 403);
+                }
+
+                if (Schema::hasTable($tbl)) {
+                    $tablesToClean[] = $tbl;
+                }
+            }
+        } else {
+            foreach ($this->transactionalTables as $tableName => $info) {
+                if ($scope === 'all_transactions' || $info['category'] === $scope) {
+                    if (Schema::hasTable($tableName)) {
+                        $tablesToClean[] = $tableName;
+                    }
                 }
             }
         }
@@ -281,12 +305,12 @@ class DatabaseManagementController extends Controller
             ], 400);
         }
 
-        // HARDCODED SAFETY GUARD: Ensure no master table can ever be in $tablesToClean
+        // HARDCODED SAFETY GUARD: Double check that NO master table can ever be in $tablesToClean
         foreach ($tablesToClean as $targetTable) {
             if (array_key_exists($targetTable, $this->protectedMasterTables)) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Pembersihan dibatalkan: Tabel master '{$targetTable}' terproteksi dan tidak boleh dihapus.",
+                    'message' => "Pembersihan dibatalkan: Tabel master '{$targetTable}' terproteksi secara permanen dan tidak boleh dihapus.",
                 ], 403);
             }
         }
@@ -302,6 +326,7 @@ class DatabaseManagementController extends Controller
                 DB::table($table)->truncate();
                 $cleanedStats[] = [
                     'table' => $table,
+                    'label' => $this->transactionalTables[$table]['label'] ?? $table,
                     'deleted_rows' => $countBefore,
                 ];
                 $totalDeletedRows += $countBefore;
@@ -312,16 +337,16 @@ class DatabaseManagementController extends Controller
             \App\Models\AuditLog::record(
                 'DELETE',
                 'Manajemen Basis Data',
-                "Pembersihan data transaksional uji coba (Scope: {$scope}) sebanyak {$totalDeletedRows} baris",
+                "Pembersihan selektif data transaksi uji coba (" . count($tablesToClean) . " tabel: " . implode(', ', $tablesToClean) . ") sebanyak {$totalDeletedRows} baris",
                 ['scope' => $scope, 'tables_cleaned' => $tablesToClean],
-                ['status' => 'CLEANED', 'deleted_rows' => $totalDeletedRows],
+                ['status' => 'CLEANED', 'deleted_rows' => $totalDeletedRows, 'cleaned_tables' => $cleanedStats],
                 'CLEAN-' . date('YmdHis'),
                 'danger'
             );
 
             return response()->json([
                 'success' => true,
-                'message' => "Pembersihan data transaksional berhasil! Total {$totalDeletedRows} baris data uji coba telah dibersihkan.",
+                'message' => "Pembersihan data transaksional berhasil! Total {$totalDeletedRows} baris data uji coba dari " . count($tablesToClean) . " tabel telah dibersihkan.",
                 'data' => [
                     'scope' => $scope,
                     'cleaned_tables' => $cleanedStats,
