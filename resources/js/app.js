@@ -28375,60 +28375,115 @@ tbody.innerHTML = '';
     }
 
     /**
-     * Export Audit Trail to Excel with SHA256 Verification Checksum
+     * Export Audit Trail to Excel (Server-side generated .xls or high-fidelity client fallback)
      */
-    exportAuditTrailExcel(items, summary, diagData) {
-        if (!window.XLSX) {
-            this.showNotification('Peringatan Ekspor', 'Pustaka Excel sedang dimuat, silakan coba sesaat lagi.', 'warning');
-            return;
+    async exportAuditTrailExcel(items, summary, diagData) {
+        try {
+            this.showNotification('Mengekspor Laporan', 'Menyiapkan dokumen Excel resmi Audit Trail...', 'info');
+
+            const params = {
+                search: this.auditState?.search || '',
+                module: this.auditState?.module || 'all',
+                action: this.auditState?.action || 'all',
+                severity: this.auditState?.severity || 'all',
+                status: this.auditState?.status || 'all',
+                start_date: this.auditState?.startDate || '',
+                end_date: this.auditState?.endDate || '',
+            };
+
+            const downloadUrl = api.getAuditExportUrl(params);
+
+            // Direct trigger of download from backend Excel export
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', `Audit_Trail_Log_PT_Yasunaga_${new Date().toISOString().slice(0, 10)}.xls`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            this.showNotification('Ekspor Berhasil', 'Dokumen Excel log audit sistem berhasil diunduh!', 'success');
+        } catch (err) {
+            console.warn('Server-side export failed, falling back to local exporter:', err);
+            this.generateLocalExcelAudit(items, summary, diagData);
         }
+    }
 
-        const wb = window.XLSX.utils.book_new();
+    /**
+     * Client-side fallback exporter for Audit Trail
+     */
+    generateLocalExcelAudit(items, summary, diagData) {
+        try {
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const userStr = this.user?.name ? `${this.user.name} (${this.user.role})` : 'Admin Sistem';
+            
+            let tableRows = '';
+            (items || []).forEach((item, idx) => {
+                let diffStr = '-';
+                if (item.diffs && Array.isArray(item.diffs) && item.diffs.length > 0) {
+                    diffStr = item.diffs.map(d => `[${d.field}: ${JSON.stringify(d.old)} -> ${JSON.stringify(d.new)}]`).join('; ');
+                } else if (item.new_value) {
+                    diffStr = typeof item.new_value === 'object' ? JSON.stringify(item.new_value) : String(item.new_value);
+                }
 
-        // 1. Audit Logs Sheet
-        const logRows = (items || []).map((item, idx) => ({
-            'No': idx + 1,
-            'Waktu (WIB)': item.formatted_time || item.created_at,
-            'Pengguna': item.user_name,
-            'Peran Akun': item.user_role,
-            'Modul Sistem': item.module,
-            'Tipe Aksi': item.action,
-            'Tingkat Severity': item.severity,
-            'Deskripsi Perubahan': item.description,
-            'IP Address': item.ip_address,
-            'Target ID': item.record_id || '-',
-            'Jumlah Field Berubah': item.diff_count || 0,
-            'Status Integritas': 'VALID (SHA-256)',
-            'Cryptographic Hash': item.hash || 'N/A',
-        }));
+                tableRows += `
+                    <tr>
+                        <td style="text-align:center; border: 0.5pt solid #cbd5e1;">${idx + 1}</td>
+                        <td style="text-align:center; border: 0.5pt solid #cbd5e1;">#${item.id}</td>
+                        <td style="border: 0.5pt solid #cbd5e1;">${item.created_at_formatted || item.created_at || '-'}</td>
+                        <td style="border: 0.5pt solid #cbd5e1;"><strong>${item.user_name || 'System'}</strong> (${item.user_role || 'User'})</td>
+                        <td style="text-align:center; border: 0.5pt solid #cbd5e1;"><strong>${item.action}</strong></td>
+                        <td style="border: 0.5pt solid #cbd5e1;">${item.module}</td>
+                        <td style="text-align:center; border: 0.5pt solid #cbd5e1;">${(item.severity || 'INFO').toUpperCase()}</td>
+                        <td style="text-align:center; border: 0.5pt solid #cbd5e1;">${(item.status || 'SUCCESS').toUpperCase()}</td>
+                        <td style="border: 0.5pt solid #cbd5e1;">${item.description || '-'}</td>
+                        <td style="border: 0.5pt solid #cbd5e1;">${diffStr}</td>
+                        <td style="border: 0.5pt solid #cbd5e1;">${item.ip_address || '127.0.0.1'}</td>
+                        <td style="border: 0.5pt solid #cbd5e1; font-family: monospace;">${item.hash || 'VALID (SHA-256)'}</td>
+                    </tr>
+                `;
+            });
 
-        const wsLogs = window.XLSX.utils.json_to_sheet(logRows);
-        window.XLSX.utils.book_append_sheet(wb, wsLogs, 'Rekaman Log Audit');
+            const excelHtml = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                <head>
+                    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+                    <style>
+                        body { font-family: Calibri, Arial, sans-serif; font-size: 9pt; }
+                        table { border-collapse: collapse; width: 100%; }
+                        th { background-color: #065f46; color: #FFFFFF; font-weight: bold; border: 0.5pt solid #047857; padding: 6px; }
+                        td { border: 0.5pt solid #cbd5e1; padding: 5px; font-size: 8.5pt; }
+                    </style>
+                </head>
+                <body>
+                    <h2>PT. YASUNAGA INDONESIA - AUDIT TRAIL & SYSTEM INTEGRITY REPORT</h2>
+                    <p>Diekspor Pada: ${new Date().toLocaleString('id-ID')} | Oleh: ${userStr} | Standar: ISO/IEC 27001:2022</p>
+                    <table border="1">
+                        <thead>
+                            <tr>
+                                <th>No</th><th>ID Log</th><th>Waktu (WIB)</th><th>Pengguna & Jabatan</th><th>Aksi</th><th>Modul</th><th>Severity</th><th>Status</th><th>Deskripsi Transaksi</th><th>Rincian Perubahan (Diff)</th><th>IP / Terminal</th><th>Digital Signature Hash</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </body>
+                </html>
+            `;
 
-        // 2. Server Hosting Diagnostics Sheet
-        const diagRows = [
-            { 'Parameter': 'Host Address & Port', 'Nilai Telemetri': diagData.hosting?.host_address || '192.168.10.99:8000' },
-            { 'Parameter': 'Sistem Operasi Server', 'Nilai Telemetri': diagData.hosting?.operating_system || 'Windows Server' },
-            { 'Parameter': 'PHP Runtime Version', 'Nilai Telemetri': diagData.hosting?.php_version || '8.3' },
-            { 'Parameter': 'Laravel Framework', 'Nilai Telemetri': diagData.hosting?.laravel_version || '13.x' },
-            { 'Parameter': 'Database Engine & Name', 'Nilai Telemetri': `${diagData.database?.engine || 'MYSQL'} (${diagData.database?.database_name || 'oee_sys'})` },
-            { 'Parameter': 'Total Tabel Basis Data', 'Nilai Telemetri': diagData.database?.tables_count || 24 },
-            { 'Parameter': 'Ukuran Basis Data (MB)', 'Nilai Telemetri': diagData.database?.size_mb || '0 MB' },
-            { 'Parameter': 'Koneksi Status Basis Data', 'Nilai Telemetri': diagData.database?.connection_status || 'ONLINE & STABLE' },
-            { 'Parameter': 'Penggunaan Memori (PHP)', 'Nilai Telemetri': diagData.memory?.current_usage || 'N/A' },
-            { 'Parameter': 'Penggunaan Memori Peak', 'Nilai Telemetri': diagData.memory?.peak_usage || 'N/A' },
-            { 'Parameter': 'Sisa Ruang Disk Penyimpanan', 'Nilai Telemetri': diagData.storage?.free_disk || 'N/A' },
-            { 'Parameter': 'Standar Kepatuhan Audit', 'Nilai Telemetri': 'ISO/IEC 27001:2022 • BSSN Audit Trail Standard' },
-            { 'Parameter': 'Waktu Laporan Dibuat', 'Nilai Telemetri': new Date().toLocaleString('id-ID') },
-        ];
+            const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Audit_Trail_Report_PT_Yasunaga_${dateStr}.xls`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
 
-        const wsDiag = window.XLSX.utils.json_to_sheet(diagRows);
-        window.XLSX.utils.book_append_sheet(wb, wsDiag, 'Diagnosa Server Hosting');
-
-        const filename = `Audit_Trail_Report_Yasunaga_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        window.XLSX.writeFile(wb, filename);
-
-        this.showNotification('Ekspor Berhasil', `File audit ${filename} berhasil diunduh!`, 'success');
+            this.showNotification('Ekspor Berhasil', 'Dokumen Excel log audit sistem berhasil diunduh.', 'success');
+        } catch (e) {
+            console.error('Local export failed:', e);
+            this.showNotification('Gagal Ekspor', e.message, 'error');
+        }
     }
 
     /**

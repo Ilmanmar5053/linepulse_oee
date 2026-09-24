@@ -137,6 +137,11 @@ export const api = {
 
     // Audit Trail & System Logging
     getAuditLogs: (params) => axios.get(`${API_BASE}/audit-trail`, { params }),
+    getAuditExportUrl: (params = {}) => {
+        const q = new URLSearchParams(params).toString();
+        return `${API_BASE}/audit-trail/export${q ? '?' + q : ''}`;
+    },
+    exportAuditLogs: (params) => axios.get(`${API_BASE}/audit-trail/export`, { params, responseType: 'blob' }),
     getAuditStatistics: (params) => axios.get(`${API_BASE}/audit-trail/statistics`, { params }),
     getAuditLogDetail: (id) => axios.get(`${API_BASE}/audit-trail/${id}`),
     getAuditSystemDiagnostics: () => axios.get(`${API_BASE}/audit-trail/system-diagnostics`),

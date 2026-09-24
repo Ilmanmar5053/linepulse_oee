@@ -543,6 +543,133 @@ class AuditTrailController extends Controller
     }
 
     /**
+     * Export Audit Trail logs to Excel (.xls) or CSV
+     */
+    public function export(Request $request)
+    {
+        $query = AuditLog::with('user:id,name,email');
+
+        // Search query
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                  ->orWhere('user_name', 'like', "%{$search}%")
+                  ->orWhere('module', 'like', "%{$search}%")
+                  ->orWhere('action', 'like', "%{$search}%")
+                  ->orWhere('record_id', 'like', "%{$search}%")
+                  ->orWhere('ip_address', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by Module
+        if ($module = $request->input('module')) {
+            if ($module !== 'all') {
+                $query->where('module', $module);
+            }
+        }
+
+        // Filter by Action
+        if ($action = $request->input('action')) {
+            if ($action !== 'all') {
+                $query->where('action', strtoupper($action));
+            }
+        }
+
+        // Filter by Severity
+        if ($severity = $request->input('severity')) {
+            if ($severity !== 'all') {
+                $query->where('severity', strtolower($severity));
+            }
+        }
+
+        // Filter by Status
+        if ($status = $request->input('status')) {
+            if ($status !== 'all') {
+                $query->where('status', strtoupper($status));
+            }
+        }
+
+        // Filter by Date Range
+        if ($startDate = $request->input('start_date')) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate = $request->input('end_date')) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        // Filter by User
+        if ($userId = $request->input('user_id')) {
+            if ($userId !== 'all') {
+                $query->where('user_id', $userId);
+            }
+        }
+
+        $logsRaw = $query->orderBy('created_at', 'desc')->orderBy('id', 'desc')->limit(5000)->get();
+
+        $logs = $logsRaw->map(function ($log) {
+            $hasDiff = (!empty($log->old_value) || !empty($log->new_value));
+            $diffs = $hasDiff ? $log->getDiff() : [];
+
+            return [
+                'id' => $log->id,
+                'user_name' => $log->user_name ?? ($log->user ? $log->user->name : 'System'),
+                'user_role' => $log->user_role ?? 'User',
+                'action' => $log->action,
+                'module' => $log->module,
+                'severity' => $log->severity ?? 'info',
+                'status' => $log->status ?? 'SUCCESS',
+                'description' => $log->description,
+                'record_id' => $log->record_id,
+                'diffs' => $diffs,
+                'old_value' => $log->old_value,
+                'new_value' => $log->new_value,
+                'ip_address' => $log->ip_address,
+                'hash' => $log->hash,
+                'created_at' => $log->created_at ? $log->created_at->toIso8601String() : null,
+                'created_at_formatted' => $log->created_at ? $log->created_at->timezone('Asia/Jakarta')->format('d/m/Y H:i:s') : '-',
+            ];
+        })->toArray();
+
+        // Summary metrics
+        $summary = [
+            'total_recorded' => AuditLog::count(),
+            'changes_today' => AuditLog::whereDate('created_at', Carbon::today())->count(),
+            'warning_danger_count' => AuditLog::whereIn('severity', ['warning', 'danger', 'critical'])->count(),
+            'distinct_users_count' => AuditLog::distinct('user_name')->count('user_name'),
+        ];
+
+        $exportedAt = Carbon::now()->timezone('Asia/Jakarta')->format('d/m/Y H:i:s');
+        $currentUser = auth()->user();
+        $exportedBy = $currentUser ? "{$currentUser->name} ({$currentUser->role})" : 'Admin Sistem (LinePulse OEE)';
+
+        $startDateStr = $request->input('start_date');
+        $endDateStr = $request->input('end_date');
+        $filterRange = ($startDateStr && $endDateStr) ? "{$startDateStr} s/d {$endDateStr}" : 'Semua Data Transaksi';
+        $filterModule = $request->input('module', 'Semua Modul');
+        $filterAction = $request->input('action', 'Semua Aksi');
+        $filterSeverity = $request->input('severity', 'Semua Tingkat');
+
+        $filenameDate = Carbon::now()->format('Ymd_His');
+        $filename = "Audit_Trail_Log_PT_Yasunaga_{$filenameDate}.xls";
+
+        $html = view('exports.audit_trail_excel', compact(
+            'logs',
+            'summary',
+            'exportedAt',
+            'exportedBy',
+            'filterRange',
+            'filterModule',
+            'filterAction',
+            'filterSeverity'
+        ))->render();
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
+    }
+
+    /**
      * Format bytes to readable string (KB, MB, GB)
      */
     private function formatBytes($bytes, $precision = 2): string

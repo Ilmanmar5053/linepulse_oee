@@ -72,6 +72,7 @@ Route::prefix('api/v1')->group(function () {
     // Audit Trail & System Log Routes
     Route::prefix('audit-trail')->group(function () {
         Route::get('/', [AuditTrailController::class, 'index']);
+        Route::get('/export', [AuditTrailController::class, 'export']);
         Route::get('/statistics', [AuditTrailController::class, 'statistics']);
         Route::get('/system-diagnostics', [AuditTrailController::class, 'systemDiagnostics']);
         Route::post('/seed-sample', [AuditTrailController::class, 'seedSampleEvents']);
