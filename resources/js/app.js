@@ -28169,6 +28169,10 @@ tbody.innerHTML = '';
                 this.printAuditComplianceReport(items, summary, diagData);
             });
 
+            if (this.currentLang === 'ja') {
+                i18n.localizeDom(document.getElementById('content-body') || document.body);
+            }
+
         } catch (err) {
             console.error('Error rendering audit trail:', err);
             content.innerHTML = `
@@ -28355,6 +28359,10 @@ tbody.innerHTML = '';
 
         modalContainer.appendChild(modalDiv);
         if (window.lucide) window.lucide.createIcons();
+
+        if (this.currentLang === 'ja') {
+            i18n.localizeDom(modalDiv);
+        }
 
         const closeModal = () => {
             modalDiv.remove();
