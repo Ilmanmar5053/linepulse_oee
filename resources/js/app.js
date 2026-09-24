@@ -27599,24 +27599,11 @@ tbody.innerHTML = '';
                     
                     <!-- 1. HEADER & COMPLIANCE BANNER -->
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl ${isLight ? 'bg-white border-slate-200' : 'bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-indigo-900/40'} border shadow-xl">
-                        <div class="space-y-1.5 min-w-0">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold font-mono uppercase tracking-wider ${isLight ? 'bg-indigo-100 text-indigo-800 border-indigo-300' : 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80'} border flex items-center gap-1.5">
-                                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-400"></i>
-                                    <span>Standar Audit TI Nasional • ISO 27001:2022</span>
-                                </span>
-                                <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold ${isLight ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80'} border flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    <span>SHA-256 Tamper-Evident Active</span>
-                                </span>
-                            </div>
-                            <h1 class="text-xl sm:text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight flex items-center gap-2">
+                        <div class="min-w-0">
+                            <h1 class="text-xl sm:text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight flex items-center gap-2.5">
                                 <i data-lucide="history" class="w-6 h-6 text-indigo-400"></i>
                                 <span>Audit Trail & Log Integritas Sistem</span>
                             </h1>
-                            <p class="text-xs sm:text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} max-w-3xl leading-relaxed">
-                                Rekaman jejak aktivitas operasional, perubahan nilai data (<strong class="text-indigo-400">Before & After Diff</strong>), serta diagnosa hosting server internal untuk pemantauan kendala server on-premise di PT Yasunaga Indonesia.
-                            </p>
                         </div>
 
                         <!-- ACTIONS TOOLBAR -->
