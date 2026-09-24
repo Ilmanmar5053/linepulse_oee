@@ -28574,11 +28574,8 @@ tbody.innerHTML = '';
                             </div>
                             <div>
                                 <h2 class="text-lg font-bold ${isLight ? 'text-slate-900' : 'text-white'} flex items-center gap-2">
-                                    Manajemen Database & Pembersihan Go-Live
+                                    Manajemen Database & Pembersihan
                                 </h2>
-                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">
-                                    Diagnostik spesifikasi teknis database, informasi server runtime, dan pembersihan massal data uji coba untuk persiapan Live.
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -28689,11 +28686,8 @@ tbody.innerHTML = '';
                         <div>
                             <h3 class="text-sm font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                 <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
-                                Pembersihan Data Massal Persiapan Go-Live (Selective Go-Live Data Cleanup)
+                                <span>Pembersihan Data Massal Persiapan Go-Live</span>
                             </h3>
-                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">
-                                Pilih secara spesifik tabel data transaksi uji coba yang ingin dibersihkan dengan checklist di bawah sebelum sistem dijalankan secara resmi.
-                            </p>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
                             <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
