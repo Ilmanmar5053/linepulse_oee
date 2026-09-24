@@ -221,6 +221,12 @@ class OeeApp {
     }
 
     getCompanyLogo(header = null) {
+        if (this.companyProfile && this.companyProfile.report_logo && typeof this.companyProfile.report_logo === 'string' && this.companyProfile.report_logo.trim() !== '') {
+            return this.companyProfile.report_logo;
+        }
+        if (header && header.report_logo && typeof header.report_logo === 'string' && header.report_logo.trim() !== '') {
+            return header.report_logo;
+        }
         if (header && header.company_logo && typeof header.company_logo === 'string' && header.company_logo.trim() !== '') {
             return header.company_logo;
         }
@@ -1735,8 +1741,8 @@ class OeeApp {
                             </div>
 
                             <!-- SHORTCUT POPUP INPUT HP / TABLET -->
-                            <button id="btn-mobile-entry-shortcut" class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2 sm:px-2.5 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-indigo-600/20 cursor-pointer flex-shrink-0" title="Buka Form Input Produksi Khusus Smartphone / HP Tablet">
-                                <i data-lucide="smartphone" class="w-3.5 h-3.5 text-cyan-300"></i>
+                            <button id="btn-mobile-entry-shortcut" class="flex items-center gap-1 bg-teal-600 hover:bg-teal-500 text-white text-xs px-2 sm:px-2.5 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-teal-600/20 cursor-pointer flex-shrink-0" title="Buka Form Input Produksi Khusus Smartphone / HP Tablet">
+                                <i data-lucide="smartphone" class="w-3.5 h-3.5 text-emerald-200"></i>
                                 <span class="hidden md:inline">Mode HP 📱</span>
                                 <span class="md:hidden font-bold text-[11px]">HP</span>
                             </button>
@@ -5605,13 +5611,13 @@ tbody.innerHTML = '';
     <div class="header-kop">
         <table class="kop-table">
             <tr>
-                <td style="width: 65px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
-                    <img src="/images/yasunaga-logo.png" style="max-height: 42px; max-width: 65px; object-fit: contain;" alt="Yasunaga Logo" onerror="this.style.display='none';" />
+                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
+                    <img src="${this.escapeHtml(this.getCompanyLogo())}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo Perusahaan" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
                 </td>
                 <td style="border: none; padding: 0; vertical-align: middle;">
-                    <div class="company-name">PT. YASUNAGA INDONESIA</div>
-                    <div class="company-sub">CONNECTING ROD PLANT &bull; PLANT-01</div>
-                    <div class="company-sub">Kawasan Industri MM2100, Cikarang Barat, Bekasi 17520, Jawa Barat</div>
+                    <div class="company-name">${this.escapeHtml(this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA')}</div>
+                    <div class="company-sub">${this.escapeHtml(this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG')} &bull; <strong>${this.escapeHtml(this.companyProfile?.plant_code || 'PLT-01')}</strong></div>
+                    <div class="company-sub">${this.escapeHtml(this.companyProfile?.address || 'Jl. Modern Industri Raya Kav. 24 Kawasan Industri Modern Cikande, Serang - Banten')}</div>
                 </td>
                 <td style="width: 250px; border: none; padding: 0; vertical-align: top; text-align: right;">
                     <div class="doc-title">${isJa ? '6大ロス詳細分析 & TPM レポート' : 'LAPORAN ANALISIS SIX BIG LOSSES & TPM'}</div>
@@ -8491,7 +8497,7 @@ tbody.innerHTML = '';
                     </div>
 
                     <!-- FULLSCREEN POPUP MEETING MODE BUTTON -->
-                    <button id="btn-ng-fullscreen-popup" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex-shrink-0" title="Buka Tampilan Pop-up Fullscreen Fit to Display untuk Management Floor Meeting">
+                    <button id="btn-ng-fullscreen-popup" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/30 transition-all cursor-pointer flex-shrink-0" title="Buka Tampilan Pop-up Fullscreen Fit to Display untuk Management Floor Meeting">
                         <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
                         <span>Pop-up Fullscreen Focus</span>
                     </button>
@@ -9311,22 +9317,22 @@ tbody.innerHTML = '';
                         <div class="flex flex-wrap items-center gap-2">
                             <!-- Quick Period Pills -->
                             <div class="inline-flex ${isLight ? 'bg-slate-100 border-slate-200 shadow-xs' : 'bg-slate-900 border-slate-800'} border p-0.5 rounded-xl text-xs font-medium">
-                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'all' && !modalStartDate && !modalSingleDate ? 'bg-indigo-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="all">Semua</button>
-                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'today' && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="today">Hari Ini</button>
-                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${(modalActivePeriod === '7days' || modalActivePeriod === '7d') && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="7days">7 Hari</button>
-                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${(modalActivePeriod === '30days' || modalActivePeriod === '30d') && !modalStartDate ? 'bg-indigo-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="30days">30 Hari</button>
+                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'all' && !modalStartDate && !modalSingleDate ? 'bg-emerald-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="all">Semua</button>
+                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${modalActivePeriod === 'today' && !modalStartDate ? 'bg-emerald-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="today">Hari Ini</button>
+                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${(modalActivePeriod === '7days' || modalActivePeriod === '7d') && !modalStartDate ? 'bg-emerald-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="7days">7 Hari</button>
+                                <button class="btn-modal-ng-period px-2.5 py-1 rounded-lg transition-all cursor-pointer ${(modalActivePeriod === '30days' || modalActivePeriod === '30d') && !modalStartDate ? 'bg-emerald-600 text-white font-semibold shadow' : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}" data-period="30days">30 Hari</button>
                             </div>
 
                             <!-- Dynamic Date Range Filter -->
                             <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-100 border-slate-200 shadow-xs' : 'bg-slate-950 border-slate-800'} border px-2.5 py-1 rounded-xl text-xs">
                                 <span class="text-[10px] font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-wider flex items-center gap-1">
-                                    <i data-lucide="calendar" class="w-3 h-3 text-cyan-500"></i>
+                                    <i data-lucide="calendar" class="w-3 h-3 text-emerald-500"></i>
                                     <span>Dari:</span>
                                 </span>
-                                <input type="date" id="modal-ng-start-date" value="${modalStartDate || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2 py-0.5 text-xs focus:outline-none focus:border-cyan-500 font-mono" />
+                                <input type="date" id="modal-ng-start-date" value="${modalStartDate || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2 py-0.5 text-xs focus:outline-none focus:border-emerald-500 font-mono" />
                                 <span class="text-[10px] font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} uppercase tracking-wider">s/d</span>
-                                <input type="date" id="modal-ng-end-date" value="${modalEndDate || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2 py-0.5 text-xs focus:outline-none focus:border-cyan-500 font-mono" />
-                                <button id="btn-modal-ng-apply-dates" class="px-2.5 py-1 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white rounded-lg text-[11px] font-bold transition-all shadow-md shadow-rose-600/20 cursor-pointer flex items-center gap-1" title="Terapkan Filter Rentang Tanggal">
+                                <input type="date" id="modal-ng-end-date" value="${modalEndDate || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-2 py-0.5 text-xs focus:outline-none focus:border-emerald-500 font-mono" />
+                                <button id="btn-modal-ng-apply-dates" class="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-[11px] font-bold transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex items-center gap-1" title="Terapkan Filter Rentang Tanggal">
                                     <i data-lucide="filter" class="w-3 h-3"></i>
                                     <span>Terapkan</span>
                                 </button>
@@ -9925,10 +9931,10 @@ tbody.innerHTML = '';
                 if (endEl) endEl.value = '';
 
                 document.querySelectorAll('.btn-modal-ng-period').forEach(b => {
-                    b.classList.remove('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                    b.classList.remove('bg-emerald-600', 'text-white', 'font-semibold', 'shadow');
                     b.classList.add('text-slate-400');
                 });
-                btn.classList.add('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                btn.classList.add('bg-emerald-600', 'text-white', 'font-semibold', 'shadow');
                 btn.classList.remove('text-slate-400');
 
                 fetchModalData();
@@ -9943,7 +9949,7 @@ tbody.innerHTML = '';
             modalActivePeriod = 'custom';
 
             document.querySelectorAll('.btn-modal-ng-period').forEach(b => {
-                b.classList.remove('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                b.classList.remove('bg-emerald-600', 'text-white', 'font-semibold', 'shadow');
                 b.classList.add('text-slate-400');
             });
 
@@ -9962,10 +9968,10 @@ tbody.innerHTML = '';
 
             document.querySelectorAll('.btn-modal-ng-period').forEach(b => {
                 if (b.getAttribute('data-period') === 'all') {
-                    b.classList.add('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                    b.classList.add('bg-emerald-600', 'text-white', 'font-semibold', 'shadow');
                     b.classList.remove('text-slate-400');
                 } else {
-                    b.classList.remove('bg-indigo-600', 'text-white', 'font-semibold', 'shadow');
+                    b.classList.remove('bg-emerald-600', 'text-white', 'font-semibold', 'shadow');
                     b.classList.add('text-slate-400');
                 }
             });
@@ -10297,7 +10303,7 @@ tbody.innerHTML = '';
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button type="button" id="btn-switch-to-mobile-ng-modal" class="px-2.5 py-1.5 rounded-lg text-xs font-bold ${isLightModal ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'bg-indigo-950/80 text-indigo-300 border-indigo-800 hover:bg-indigo-900'} border flex items-center gap-1.5 transition-colors cursor-pointer" title="Beralih ke Tampilan Layar HP / Touchscreen">
+                                <button type="button" id="btn-switch-to-mobile-ng-modal" class="px-2.5 py-1.5 rounded-lg text-xs font-bold ${isLightModal ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800 hover:bg-emerald-900'} border flex items-center gap-1.5 transition-colors cursor-pointer" title="Beralih ke Tampilan Layar HP / Touchscreen">
                                     <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
                                     <span class="hidden sm:inline">Mode HP 📱</span>
                                 </button>
@@ -12306,7 +12312,7 @@ tbody.innerHTML = '';
             <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-xl mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-3">
                     <h2 class="text-lg font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                        <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
+                        <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i>
                         <span>Shift & Team Perform</span>
                     </h2>
 
@@ -12315,8 +12321,8 @@ tbody.innerHTML = '';
                         <button type="button" data-perf-tab="shifts" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}">
                             <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-500"></i> Shift Performance
                         </button>
-                        <button type="button" data-perf-tab="teams" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'bg-white text-indigo-800 shadow-sm' : 'bg-indigo-950 text-indigo-300 border border-indigo-800/80'}">
-                            <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-400"></i> Team Performance
+                        <button type="button" data-perf-tab="teams" class="px-3 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${isLight ? 'bg-white text-emerald-800 shadow-sm' : 'bg-emerald-950 text-emerald-300 border border-emerald-800/80'}">
+                            <i data-lucide="users" class="w-3.5 h-3.5 text-emerald-400"></i> Team Performance
                         </button>
                     </div>
                 </div>
@@ -12324,7 +12330,7 @@ tbody.innerHTML = '';
                 <!-- REALTIME FILTER CONTROLS -->
                 <div class="flex flex-wrap items-center gap-2 text-xs">
                     <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl px-2.5 py-1.5 text-slate-400">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500"></i>
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-emerald-500"></i>
                         <input type="date" id="team-filter-date" value="${this.teamFilters?.date || ''}" class="bg-transparent ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs focus:outline-none cursor-pointer font-sans" />
                     </div>
                     <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl px-2.5 py-1.5 text-slate-400">
@@ -16608,8 +16614,8 @@ tbody.innerHTML = '';
     <div style="border-bottom: 2.5px double #000000; padding-bottom: 5px; margin-bottom: 6px;">
         <table style="width: 100%; border: none; margin-bottom: 0;">
             <tr>
-                <td style="width: 65px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 65px; object-fit: contain;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
+                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
                 </td>
                 <td style="border: none; padding: 0; vertical-align: middle;">
                     <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
@@ -17012,8 +17018,8 @@ tbody.innerHTML = '';
     <div style="border-bottom: 2.5px double #000000; padding-bottom: 5px; margin-bottom: 6px;">
         <table style="width: 100%; border: none; margin-bottom: 0;">
             <tr>
-                <td style="width: 65px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 65px; object-fit: contain;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
+                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
                 </td>
                 <td style="border: none; padding: 0; vertical-align: middle;">
                     <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
@@ -17536,8 +17542,8 @@ tbody.innerHTML = '';
     <div style="border-bottom: 2.5px double #000000; padding-bottom: 5px; margin-bottom: 6px;">
         <table style="width: 100%; border: none; margin-bottom: 0;">
             <tr>
-                <td style="width: 65px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 65px; object-fit: contain;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
+                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
                 </td>
                 <td style="border: none; padding: 0; vertical-align: middle;">
                     <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
@@ -20735,8 +20741,8 @@ tbody.innerHTML = '';
     <div style="border-bottom: 2.5px double #000000; padding-bottom: 4px; margin-bottom: 6px;">
         <table style="width: 100%; border: none; margin-bottom: 0;">
             <tr>
-                <td style="width: 60px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo())}" style="max-height: 44px; max-width: 60px; object-fit: contain;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
+                    <img src="${this.escapeHtml(this.getCompanyLogo())}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
                 </td>
                 <td style="border: none; padding: 0; vertical-align: middle;">
                     <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15; color: #000000;">

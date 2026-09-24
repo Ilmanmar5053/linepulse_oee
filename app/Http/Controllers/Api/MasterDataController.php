@@ -1278,6 +1278,7 @@ class MasterDataController extends Controller
             'doc_prefix' => 'YSN-OEE',
             'app_title' => 'LinePulse | Smart Production Performance Monitoring',
             'company_logo' => '/images/yasunaga-logo.png',
+            'report_logo' => '/images/yasunaga-logo.png',
             'letterhead_enabled' => true,
             'ng_product_figure' => '/images/connecting-rod-figure.svg',
             'ng_product_figure_title' => 'Anatomi Connecting Rod (Assy, Rod, Cap)',
@@ -1300,6 +1301,9 @@ class MasterDataController extends Controller
 
         if (empty($profile['company_logo'])) {
             $profile['company_logo'] = '/images/yasunaga-logo.png';
+        }
+        if (empty($profile['report_logo'])) {
+            $profile['report_logo'] = $profile['company_logo'] ?? '/images/yasunaga-logo.png';
         }
         if (empty($profile['ng_product_figure'])) {
             $profile['ng_product_figure'] = '/images/connecting-rod-figure.svg';
@@ -1332,6 +1336,7 @@ class MasterDataController extends Controller
             'doc_prefix' => 'nullable|string|max:50',
             'app_title' => 'nullable|string|max:255',
             'company_logo' => 'nullable|string', // Base64 data string or URL
+            'report_logo' => 'nullable|string', // Base64 data string or URL for Report Letterhead
             'letterhead_enabled' => 'nullable|boolean',
             'ng_product_figure' => 'nullable|string', // Base64 data string or URL for NG Product Figure
             'ng_product_figure_title' => 'nullable|string|max:255',
@@ -1348,6 +1353,9 @@ class MasterDataController extends Controller
         // Process Base64 images to static files to optimize storage and caching
         if (!empty($validated['company_logo'])) {
             $validated['company_logo'] = $this->processBase64Image($validated['company_logo'], 'company_logo');
+        }
+        if (!empty($validated['report_logo'])) {
+            $validated['report_logo'] = $this->processBase64Image($validated['report_logo'], 'report_logo');
         }
         if (!empty($validated['ng_product_figure'])) {
             $validated['ng_product_figure'] = $this->processBase64Image($validated['ng_product_figure'], 'ng_product_figure');

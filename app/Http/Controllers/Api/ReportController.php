@@ -150,6 +150,7 @@ class ReportController extends Controller
             'company_name' => $profile['company_name'] ?? 'PT. YASUNAGA INDONESIA',
             'company_tagline' => $profile['company_tagline'] ?? 'Engine Parts & Air Pump Manufacturing',
             'company_logo' => !empty($profile['company_logo']) ? $profile['company_logo'] : '/images/yasunaga-logo.png',
+            'report_logo' => !empty($profile['report_logo']) ? $profile['report_logo'] : (!empty($profile['company_logo']) ? $profile['company_logo'] : '/images/yasunaga-logo.png'),
             'address' => $profile['address'] ?? 'Jl. Modern Industri Raya Kav. 24 Kawasan Industri Modern Cikande, Nambo Ilir Kibin Serang Banten',
             'phone' => $profile['phone'] ?? '(0254) 400306',
             'email' => $profile['email'] ?? 'prodcr@yasunaga.co.id',
@@ -519,6 +520,7 @@ class ReportController extends Controller
         $header = [
             'company_name' => $profile['company_name'] ?? 'PT. YASUNAGA INDONESIA',
             'company_logo' => !empty($profile['company_logo']) ? $profile['company_logo'] : '/images/yasunaga-logo.png',
+            'report_logo' => !empty($profile['report_logo']) ? $profile['report_logo'] : (!empty($profile['company_logo']) ? $profile['company_logo'] : '/images/yasunaga-logo.png'),
             'plant_id' => $plant->code ?? 'PLT-01',
             'plant_name' => $plant->name ?? 'ENGINE PARTS & AIR PUMP MFG',
             'plant_location' => $plant->location ?? 'Kawasan Industri Modern Cikande, Serang - Banten',
