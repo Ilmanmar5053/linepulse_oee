@@ -134,4 +134,11 @@ export const api = {
     cleanTransactions: (data) => axios.post(`${API_BASE}/system/clean-transactions`, data),
     optimizeDatabase: () => axios.post(`${API_BASE}/system/optimize-database`),
     getBackupExportUrl: () => `${API_BASE}/system/backup-export`,
+
+    // Audit Trail & System Logging
+    getAuditLogs: (params) => axios.get(`${API_BASE}/audit-trail`, { params }),
+    getAuditStatistics: (params) => axios.get(`${API_BASE}/audit-trail/statistics`, { params }),
+    getAuditLogDetail: (id) => axios.get(`${API_BASE}/audit-trail/${id}`),
+    getAuditSystemDiagnostics: () => axios.get(`${API_BASE}/audit-trail/system-diagnostics`),
+    seedAuditSampleEvents: () => axios.post(`${API_BASE}/audit-trail/seed-sample`),
 };

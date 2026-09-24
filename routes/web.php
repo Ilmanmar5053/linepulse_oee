@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AuditTrailController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DatabaseManagementController;
@@ -66,6 +67,15 @@ Route::prefix('api/v1')->group(function () {
         Route::post('/clean-transactions', [DatabaseManagementController::class, 'cleanTransactions']);
         Route::get('/backup-export', [DatabaseManagementController::class, 'exportBackup']);
         Route::post('/optimize-database', [DatabaseManagementController::class, 'optimizeDatabase']);
+    });
+
+    // Audit Trail & System Log Routes
+    Route::prefix('audit-trail')->group(function () {
+        Route::get('/', [AuditTrailController::class, 'index']);
+        Route::get('/statistics', [AuditTrailController::class, 'statistics']);
+        Route::get('/system-diagnostics', [AuditTrailController::class, 'systemDiagnostics']);
+        Route::post('/seed-sample', [AuditTrailController::class, 'seedSampleEvents']);
+        Route::get('/{id}', [AuditTrailController::class, 'show']);
     });
 
     // Master Data Routes

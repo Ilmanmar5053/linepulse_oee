@@ -309,6 +309,16 @@ class DatabaseManagementController extends Controller
 
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
+            \App\Models\AuditLog::record(
+                'DELETE',
+                'Manajemen Basis Data',
+                "Pembersihan data transaksional uji coba (Scope: {$scope}) sebanyak {$totalDeletedRows} baris",
+                ['scope' => $scope, 'tables_cleaned' => $tablesToClean],
+                ['status' => 'CLEANED', 'deleted_rows' => $totalDeletedRows],
+                'CLEAN-' . date('YmdHis'),
+                'danger'
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => "Pembersihan data transaksional berhasil! Total {$totalDeletedRows} baris data uji coba telah dibersihkan.",

@@ -109,17 +109,34 @@ class UserController extends Controller
         ]);
 
         $user->roles()->sync($validated['role_ids']);
+        $user->load('roles');
+
+        \App\Models\AuditLog::record(
+            'CREATE',
+            'Manajemen Pengguna',
+            "Membuat akun pengguna baru '{$user->name}' ({$user->email}) dengan peran " . $user->roles->pluck('display_name')->implode(', '),
+            null,
+            ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'roles' => $user->roles->pluck('name')->toArray(), 'is_active' => $user->is_active],
+            $user->id,
+            'info'
+        );
 
         return response()->json([
             'success' => true,
             'message' => 'User created successfully.',
-            'data' => $user->load('roles'),
+            'data' => $user,
         ], 201);
     }
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $user = User::findOrFail($id);
+        $user = User::with('roles')->findOrFail($id);
+        $oldData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'roles' => $user->roles->pluck('name')->toArray(),
+            'is_active' => (bool)$user->is_active
+        ];
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -140,17 +157,35 @@ class UserController extends Controller
 
         $user->save();
         $user->roles()->sync($validated['role_ids']);
+        $user->load('roles');
+
+        $newData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'roles' => $user->roles->pluck('name')->toArray(),
+            'is_active' => (bool)$user->is_active
+        ];
+
+        \App\Models\AuditLog::record(
+            'UPDATE',
+            'Manajemen Pengguna',
+            "Memperbarui profil & hak akses akun '{$user->name}'",
+            $oldData,
+            $newData,
+            $user->id,
+            'warning'
+        );
 
         return response()->json([
             'success' => true,
             'message' => 'User updated successfully.',
-            'data' => $user->load('roles'),
+            'data' => $user,
         ]);
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $user = User::findOrFail($id);
+        $user = User::with('roles')->findOrFail($id);
 
         if ($user->id === auth()->id()) {
             return response()->json([
@@ -159,7 +194,25 @@ class UserController extends Controller
             ], 422);
         }
 
+        $oldData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'roles' => $user->roles->pluck('name')->toArray()
+        ];
+
+        $userName = $user->name;
         $user->delete();
+
+        \App\Models\AuditLog::record(
+            'DELETE',
+            'Manajemen Pengguna',
+            "Menghapus akun pengguna '{$userName}'",
+            $oldData,
+            null,
+            $id,
+            'danger'
+        );
 
         return response()->json([
             'success' => true,
