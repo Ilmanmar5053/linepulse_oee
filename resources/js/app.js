@@ -5613,22 +5613,30 @@ tbody.innerHTML = '';
     </style>
 </head>
 <body>
-    <!-- KOP SURAT FORMAL RESMI -->
-    <div class="header-kop">
-        <table class="kop-table">
+    <!-- KOP SURAT RESMI PT YASUNAGA INDONESIA -->
+    <div style="border-bottom: 2px solid #000000; padding-bottom: 4px; margin-bottom: 6px;">
+        <table style="width: 100%; border: none; margin-bottom: 0; border-collapse: collapse;">
             <tr>
-                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo())}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo Perusahaan" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 52%; border: none; padding: 0; vertical-align: middle;">
+                    <table style="border: none; margin-bottom: 0; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 80px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
+                                <img src="${this.escapeHtml(this.getCompanyLogo())}" style="max-height: 42px; max-width: 80px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                            </td>
+                            <td style="border: none; padding: 0; vertical-align: middle; line-height: 1.2;">
+                                <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: #000000;">${this.escapeHtml(this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA')}</div>
+                                <div style="font-size: 8px; font-weight: bold; color: #1e293b; margin-top: 1px;">${this.escapeHtml(this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG')} &bull; <strong>${this.escapeHtml(this.companyProfile?.plant_code || 'PLT-01')}</strong></div>
+                                <div style="font-size: 7px; color: #475569; margin-top: 1px;">${this.escapeHtml(this.companyProfile?.address || 'Jl. Modern Industri Raya Kav. 24 Cikande, Serang - Banten')}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
-                <td style="border: none; padding: 0; vertical-align: middle;">
-                    <div class="company-name">${this.escapeHtml(this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA')}</div>
-                    <div class="company-sub">${this.escapeHtml(this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG')} &bull; <strong>${this.escapeHtml(this.companyProfile?.plant_code || 'PLT-01')}</strong></div>
-                    <div class="company-sub">${this.escapeHtml(this.companyProfile?.address || 'Jl. Modern Industri Raya Kav. 24 Kawasan Industri Modern Cikande, Serang - Banten')}</div>
-                </td>
-                <td style="width: 250px; border: none; padding: 0; vertical-align: top; text-align: right;">
-                    <div class="doc-title">${isJa ? '6大ロス詳細分析 & TPM レポート' : 'LAPORAN ANALISIS SIX BIG LOSSES & TPM'}</div>
-                    <div class="doc-meta">No. Dok: <strong>${docNo}</strong></div>
-                    <div class="doc-meta">Dicetak: <strong>${nowStr}</strong></div>
+                <td style="width: 48%; border: none; padding: 0 0 0 10px; vertical-align: middle; text-align: right;">
+                    <div style="border-left: 2.5px solid #0284c7; padding-left: 8px; display: inline-block; text-align: right;">
+                        <div style="font-size: 11.5px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #0369a1; letter-spacing: 0.3px;">${isJa ? '6大ロス詳細分析 & TPM レポート' : 'LAPORAN ANALISIS SIX BIG LOSSES & TPM'}</div>
+                        <div style="font-size: 7.5px; color: #333333; font-family: monospace; font-weight: bold; margin-top: 2px;">Doc ID: <span style="color: #0369a1;">${docNo}</span></div>
+                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Dicetak: ${nowStr}</div>
+                    </div>
                 </td>
             </tr>
         </table>
@@ -16616,23 +16624,31 @@ tbody.innerHTML = '';
     </style>
 </head>
 <body>
-    <!-- OFFICIAL COMPANY LETTERHEAD (KOP SURAT RESMI DENGAN LOGO) -->
-    <div style="border-bottom: 2.5px double #000000; padding-bottom: 5px; margin-bottom: 6px;">
-        <table style="width: 100%; border: none; margin-bottom: 0;">
+    <!-- KOP SURAT RESMI PT YASUNAGA INDONESIA -->
+    <div style="border-bottom: 2px solid #000000; padding-bottom: 4px; margin-bottom: 6px;">
+        <table style="width: 100%; border: none; margin-bottom: 0; border-collapse: collapse;">
             <tr>
-                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 52%; border: none; padding: 0; vertical-align: middle;">
+                    <table style="border: none; margin-bottom: 0; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 80px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
+                                <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 42px; max-width: 80px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                            </td>
+                            <td style="border: none; padding: 0; vertical-align: middle; line-height: 1.2;">
+                                <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: #000000;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
+                                <div style="font-size: 8px; font-weight: bold; color: #1e293b; margin-top: 1px;">${header.plant_name || this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG'} • <strong>${header.plant_id || this.companyProfile?.plant_code || 'PLT-01'}</strong></div>
+                                <div style="font-size: 7px; color: #475569; margin-top: 1px;">${header.address || this.companyProfile?.address || header.plant_location || 'Jl. Modern Industri Raya Kav. 24 Cikande, Serang - Banten'}</div>
+                                <div style="font-size: 6.5px; color: #64748b;">${(header.phone || this.companyProfile?.phone) ? 'Telp: ' + (header.phone || this.companyProfile?.phone) : ''} ${(header.email || this.companyProfile?.email) ? '• Email: ' + (header.email || this.companyProfile?.email) : ''} ${(header.website || this.companyProfile?.website) ? '• Web: ' + (header.website || this.companyProfile?.website) : ''}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
-                <td style="border: none; padding: 0; vertical-align: middle;">
-                    <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
-                    <div style="font-size: 8.5px; font-weight: bold; color: #1e293b; margin-top: 1px;">${header.plant_name || this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG'} • <strong>${header.plant_id || this.companyProfile?.plant_code || 'PLT-01'}</strong></div>
-                    <div style="font-size: 7.5px; color: #475569; margin-top: 1px;">${header.address || this.companyProfile?.address || header.plant_location || ''}</div>
-                    <div style="font-size: 7.5px; color: #64748b;">${(header.phone || this.companyProfile?.phone) ? 'Telp: ' + (header.phone || this.companyProfile?.phone) : ''} ${(header.email || this.companyProfile?.email) ? '• Email: ' + (header.email || this.companyProfile?.email) : ''} ${(header.website || this.companyProfile?.website) ? '• Web: ' + (header.website || this.companyProfile?.website) : ''}</div>
-                </td>
-                <td style="width: 220px; border: none; padding: 0; text-align: right; vertical-align: top;">
-                    <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; line-height: 1.2;">LAPORAN KINERJA PRODUKSI & OEE</div>
-                    <div style="font-size: 8px; color: #333333; font-family: monospace; margin-top: 2px;">Doc ID: ${header.doc_prefix || 'YSN-OEE'}-${header.production_date || ''}</div>
-                    <div style="font-size: 7.5px; color: #64748b; font-family: monospace;">Form: A4-Portrait Shift Handover</div>
+                <td style="width: 48%; border: none; padding: 0 0 0 10px; vertical-align: middle; text-align: right;">
+                    <div style="border-left: 2.5px solid #0284c7; padding-left: 8px; display: inline-block; text-align: right;">
+                        <div style="font-size: 11.5px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #0369a1; letter-spacing: 0.3px;">LAPORAN KINERJA PRODUKSI & OEE</div>
+                        <div style="font-size: 7.5px; color: #333333; font-family: monospace; font-weight: bold; margin-top: 2px;">Doc ID: <span style="color: #0369a1;">${header.doc_prefix || 'YSN-OEE'}-${header.production_date || ''}</span></div>
+                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Form: A4-Portrait Shift Handover Report</div>
+                    </div>
                 </td>
             </tr>
         </table>
@@ -17021,22 +17037,30 @@ tbody.innerHTML = '';
 </head>
 <body>
     <!-- KOP SURAT RESMI PT YASUNAGA INDONESIA -->
-    <div style="border-bottom: 2.5px double #000000; padding-bottom: 5px; margin-bottom: 6px;">
-        <table style="width: 100%; border: none; margin-bottom: 0;">
+    <div style="border-bottom: 2px solid #000000; padding-bottom: 4px; margin-bottom: 6px;">
+        <table style="width: 100%; border: none; margin-bottom: 0; border-collapse: collapse;">
             <tr>
-                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 52%; border: none; padding: 0; vertical-align: middle;">
+                    <table style="border: none; margin-bottom: 0; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 80px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
+                                <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 42px; max-width: 80px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                            </td>
+                            <td style="border: none; padding: 0; vertical-align: middle; line-height: 1.2;">
+                                <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: #000000;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
+                                <div style="font-size: 8px; font-weight: bold; color: #1e293b; margin-top: 1px;">${header.plant_name || this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG'} • <strong>${header.plant_id || this.companyProfile?.plant_code || 'PLT-01'}</strong></div>
+                                <div style="font-size: 7px; color: #475569; margin-top: 1px;">${header.address || this.companyProfile?.address || header.plant_location || 'Jl. Modern Industri Raya Kav. 24 Cikande, Serang - Banten'}</div>
+                                <div style="font-size: 6.5px; color: #64748b;">${(header.phone || this.companyProfile?.phone) ? 'Telp: ' + (header.phone || this.companyProfile?.phone) : ''} ${(header.email || this.companyProfile?.email) ? '• Email: ' + (header.email || this.companyProfile?.email) : ''}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
-                <td style="border: none; padding: 0; vertical-align: middle;">
-                    <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
-                    <div style="font-size: 8.5px; font-weight: bold; color: #1e293b; margin-top: 1px;">${header.plant_name || this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG'} • <strong>${header.plant_id || this.companyProfile?.plant_code || 'PLT-01'}</strong></div>
-                    <div style="font-size: 7.5px; color: #475569; margin-top: 1px;">${header.address || this.companyProfile?.address || header.plant_location || ''}</div>
-                    <div style="font-size: 7.5px; color: #64748b;">${(header.phone || this.companyProfile?.phone) ? 'Telp: ' + (header.phone || this.companyProfile?.phone) : ''} ${(header.email || this.companyProfile?.email) ? '• Email: ' + (header.email || this.companyProfile?.email) : ''}</div>
-                </td>
-                <td style="width: 250px; border: none; padding: 0; text-align: right; vertical-align: top;">
-                    <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; line-height: 1.2; color: #B45309;">LAPORAN DATA NG & DEFECT MUTU</div>
-                    <div style="font-size: 8px; color: #333333; font-family: monospace; margin-top: 2px;">Doc ID: QC-NG-${header.production_date || new Date().toISOString().slice(0,10)}</div>
-                    <div style="font-size: 7.5px; color: #64748b; font-family: monospace;">Form: A4-Landscape QC Defect Inspection Report</div>
+                <td style="width: 48%; border: none; padding: 0 0 0 10px; vertical-align: middle; text-align: right;">
+                    <div style="border-left: 2.5px solid #d97706; padding-left: 8px; display: inline-block; text-align: right;">
+                        <div style="font-size: 11.5px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #b45309; letter-spacing: 0.3px;">LAPORAN DATA NG & DEFECT MUTU</div>
+                        <div style="font-size: 7.5px; color: #333333; font-family: monospace; font-weight: bold; margin-top: 2px;">Doc ID: <span style="color: #b45309;">QC-NG-${header.production_date || new Date().toISOString().slice(0,10)}</span></div>
+                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Form: A4-Landscape QC Defect Inspection Report</div>
+                    </div>
                 </td>
             </tr>
         </table>
@@ -17544,23 +17568,31 @@ tbody.innerHTML = '';
     </style>
 </head>
 <body>
-    <!-- KOP SURAT RESMI PT YASUNAGA INDONESIA (SERAGAM DENGAN LAPORAN LAINNYA) -->
-    <div style="border-bottom: 2.5px double #000000; padding-bottom: 5px; margin-bottom: 6px;">
-        <table style="width: 100%; border: none; margin-bottom: 0;">
+    <!-- KOP SURAT RESMI PT YASUNAGA INDONESIA -->
+    <div style="border-bottom: 2px solid #000000; padding-bottom: 4px; margin-bottom: 6px;">
+        <table style="width: 100%; border: none; margin-bottom: 0; border-collapse: collapse;">
             <tr>
-                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 52%; border: none; padding: 0; vertical-align: middle;">
+                    <table style="border: none; margin-bottom: 0; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 80px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
+                                <img src="${this.escapeHtml(this.getCompanyLogo(header))}" style="max-height: 42px; max-width: 80px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                            </td>
+                            <td style="border: none; padding: 0; vertical-align: middle; line-height: 1.2;">
+                                <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: #000000;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
+                                <div style="font-size: 8px; font-weight: bold; color: #1e293b; margin-top: 1px;">${header.plant_name || this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG'} • <strong>${header.plant_id || this.companyProfile?.plant_code || 'PLT-01'}</strong></div>
+                                <div style="font-size: 7px; color: #475569; margin-top: 1px;">${header.address || this.companyProfile?.address || header.plant_location || 'Jl. Modern Industri Raya Kav. 24 Cikande, Serang - Banten'}</div>
+                                <div style="font-size: 6.5px; color: #64748b;">${(header.phone || this.companyProfile?.phone) ? 'Telp: ' + (header.phone || this.companyProfile?.phone) : ''} ${(header.email || this.companyProfile?.email) ? '• Email: ' + (header.email || this.companyProfile?.email) : ''}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
-                <td style="border: none; padding: 0; vertical-align: middle;">
-                    <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15;">${header.company_name || this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
-                    <div style="font-size: 8.5px; font-weight: bold; color: #1e293b; margin-top: 1px;">${header.plant_name || this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG'} • <strong>${header.plant_id || this.companyProfile?.plant_code || 'PLT-01'}</strong></div>
-                    <div style="font-size: 7.5px; color: #475569; margin-top: 1px;">${header.address || this.companyProfile?.address || header.plant_location || ''}</div>
-                    <div style="font-size: 7.5px; color: #64748b;">${(header.phone || this.companyProfile?.phone) ? 'Telp: ' + (header.phone || this.companyProfile?.phone) : ''} ${(header.email || this.companyProfile?.email) ? '• Email: ' + (header.email || this.companyProfile?.email) : ''}</div>
-                </td>
-                <td style="width: 260px; border: none; padding: 0; text-align: right; vertical-align: top;">
-                    <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; line-height: 1.2; color: #BE123C;">LAPORAN DATA TROUBLE & DOWNTIME</div>
-                    <div style="font-size: 8px; color: #333333; font-family: monospace; margin-top: 2px;">Doc ID: TRB-${header.production_date || new Date().toISOString().slice(0,10)}</div>
-                    <div style="font-size: 7.5px; color: #64748b; font-family: monospace;">Form: A4-Landscape Trouble & Downtime Report</div>
+                <td style="width: 48%; border: none; padding: 0 0 0 10px; vertical-align: middle; text-align: right;">
+                    <div style="border-left: 2.5px solid #e11d48; padding-left: 8px; display: inline-block; text-align: right;">
+                        <div style="font-size: 11.5px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #be123c; letter-spacing: 0.3px;">LAPORAN DATA TROUBLE & DOWNTIME</div>
+                        <div style="font-size: 7.5px; color: #333333; font-family: monospace; font-weight: bold; margin-top: 2px;">Doc ID: <span style="color: #be123c;">TRB-${header.production_date || new Date().toISOString().slice(0,10)}</span></div>
+                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Form: A4-Landscape Trouble & Downtime Report</div>
+                    </div>
                 </td>
             </tr>
         </table>
@@ -20744,38 +20776,29 @@ tbody.innerHTML = '';
 </head>
 <body>
     <!-- KOP SURAT RESMI PT YASUNAGA INDONESIA -->
-    <div style="border-bottom: 2.5px double #000000; padding-bottom: 4px; margin-bottom: 6px;">
-        <table style="width: 100%; border: none; margin-bottom: 0;">
+    <div style="border-bottom: 2px solid #000000; padding-bottom: 4px; margin-bottom: 6px;">
+        <table style="width: 100%; border: none; margin-bottom: 0; border-collapse: collapse;">
             <tr>
-                <td style="width: 110px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: left;">
-                    <img src="${this.escapeHtml(this.getCompanyLogo())}" style="max-height: 48px; max-width: 110px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                <td style="width: 52%; border: none; padding: 0; vertical-align: middle;">
+                    <table style="border: none; margin-bottom: 0; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 75px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
+                                <img src="${this.escapeHtml(this.getCompanyLogo())}" style="max-height: 40px; max-width: 75px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                            </td>
+                            <td style="border: none; padding: 0; vertical-align: middle; line-height: 1.2;">
+                                <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: #000000;">${this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}</div>
+                                <div style="font-size: 8px; font-weight: bold; color: #1e293b; margin-top: 1px;">${this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG'} • <strong>${this.companyProfile?.plant_code || 'PLT-01'}</strong></div>
+                                <div style="font-size: 7px; color: #475569; margin-top: 1px;">${this.companyProfile?.address || 'Jl. Modern Industri Raya Kav. 24 Cikande, Serang Banten'}</div>
+                                <div style="font-size: 6.5px; color: #64748b;">${this.companyProfile?.phone ? 'Telp: ' + this.companyProfile.phone : ''} ${this.companyProfile?.email ? '• Email: ' + this.companyProfile.email : ''}</div>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
-                <td style="border: none; padding: 0; vertical-align: middle;">
-                    <div style="font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15; color: #000000;">
-                        ${this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA'}
-                    </div>
-                    <div style="font-size: 8px; font-weight: bold; color: #1e293b; margin-top: 1px;">
-                        ${this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG'} • <strong>${this.companyProfile?.plant_code || 'PLT-01'}</strong>
-                    </div>
-                    <div style="font-size: 7px; color: #475569; margin-top: 1px;">
-                        ${this.companyProfile?.address || 'Jl. Modern Industri Raya Kav. 24 Kawasan Industri Modern Cikande, Serang Banten'}
-                    </div>
-                    <div style="font-size: 7px; color: #64748b;">
-                        ${this.companyProfile?.phone ? 'Telp: ' + this.companyProfile.phone : ''} ${this.companyProfile?.email ? '• Email: ' + this.companyProfile.email : ''}
-                    </div>
-                </td>
-                <td style="width: 230px; border: none; padding: 0; text-align: right; vertical-align: top;">
-                    <div style="font-size: 10.5px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #0284C7;">
-                        SLIP LAPORAN HASIL PRODUKSI
-                    </div>
-                    <div style="font-size: 7.5px; font-weight: bold; color: ${oeeColor}; margin-top: 1px;">
-                        ★ ${oeeStatusLabel}
-                    </div>
-                    <div style="font-size: 7.5px; color: #333333; font-family: monospace; margin-top: 1px;">
-                        Doc No: PRD-SLIP-${prodDate.replace(/-/g, '')}-${String(item.id).padStart(4, '0')}
-                    </div>
-                    <div style="font-size: 7px; color: #64748b; font-family: monospace;">
-                        Standard Form: A4-Portrait Production Slip
+                <td style="width: 48%; border: none; padding: 0 0 0 10px; vertical-align: middle; text-align: right;">
+                    <div style="border-left: 2.5px solid #0284c7; padding-left: 8px; display: inline-block; text-align: right;">
+                        <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #0284c7; letter-spacing: 0.3px;">SLIP LAPORAN HASIL PRODUKSI</div>
+                        <div style="font-size: 7.5px; font-weight: bold; color: ${oeeColor}; margin-top: 1px;">★ ${oeeStatusLabel}</div>
+                        <div style="font-size: 7px; color: #333333; font-family: monospace; margin-top: 1px;">Doc No: PRD-SLIP-${prodDate.replace(/-/g, '')}-${String(item.id).padStart(4, '0')}</div>
                     </div>
                 </td>
             </tr>
@@ -27576,7 +27599,7 @@ tbody.innerHTML = '';
         content.innerHTML = `
             <div class="h-96 flex items-center justify-center">
                 <div class="flex flex-col items-center gap-3">
-                    <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div class="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                     <span class="text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'} font-mono">Memuat rekaman log audit sistem & kriptografi hash...</span>
                 </div>
             </div>
@@ -28527,18 +28550,34 @@ tbody.innerHTML = '';
                 </style>
             </head>
             <body>
-                <div class="header">
-                    <div>
-                        <div class="title">PT YASUNAGA INDONESIA</div>
-                        <div style="font-size: 11px; color: #555;">PLANT 01 • LINEPULSE MES ENTERPRISE SYSTEM</div>
-                        <div style="font-size: 13px; font-weight: bold; margin-top: 4px; color: #1e3a8a;">DOKUMEN RESMI AUDIT TRAIL & INTEGRITAS SISTEM (ISO 27001 / BSSN)</div>
+    <!-- KOP SURAT RESMI PT YASUNAGA INDONESIA -->
+    <div style="border-bottom: 2px solid #000000; padding-bottom: 4px; margin-bottom: 6px;">
+        <table style="width: 100%; border: none; margin-bottom: 0; border-collapse: collapse;">
+            <tr>
+                <td style="width: 52%; border: none; padding: 0; vertical-align: middle;">
+                    <table style="border: none; margin-bottom: 0; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 75px; border: none; padding: 0 8px 0 0; vertical-align: middle;">
+                                <img src="${this.escapeHtml(this.getCompanyLogo())}" style="max-height: 40px; max-width: 75px; width: auto; object-fit: contain; display: block;" alt="Logo" onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" />
+                            </td>
+                            <td style="border: none; padding: 0; vertical-align: middle; line-height: 1.2;">
+                                <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: #000000;">${this.escapeHtml(this.companyProfile?.company_name || 'PT. YASUNAGA INDONESIA')}</div>
+                                <div style="font-size: 8px; font-weight: bold; color: #1e293b; margin-top: 1px;">${this.escapeHtml(this.companyProfile?.plant_name || 'ENGINE PARTS & AIR PUMP MFG')} • <strong>${this.escapeHtml(this.companyProfile?.plant_code || 'PLT-01')}</strong></div>
+                                <div style="font-size: 7px; color: #475569; margin-top: 1px;">${this.escapeHtml(this.companyProfile?.address || 'Jl. Modern Industri Raya Kav. 24 Cikande, Serang - Banten')}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td style="width: 48%; border: none; padding: 0 0 0 10px; vertical-align: middle; text-align: right;">
+                    <div style="border-left: 2.5px solid #059669; padding-left: 8px; display: inline-block; text-align: right;">
+                        <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #047857; letter-spacing: 0.3px;">LAPORAN KEPATUHAN AUDIT TRAIL TI</div>
+                        <div style="font-size: 7.5px; color: #333333; font-family: monospace; font-weight: bold; margin-top: 2px;">ISO 27001 / BSSN COMPLIANT</div>
+                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Dicetak: ${nowStr} • Oleh: ${this.user.name} (${this.user.role})</div>
                     </div>
-                    <div style="text-align: right; font-size: 11px;">
-                        <div>Dicetak: <strong>${nowStr}</strong></div>
-                        <div>Oleh: <strong>${this.user.name} (${this.user.role})</strong></div>
-                        <div style="color: green; font-weight: bold; margin-top: 3px;">✓ Tamper-Evident SHA256 Valid</div>
-                    </div>
-                </div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
                 <div class="meta-box">
                     <div><strong>Host Server Internal:</strong> ${diagData.hosting?.host_address || '192.168.10.99:8000'} (${diagData.hosting?.operating_system || 'Windows Server'})</div>
