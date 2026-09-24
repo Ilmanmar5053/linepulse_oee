@@ -1760,7 +1760,7 @@ class OeeApp {
                     ${this.renderMobileFilterDrawer()}
 
                     <!-- CONTENT PAGE BODY -->
-                    <main id="content-body" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 sm:space-y-5 bg-[#070D1E]">
+                    <main id="content-body" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 bg-[#070D1E]">
                         <!-- Dynamic page component inserted here -->
                     </main>
                 </div>
@@ -3093,461 +3093,463 @@ tbody.innerHTML = '';
                 : { label: 'High Rejects (<95%)', color: '#ef4444', grad: 'from-rose-600 to-red-500', tagClass: 'bg-rose-500/10 text-rose-400 border-rose-500/30' });
 
         content.innerHTML = `
-            <!-- TOP SUB-HEADER BAR -->
-            <div class="flex flex-wrap items-center justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl px-5 py-3 shadow-xl mb-4 gap-4">
-                <div class="flex items-center gap-6">
-                    <h1 class="text-2xl font-black tracking-tight ${isLight ? 'text-slate-900' : 'text-white'} flex items-center gap-2">
-                        <span class="text-cyan-400">OEE</span>
-                    </h1>
+            <div class="space-y-4 sm:space-y-5 animate-fadeIn">
+                <!-- TOP SUB-HEADER BAR -->
+                <div class="flex flex-wrap items-center justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl px-5 py-3 shadow-xl gap-4">
+                    <div class="flex items-center gap-6">
+                        <h1 class="text-2xl font-black tracking-tight ${isLight ? 'text-slate-900' : 'text-white'} flex items-center gap-2">
+                            <span class="text-cyan-400">OEE</span>
+                        </h1>
 
-                    <!-- SUB-NAV PILLS -->
-                    <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} p-1 rounded-lg border text-xs font-semibold">
-                        <button data-dtab="overview" class="btn-dash-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${this.dashboardSubTab === 'overview' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'}">OEE overview</button>
-                        <button data-dtab="error" class="btn-dash-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${this.dashboardSubTab === 'error' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'}">Error analysis</button>
-                        <button data-dtab="subassets" class="btn-dash-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${this.dashboardSubTab === 'subassets' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'}">Analysis of sub assets</button>
+                        <!-- SUB-NAV PILLS -->
+                        <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} p-1 rounded-lg border text-xs font-semibold">
+                            <button data-dtab="overview" class="btn-dash-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${this.dashboardSubTab === 'overview' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'}">OEE overview</button>
+                            <button data-dtab="error" class="btn-dash-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${this.dashboardSubTab === 'error' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'}">Error analysis</button>
+                            <button data-dtab="subassets" class="btn-dash-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${this.dashboardSubTab === 'subassets' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'}">Analysis of sub assets</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 text-xs">
+                        <!-- LIVE DATABASE COUNTERS (Colorblind-safe) -->
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[11px] flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> ${runningCount} RUNNING
+                            </span>
+                            <span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono font-bold text-[11px] flex items-center gap-1.5">
+                                <span class="text-[9px]">▲</span> ${idleCount} IDLE
+                            </span>
+                            <span class="px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/40 font-mono font-bold text-[11px] flex items-center gap-1.5 ${stopCount > 0 ? 'status-pulse-breakdown' : ''}">
+                                <span class="text-[9px]">■</span> ${stopCount} STOP
+                            </span>
+                        </div>
+
+                        <button class="p-1 text-slate-400 hover:text-slate-200 cursor-pointer transition-colors" title="Dashboard Options">
+                            <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+                        </button>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 text-xs">
-                    <!-- LIVE DATABASE COUNTERS (Colorblind-safe) -->
-                    <div class="flex items-center gap-2">
-                        <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[11px] flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> ${runningCount} RUNNING
-                        </span>
-                        <span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono font-bold text-[11px] flex items-center gap-1.5">
-                            <span class="text-[9px]">▲</span> ${idleCount} IDLE
-                        </span>
-                        <span class="px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/40 font-mono font-bold text-[11px] flex items-center gap-1.5 ${stopCount > 0 ? 'status-pulse-breakdown' : ''}">
-                            <span class="text-[9px]">■</span> ${stopCount} STOP
-                        </span>
-                    </div>
-
-                    <button class="p-1 text-slate-400 hover:text-slate-200 cursor-pointer transition-colors" title="Dashboard Options">
-                        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- SECTION 1: MACRO KPI SUMMARY (4 MODERN INDUSTRIAL CARDS) -->
-            <div class="mb-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-300'} uppercase tracking-wider flex items-center gap-2">
-                        <i data-lucide="gauge" class="w-4 h-4 text-cyan-400"></i>
-                        Macro KPIs Overview
-                    </h3>
-                    <span class="text-xs text-cyan-400 cursor-pointer hover:underline flex items-center gap-1 font-semibold">
-                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Details
-                    </span>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- CARD 1: OVERALL OEE (Dynamic: Green/Orange/Red) -->
-                    <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
-                        <div class="flex items-center justify-between mb-1">
-                            <div class="flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${oeeStatus.color}; box-shadow: 0 0 10px ${oeeStatus.color}"></span>
-                                <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'}">Overall OEE</span>
-                            </div>
-                            ${getDeltaBadge(oeeDiff)}
-                        </div>
-
-                        <div class="my-1.5 flex items-baseline justify-between">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-3xl font-black font-mono tracking-tight" style="color: ${oeeStatus.color}">${oeeVal.toFixed(2)}</span>
-                                <span class="text-xs font-semibold text-slate-400">%</span>
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${oeeStatus.tagClass}">
-                                ${oeeStatus.label}
-                            </span>
-                        </div>
-
-                        <!-- Mini Speedometer Gauge (Overall OEE) -->
-                        <div class="my-1 flex items-center justify-center">
-                            <div id="dash-gauge-oee" class="flex items-center justify-center"></div>
-                        </div>
-
-                        <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-[11px] flex items-center justify-between">
-                            <span class="text-slate-400 font-medium">World Class Std: 85%</span>
-                            <span class="font-mono text-[10px] px-1.5 py-0.2 rounded border ${oeeStatus.benchBadge}">
-                                Gap: ${(oeeVal - 85).toFixed(1)}%
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- CARD 2: AVAILABILITY (A) (Tema Biru: Sky/Blue) -->
-                    <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
-                        <div class="flex items-center justify-between mb-1">
-                            <div class="flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8]"></span>
-                                <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'}">Availability (A)</span>
-                            </div>
-                            ${getDeltaBadge(availDiff)}
-                        </div>
-
-                        <div class="my-1.5 flex items-baseline justify-between">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-3xl font-black font-mono tracking-tight text-sky-400">${availVal.toFixed(2)}</span>
-                                <span class="text-xs font-semibold text-slate-400">%</span>
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${availStatus.tagClass}">
-                                Target: 90%
-                            </span>
-                        </div>
-
-                        <!-- Mini Speedometer Gauge (Availability) -->
-                        <div class="my-1 flex items-center justify-center">
-                            <div id="dash-gauge-avail" class="flex items-center justify-center"></div>
-                        </div>
-
-                        <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-[11px] flex items-center justify-between">
-                            <span class="text-slate-400 font-medium">Total Downtime Loss</span>
-                            <span class="font-mono text-[10px] text-sky-400 font-bold bg-sky-950/40 px-1.5 py-0.2 rounded border border-sky-800/40">
-                                ${kpi.total_downtime_minutes != null ? kpi.total_downtime_minutes : 0} min
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- CARD 3: PERFORMANCE (P) (Tema Hijau: Emerald/Green) -->
-                    <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
-                        <div class="flex items-center justify-between mb-1">
-                            <div class="flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]"></span>
-                                <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'}">Performance (P)</span>
-                            </div>
-                            ${getDeltaBadge(perfDiff)}
-                        </div>
-
-                        <div class="my-1.5 flex items-baseline justify-between">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-3xl font-black font-mono tracking-tight text-emerald-400">${perfVal.toFixed(2)}</span>
-                                <span class="text-xs font-semibold text-slate-400">%</span>
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${perfStatus.tagClass}">
-                                Target: 95%
-                            </span>
-                        </div>
-
-                        <!-- Mini Speedometer Gauge (Performance) -->
-                        <div class="my-1 flex items-center justify-center">
-                            <div id="dash-gauge-perf" class="flex items-center justify-center"></div>
-                        </div>
-
-                        <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-[11px] flex items-center justify-between">
-                            <span class="text-slate-400 font-medium">Actual / Target</span>
-                            <span class="font-mono text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-800/40">
-                                ${(kpi.total_actual_qty || 0).toLocaleString()} / ${(kpi.total_target_qty || 0).toLocaleString()}
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- CARD 4: QUALITY RATE (Q) (Tema Merah / Jingga) -->
-                    <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
-                        <div class="flex items-center justify-between mb-1">
-                            <div class="flex items-center gap-1.5">
-                                <span class="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_10px_#fb923c]"></span>
-                                <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'}">Quality Rate (Q)</span>
-                            </div>
-                            ${getDeltaBadge(qualDiff)}
-                        </div>
-
-                        <div class="my-1.5 flex items-baseline justify-between">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-3xl font-black font-mono tracking-tight text-orange-400">${qualVal.toFixed(2)}</span>
-                                <span class="text-xs font-semibold text-slate-400">%</span>
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${qualStatus.tagClass}">
-                                Target: 99%
-                            </span>
-                        </div>
-
-                        <!-- Mini Speedometer Gauge (Quality) -->
-                        <div class="my-1 flex items-center justify-center">
-                            <div id="dash-gauge-qual" class="flex items-center justify-center"></div>
-                        </div>
-
-                        <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-[11px] flex items-center justify-between">
-                            <span class="text-slate-400 font-medium">Reject / Scrap Qty</span>
-                            <span class="font-mono text-[10px] text-orange-400 font-bold bg-orange-950/40 px-1.5 py-0.2 rounded border border-orange-800/40">
-                                ${(kpi.total_reject_qty || 0).toLocaleString()} pcs
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 2: RESUME SEMUA HASIL PRODUKSI (GLOBAL PRODUCTION SUMMARY BANNER) -->
-            ${(() => {
-                const targetQty = (kpi.total_target_qty || 0);
-                const actualQty = (kpi.total_actual_qty || 0);
-                const goodQty = (kpi.total_good_qty || 0);
-                const rejectQty = (kpi.total_reject_qty || 0);
-                const downtimeMins = (kpi.total_downtime_minutes || 0);
-                const achievePct = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) : '0.0';
-                const yieldPct = actualQty > 0 ? ((goodQty / actualQty) * 100).toFixed(1) : '0.0';
-                const defectRatePct = actualQty > 0 ? ((rejectQty / actualQty) * 100).toFixed(2) : '0.00';
-                const dtHours = (downtimeMins / 60).toFixed(1);
-
-                return `
-                <div class="mb-5 ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-xl">
-                    <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-3 mb-3 gap-2">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                                <i data-lucide="boxes" class="w-4 h-4"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
-                                    <span>Resume Hasil Produksi Global</span>
-                                </h3>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2 text-xs">
-                            <span class="text-slate-400 font-mono">Pencapaian Target: <strong class="${Number(achievePct) >= 100 ? 'text-emerald-400' : 'text-amber-400'} font-bold">${achievePct}%</strong></span>
-                        </div>
-                    </div>
-
-                    <!-- 5 Production Result Metric Cards -->
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        <!-- 1. Plan Target -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
-                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
-                                <span class="flex items-center gap-1.5"><i data-lucide="target" class="w-3.5 h-3.5 text-sky-400"></i> Target Plan</span>
-                                <span class="text-[10px] font-mono text-slate-500">PLAN</span>
-                            </div>
-                            <div class="text-xl font-black font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'}">${targetQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
-                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
-                                <span class="text-sky-400 font-semibold">100%</span> baseline target
-                            </div>
-                        </div>
-
-                        <!-- 2. Actual Produced -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
-                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
-                                <span class="flex items-center gap-1.5"><i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-400"></i> Total Output</span>
-                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${Number(achievePct) >= 100 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}">${achievePct}%</span>
-                            </div>
-                            <div class="text-xl font-black font-mono text-emerald-400">${actualQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
-                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
-                                <span class="${actualQty >= targetQty ? 'text-emerald-400' : 'text-amber-400'}">${actualQty >= targetQty ? '▲ +' + (actualQty - targetQty).toLocaleString() : '▼ -' + (targetQty - actualQty).toLocaleString()} pcs gap</span>
-                            </div>
-                        </div>
-
-                        <!-- 3. Good Output (OK) -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
-                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
-                                <span class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-cyan-400"></i> Good Output (OK)</span>
-                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">${yieldPct}% Yield</span>
-                            </div>
-                            <div class="text-xl font-black font-mono text-cyan-300">${goodQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
-                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
-                                <span>Siap kirim / Lolos QC</span>
-                            </div>
-                        </div>
-
-                        <!-- 4. Rejects / NG Defect -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
-                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
-                                <span class="flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i> Defect (NG)</span>
-                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${Number(defectRatePct) > 1.5 ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">${defectRatePct}% Defect</span>
-                            </div>
-                            <div class="text-xl font-black font-mono text-rose-400">${rejectQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
-                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
-                                <span>${rejectQty === 0 ? 'Zero Defect' : 'Perlu countermeasure'}</span>
-                            </div>
-                        </div>
-
-                        <!-- 5. Downtime Loss -->
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3 col-span-2 md:col-span-1">
-                            <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
-                                <span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> Total Downtime</span>
-                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-950 text-amber-400 border border-amber-800">${dtHours}h</span>
-                            </div>
-                            <div class="text-xl font-black font-mono text-amber-400">${downtimeMins.toLocaleString()} <span class="text-xs font-normal text-slate-400">min</span></div>
-                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
-                                <span>Waktu henti produksi</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                `;
-            })()}
-
-            <!-- SECTION 3: GRAFIK TREN GLOBAL OEE & HASIL PRODUKSI (INTERACTIVE ANIMATED SPLINE LINE CHART) -->
-            <div class="mb-5 ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-xl">
-                <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-3 mb-4 gap-3">
-                    <div>
-                        <h3 class="text-base font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
-                            <i data-lucide="line-chart" class="w-5 h-5 text-cyan-400"></i>
-                            <span>Grafik Performa OEE - Semua Line</span>
+                <!-- SECTION 1: MACRO KPI SUMMARY (4 MODERN INDUSTRIAL CARDS) -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-300'} uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="gauge" class="w-4 h-4 text-cyan-400"></i>
+                            Macro KPIs Overview
                         </h3>
+                        <span class="text-xs text-cyan-400 cursor-pointer hover:underline flex items-center gap-1 font-semibold">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Details
+                        </span>
                     </div>
 
-                    <!-- MODE TOGGLE PILLS -->
-                    <div class="flex flex-wrap items-center gap-1.5 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} p-1 rounded-lg border text-xs font-semibold">
-                        <button id="btn-trend-mode-lines-oee" data-mode="lines_oee" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'lines_oee') === 'lines_oee' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
-                            <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
-                            <span>OEE Semua Line (FX-1 s/d FX-11)</span>
-                        </button>
-                        <button id="btn-trend-mode-lines-prod" data-mode="lines_prod" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'lines_oee') === 'lines_prod' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
-                            <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
-                            <span>Output Per Line (Pcs)</span>
-                        </button>
-                        <button id="btn-trend-mode-lines-dual" data-mode="lines_dual" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'lines_oee') === 'lines_dual' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
-                            <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
-                            <span>Multi-Axis (OEE & Output)</span>
-                        </button>
-                        <button id="btn-trend-mode-date-trend" data-mode="date_trend" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'lines_oee') === 'date_trend' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
-                            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-                            <span>Tren Tanggal</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- MAIN CHART CONTAINER -->
-                <div id="chart-global-oee-trend" class="w-full h-80 min-h-[320px]"></div>
-
-                <!-- CHART FOOTER METRIC HIGHLIGHTS -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 mt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
-                        <span class="text-slate-400">Total Lini Terpantau:</span>
-                        <strong class="font-mono text-cyan-300 font-bold">${lines.length || 11} Lines (FX-1 ~ FX-11)</strong>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
-                        <span class="text-slate-400">Total Output:</span>
-                        <strong class="font-mono text-emerald-400 font-bold">${(kpi.total_actual_qty || 0).toLocaleString()} pcs</strong>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
-                        <span class="text-slate-400">Target Benchmark:</span>
-                        <strong class="font-mono text-amber-300 font-bold">85.0% World Class</strong>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_8px_#f43f5e]"></span>
-                        <span class="text-slate-400">Defect Rate:</span>
-                        <strong class="font-mono text-rose-400 font-bold">${(kpi.total_actual_qty ? ((kpi.total_reject_qty || 0) / kpi.total_actual_qty * 100).toFixed(2) : '0.00')}%</strong>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 4: MACHINE STATUS & SIX BIG LOSSES GRID -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- DYNAMIC MACHINE STATUS CARD (2 COLS) -->
-                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col justify-start">
-                    <div class="border-b border-slate-800 pb-3 mb-3">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                                <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
-                                    <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
-                                    Machine Status Overview
-                                </h3>
-                                <p class="text-xs text-slate-400 mt-0.5">
-                                    Database Real-time Machine Status: 
-                                    <button data-filter-status="RUNNING" class="btn-quick-status-filter text-emerald-400 font-bold hover:underline cursor-pointer transition-all">${runningCount} Running</button>, 
-                                    <button data-filter-status="IDLE" class="btn-quick-status-filter text-amber-400 font-bold hover:underline cursor-pointer transition-all">${idleCount} Idle</button>, 
-                                    <button data-filter-status="STOP" class="btn-quick-status-filter text-rose-400 font-bold hover:underline cursor-pointer transition-all">${stopCount} Stop</button>
-                                </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- CARD 1: OVERALL OEE (Dynamic: Green/Orange/Red) -->
+                        <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${oeeStatus.color}; box-shadow: 0 0 10px ${oeeStatus.color}"></span>
+                                    <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'}">Overall OEE</span>
+                                </div>
+                                ${getDeltaBadge(oeeDiff)}
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-slate-400 font-mono">Showing <strong class="text-cyan-400 font-bold">${filteredMachines.length}</strong> of ${totalMachines} Machines</span>
+
+                            <div class="my-1.5 flex items-baseline justify-between">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-3xl font-black font-mono tracking-tight" style="color: ${oeeStatus.color}">${oeeVal.toFixed(2)}</span>
+                                    <span class="text-xs font-semibold text-slate-400">%</span>
+                                </div>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${oeeStatus.tagClass}">
+                                    ${oeeStatus.label}
+                                </span>
+                            </div>
+
+                            <!-- Mini Speedometer Gauge (Overall OEE) -->
+                            <div class="my-1 flex items-center justify-center">
+                                <div id="dash-gauge-oee" class="flex items-center justify-center"></div>
+                            </div>
+
+                            <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-[11px] flex items-center justify-between">
+                                <span class="text-slate-400 font-medium">World Class Std: 85%</span>
+                                <span class="font-mono text-[10px] px-1.5 py-0.2 rounded border ${oeeStatus.benchBadge}">
+                                    Gap: ${(oeeVal - 85).toFixed(1)}%
+                                </span>
                             </div>
                         </div>
 
-                        <!-- QUICK FILTER DROPDOWNS TOOLBAR -->
-                        <div class="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-slate-800/80 text-xs">
-                            <!-- STATUS FILTER -->
-                            <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1">
-                                <i data-lucide="activity" class="w-3.5 h-3.5 text-rose-400"></i>
-                                <span class="text-slate-400 font-medium text-[11px]">Status:</span>
-                                <select id="dash-filter-status" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans font-bold">
-                                    <option value="" class="bg-slate-900 text-slate-100">All Statuses</option>
-                                    <option value="RUNNING" class="bg-slate-900 text-emerald-400 font-bold" ${this.dashMachineFilters?.status === 'RUNNING' ? 'selected' : ''}>🟢 RUNNING (${runningCount})</option>
-                                    <option value="IDLE" class="bg-slate-900 text-amber-400 font-bold" ${this.dashMachineFilters?.status === 'IDLE' ? 'selected' : ''}>🟡 IDLE (${idleCount})</option>
-                                    <option value="BREAKDOWN" class="bg-slate-900 text-rose-400 font-bold" ${this.dashMachineFilters?.status === 'BREAKDOWN' ? 'selected' : ''}>🔴 BREAKDOWN</option>
-                                    <option value="STOP" class="bg-slate-900 text-slate-400 font-bold" ${this.dashMachineFilters?.status === 'STOP' || this.dashMachineFilters?.status === 'STOPPED' ? 'selected' : ''}>⏹️ STOP / STOPPED (${stopCount})</option>
-                                </select>
+                        <!-- CARD 2: AVAILABILITY (A) (Tema Biru: Sky/Blue) -->
+                        <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8]"></span>
+                                    <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'}">Availability (A)</span>
+                                </div>
+                                ${getDeltaBadge(availDiff)}
                             </div>
 
-                            <!-- LINE FILTER -->
-                            <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1">
-                                <i data-lucide="git-fork" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                <span class="text-slate-400 font-medium text-[11px]">Line:</span>
-                                <select id="dash-filter-line" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans">
-                                    <option value="" class="bg-slate-900 text-slate-100">All Lines ${availableLineNames.length ? `(${availableLineNames.length})` : ''}</option>
-                                    ${availableLineNames.map(l => `<option value="${l}" class="bg-slate-900 text-slate-100" ${this.dashMachineFilters?.line === l ? 'selected' : ''}>${l}</option>`).join('')}
-                                </select>
+                            <div class="my-1.5 flex items-baseline justify-between">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-3xl font-black font-mono tracking-tight text-sky-400">${availVal.toFixed(2)}</span>
+                                    <span class="text-xs font-semibold text-slate-400">%</span>
+                                </div>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${availStatus.tagClass}">
+                                    Target: 90%
+                                </span>
                             </div>
 
-                            <!-- MACHINE FILTER -->
-                            <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1">
-                                <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i>
-                                <span class="text-slate-400 font-medium text-[11px]">Machine:</span>
-                                <select id="dash-filter-machine" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans">
-                                    <option value="" class="bg-slate-900 text-slate-100">All Machines ${availableMachinesForSelect.length ? `(${availableMachinesForSelect.length})` : ''}</option>
-                                    ${availableMachinesForSelect.map(m => `<option value="${m.machine_code}" class="bg-slate-900 text-slate-100" ${this.dashMachineFilters?.machine === m.machine_code || this.dashMachineFilters?.machine === m.machine_name ? 'selected' : ''}>${m.machine_code} (${m.machine_name})</option>`).join('')}
-                                </select>
+                            <!-- Mini Speedometer Gauge (Availability) -->
+                            <div class="my-1 flex items-center justify-center">
+                                <div id="dash-gauge-avail" class="flex items-center justify-center"></div>
                             </div>
 
-                            <!-- PRODUCT FILTER -->
-                            <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1">
-                                <i data-lucide="package" class="w-3.5 h-3.5 text-amber-400"></i>
-                                <span class="text-slate-400 font-medium text-[11px]">Product:</span>
-                                <select id="dash-filter-product" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans max-w-[180px]">
-                                    <option value="" class="bg-slate-900 text-slate-100">All Products ${availableProductNames.length ? `(${availableProductNames.length})` : ''}</option>
-                                    ${availableProductNames.map(p => `<option value="${p}" class="bg-slate-900 text-slate-100" ${this.dashMachineFilters?.product === p ? 'selected' : ''}>${p}</option>`).join('')}
-                                </select>
+                            <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-[11px] flex items-center justify-between">
+                                <span class="text-slate-400 font-medium">Total Downtime Loss</span>
+                                <span class="font-mono text-[10px] text-sky-400 font-bold bg-sky-950/40 px-1.5 py-0.2 rounded border border-sky-800/40">
+                                    ${kpi.total_downtime_minutes != null ? kpi.total_downtime_minutes : 0} min
+                                </span>
                             </div>
-
-                            ${(this.dashMachineFilters?.line || this.dashMachineFilters?.machine || this.dashMachineFilters?.product || this.dashMachineFilters?.status) ? `
-                                <button id="btn-clear-dash-filters" class="text-[11px] text-rose-400 hover:text-rose-300 font-semibold px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/60 flex items-center gap-1 cursor-pointer">
-                                    <i data-lucide="x" class="w-3 h-3"></i> Clear Filters
-                                </button>
-                            ` : ''}
                         </div>
-                    </div>
 
-                    <!-- MACHINE LIVE STATUS CARDS GRID -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1 auto-rows-max">
-                        ${filteredMachines.length === 0 ? '<div class="col-span-2 text-center text-slate-500 py-8 text-xs font-sans">No machines found matching selected filters.</div>' : ''}
-                        ${filteredMachines.map(m => `
-                            <div class="bg-slate-950 border border-slate-800/80 rounded-lg p-3 flex items-center justify-between hover:border-slate-700 transition-all shadow-sm">
-                                <div class="truncate pr-2">
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="font-mono font-bold text-xs text-cyan-400">${m.machine_code}</span>
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${this.getMachineStatusBadge(m.status)}">
-                                            ${this.getStatusIcon(m.status)}
-                                            <span>${m.status}</span>
-                                        </span>
-                                    </div>
-                                    <div class="text-xs font-semibold text-slate-200 truncate">${m.machine_name} • <span class="text-slate-400 font-normal">${m.line_name || 'N/A'}</span></div>
-                                    <div class="text-[10px] text-amber-400 font-medium truncate flex items-center gap-1 mt-1 bg-amber-950/40 border border-amber-800/40 px-1.5 py-0.5 rounded w-fit max-w-full">
-                                        <i data-lucide="package" class="w-3 h-3 text-amber-400 flex-shrink-0"></i>
-                                        <span class="truncate font-mono">${m.product_name || 'No Active SKU'}</span>
-                                    </div>
+                        <!-- CARD 3: PERFORMANCE (P) (Tema Hijau: Emerald/Green) -->
+                        <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]"></span>
+                                    <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'}">Performance (P)</span>
                                 </div>
-                                <div class="text-right font-mono flex-shrink-0">
-                                    <div class="text-sm font-extrabold text-cyan-300">${m.oee}% <span class="text-[10px] font-normal text-slate-400">OEE</span></div>
-                                    <div class="text-[10px] text-slate-400">${m.good_quantity || 0} / ${m.target_quantity || 0} pcs</div>
-                                </div>
+                                ${getDeltaBadge(perfDiff)}
                             </div>
-                        `).join('')}
+
+                            <div class="my-1.5 flex items-baseline justify-between">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-3xl font-black font-mono tracking-tight text-emerald-400">${perfVal.toFixed(2)}</span>
+                                    <span class="text-xs font-semibold text-slate-400">%</span>
+                                </div>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${perfStatus.tagClass}">
+                                    Target: 95%
+                                </span>
+                            </div>
+
+                            <!-- Mini Speedometer Gauge (Performance) -->
+                            <div class="my-1 flex items-center justify-center">
+                                <div id="dash-gauge-perf" class="flex items-center justify-center"></div>
+                            </div>
+
+                            <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-[11px] flex items-center justify-between">
+                                <span class="text-slate-400 font-medium">Actual / Target</span>
+                                <span class="font-mono text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                                    ${(kpi.total_actual_qty || 0).toLocaleString()} / ${(kpi.total_target_qty || 0).toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- CARD 4: QUALITY RATE (Q) (Tema Merah / Jingga) -->
+                        <div class="relative overflow-hidden ${isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800 shadow-xl'} border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 hover:border-slate-700">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_10px_#fb923c]"></span>
+                                    <span class="text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-300'}">Quality Rate (Q)</span>
+                                </div>
+                                ${getDeltaBadge(qualDiff)}
+                            </div>
+
+                            <div class="my-1.5 flex items-baseline justify-between">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-3xl font-black font-mono tracking-tight text-orange-400">${qualVal.toFixed(2)}</span>
+                                    <span class="text-xs font-semibold text-slate-400">%</span>
+                                </div>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${qualStatus.tagClass}">
+                                    Target: 99%
+                                </span>
+                            </div>
+
+                            <!-- Mini Speedometer Gauge (Quality) -->
+                            <div class="my-1 flex items-center justify-center">
+                                <div id="dash-gauge-qual" class="flex items-center justify-center"></div>
+                            </div>
+
+                            <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-[11px] flex items-center justify-between">
+                                <span class="text-slate-400 font-medium">Reject / Scrap Qty</span>
+                                <span class="font-mono text-[10px] text-orange-400 font-bold bg-orange-950/40 px-1.5 py-0.2 rounded border border-orange-800/40">
+                                    ${(kpi.total_reject_qty || 0).toLocaleString()} pcs
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- SIX BIG LOSSES BREAKDOWN CARD (1 COL) -->
-                <div id="card-dash-six-losses" class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl h-fit self-start cursor-pointer group hover:border-cyan-500/60 hover:shadow-cyan-500/10 transition-all">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                <!-- SECTION 2: RESUME SEMUA HASIL PRODUKSI (GLOBAL PRODUCTION SUMMARY BANNER) -->
+                ${(() => {
+                    const targetQty = (kpi.total_target_qty || 0);
+                    const actualQty = (kpi.total_actual_qty || 0);
+                    const goodQty = (kpi.total_good_qty || 0);
+                    const rejectQty = (kpi.total_reject_qty || 0);
+                    const downtimeMins = (kpi.total_downtime_minutes || 0);
+                    const achievePct = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) : '0.0';
+                    const yieldPct = actualQty > 0 ? ((goodQty / actualQty) * 100).toFixed(1) : '0.0';
+                    const defectRatePct = actualQty > 0 ? ((rejectQty / actualQty) * 100).toFixed(2) : '0.00';
+                    const dtHours = (downtimeMins / 60).toFixed(1);
+
+                    return `
+                    <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-xl">
+                        <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-3 mb-3 gap-2">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                    <i data-lucide="boxes" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
+                                        <span>Resume Hasil Produksi Global</span>
+                                    </h3>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="text-slate-400 font-mono">Pencapaian Target: <strong class="${Number(achievePct) >= 100 ? 'text-emerald-400' : 'text-amber-400'} font-bold">${achievePct}%</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- 5 Production Result Metric Cards -->
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                            <!-- 1. Plan Target -->
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
+                                <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                    <span class="flex items-center gap-1.5"><i data-lucide="target" class="w-3.5 h-3.5 text-sky-400"></i> Target Plan</span>
+                                    <span class="text-[10px] font-mono text-slate-500">PLAN</span>
+                                </div>
+                                <div class="text-xl font-black font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'}">${targetQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                                <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                    <span class="text-sky-400 font-semibold">100%</span> baseline target
+                                </div>
+                            </div>
+
+                            <!-- 2. Actual Produced -->
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
+                                <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                    <span class="flex items-center gap-1.5"><i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-400"></i> Total Output</span>
+                                    <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${Number(achievePct) >= 100 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}">${achievePct}%</span>
+                                </div>
+                                <div class="text-xl font-black font-mono text-emerald-400">${actualQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                                <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                    <span class="${actualQty >= targetQty ? 'text-emerald-400' : 'text-amber-400'}">${actualQty >= targetQty ? '▲ +' + (actualQty - targetQty).toLocaleString() : '▼ -' + (targetQty - actualQty).toLocaleString()} pcs gap</span>
+                                </div>
+                            </div>
+
+                            <!-- 3. Good Output (OK) -->
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
+                                <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                    <span class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-cyan-400"></i> Good Output (OK)</span>
+                                    <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">${yieldPct}% Yield</span>
+                                </div>
+                                <div class="text-xl font-black font-mono text-cyan-300">${goodQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                                <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                    <span>Siap kirim / Lolos QC</span>
+                                </div>
+                            </div>
+
+                            <!-- 4. Rejects / NG Defect -->
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3">
+                                <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                    <span class="flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i> Defect (NG)</span>
+                                    <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${Number(defectRatePct) > 1.5 ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">${defectRatePct}% Defect</span>
+                                </div>
+                                <div class="text-xl font-black font-mono text-rose-400">${rejectQty.toLocaleString()} <span class="text-xs font-normal text-slate-400">pcs</span></div>
+                                <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                    <span>${rejectQty === 0 ? 'Zero Defect' : 'Perlu countermeasure'}</span>
+                                </div>
+                            </div>
+
+                            <!-- 5. Downtime Loss -->
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800/80'} border rounded-lg p-3 col-span-2 md:col-span-1">
+                                <div class="flex items-center justify-between text-slate-400 text-[11px] mb-1 font-medium">
+                                    <span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> Total Downtime</span>
+                                    <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-950 text-amber-400 border border-amber-800">${dtHours}h</span>
+                                </div>
+                                <div class="text-xl font-black font-mono text-amber-400">${downtimeMins.toLocaleString()} <span class="text-xs font-normal text-slate-400">min</span></div>
+                                <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+                                    <span>Waktu henti produksi</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                })()}
+
+                <!-- SECTION 3: GRAFIK TREN GLOBAL OEE & HASIL PRODUKSI (INTERACTIVE ANIMATED SPLINE LINE CHART) -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'} pb-3 mb-4 gap-3">
                         <div>
-                            <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2 group-hover:text-cyan-400 transition-colors">
-                                <i data-lucide="pie-chart" class="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform"></i>
-                                <span>Six Big Losses Breakdown</span>
-                                <span class="text-[9.5px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded opacity-90 group-hover:opacity-100 flex items-center gap-1 shadow-sm"><i data-lucide="maximize-2" class="w-3 h-3"></i> Detail</span>
+                            <h3 class="text-base font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'} flex items-center gap-2">
+                                <i data-lucide="line-chart" class="w-5 h-5 text-cyan-400"></i>
+                                <span>Grafik Performa OEE - Semua Line</span>
                             </h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Total downtime & speed loss across 6 TPM pillars &bull; <span class="text-cyan-400 underline group-hover:text-cyan-300">Klik untuk popup breakdown</span></p>
                         </div>
-                        <div id="six-losses-total-badge"></div>
+
+                        <!-- MODE TOGGLE PILLS -->
+                        <div class="flex flex-wrap items-center gap-1.5 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} p-1 rounded-lg border text-xs font-semibold">
+                            <button id="btn-trend-mode-lines-oee" data-mode="lines_oee" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'lines_oee') === 'lines_oee' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                                <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
+                                <span>OEE Semua Line (FX-1 s/d FX-11)</span>
+                            </button>
+                            <button id="btn-trend-mode-lines-prod" data-mode="lines_prod" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'lines_oee') === 'lines_prod' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                                <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
+                                <span>Output Per Line (Pcs)</span>
+                            </button>
+                            <button id="btn-trend-mode-lines-dual" data-mode="lines_dual" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'lines_oee') === 'lines_dual' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                                <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
+                                <span>Multi-Axis (OEE & Output)</span>
+                            </button>
+                            <button id="btn-trend-mode-date-trend" data-mode="date_trend" class="btn-trend-mode px-3 py-1.5 rounded-md transition-all cursor-pointer ${(this.dashTrendMode || 'lines_oee') === 'date_trend' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                <span>Tren Tanggal</span>
+                            </button>
+                        </div>
                     </div>
-                    <div id="chart-six-losses" class="w-full"></div>
+
+                    <!-- MAIN CHART CONTAINER -->
+                    <div id="chart-global-oee-trend" class="w-full h-80 min-h-[320px]"></div>
+
+                    <!-- CHART FOOTER METRIC HIGHLIGHTS -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 mt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'} text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+                            <span class="text-slate-400">Total Lini Terpantau:</span>
+                            <strong class="font-mono text-cyan-300 font-bold">${lines.length || 11} Lines (FX-1 ~ FX-11)</strong>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+                            <span class="text-slate-400">Total Output:</span>
+                            <strong class="font-mono text-emerald-400 font-bold">${(kpi.total_actual_qty || 0).toLocaleString()} pcs</strong>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                            <span class="text-slate-400">Target Benchmark:</span>
+                            <strong class="font-mono text-amber-300 font-bold">85.0% World Class</strong>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_8px_#f43f5e]"></span>
+                            <span class="text-slate-400">Defect Rate:</span>
+                            <strong class="font-mono text-rose-400 font-bold">${(kpi.total_actual_qty ? ((kpi.total_reject_qty || 0) / kpi.total_actual_qty * 100).toFixed(2) : '0.00')}%</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: MACHINE STATUS & SIX BIG LOSSES GRID -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+                    <!-- DYNAMIC MACHINE STATUS CARD (2 COLS) -->
+                    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col justify-start">
+                        <div class="border-b border-slate-800 pb-3 mb-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                                        <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+                                        Machine Status Overview
+                                    </h3>
+                                    <p class="text-xs text-slate-400 mt-0.5">
+                                        Database Real-time Machine Status: 
+                                        <button data-filter-status="RUNNING" class="btn-quick-status-filter text-emerald-400 font-bold hover:underline cursor-pointer transition-all">${runningCount} Running</button>, 
+                                        <button data-filter-status="IDLE" class="btn-quick-status-filter text-amber-400 font-bold hover:underline cursor-pointer transition-all">${idleCount} Idle</button>, 
+                                        <button data-filter-status="STOP" class="btn-quick-status-filter text-rose-400 font-bold hover:underline cursor-pointer transition-all">${stopCount} Stop</button>
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-slate-400 font-mono">Showing <strong class="text-cyan-400 font-bold">${filteredMachines.length}</strong> of ${totalMachines} Machines</span>
+                                </div>
+                            </div>
+
+                            <!-- QUICK FILTER DROPDOWNS TOOLBAR -->
+                            <div class="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-slate-800/80 text-xs">
+                                <!-- STATUS FILTER -->
+                                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1">
+                                    <i data-lucide="activity" class="w-3.5 h-3.5 text-rose-400"></i>
+                                    <span class="text-slate-400 font-medium text-[11px]">Status:</span>
+                                    <select id="dash-filter-status" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans font-bold">
+                                        <option value="" class="bg-slate-900 text-slate-100">All Statuses</option>
+                                        <option value="RUNNING" class="bg-slate-900 text-emerald-400 font-bold" ${this.dashMachineFilters?.status === 'RUNNING' ? 'selected' : ''}>🟢 RUNNING (${runningCount})</option>
+                                        <option value="IDLE" class="bg-slate-900 text-amber-400 font-bold" ${this.dashMachineFilters?.status === 'IDLE' ? 'selected' : ''}>🟡 IDLE (${idleCount})</option>
+                                        <option value="BREAKDOWN" class="bg-slate-900 text-rose-400 font-bold" ${this.dashMachineFilters?.status === 'BREAKDOWN' ? 'selected' : ''}>🔴 BREAKDOWN</option>
+                                        <option value="STOP" class="bg-slate-900 text-slate-400 font-bold" ${this.dashMachineFilters?.status === 'STOP' || this.dashMachineFilters?.status === 'STOPPED' ? 'selected' : ''}>⏹️ STOP / STOPPED (${stopCount})</option>
+                                    </select>
+                                </div>
+
+                                <!-- LINE FILTER -->
+                                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1">
+                                    <i data-lucide="git-fork" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                    <span class="text-slate-400 font-medium text-[11px]">Line:</span>
+                                    <select id="dash-filter-line" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans">
+                                        <option value="" class="bg-slate-900 text-slate-100">All Lines ${availableLineNames.length ? `(${availableLineNames.length})` : ''}</option>
+                                        ${availableLineNames.map(l => `<option value="${l}" class="bg-slate-900 text-slate-100" ${this.dashMachineFilters?.line === l ? 'selected' : ''}>${l}</option>`).join('')}
+                                    </select>
+                                </div>
+
+                                <!-- MACHINE FILTER -->
+                                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1">
+                                    <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                    <span class="text-slate-400 font-medium text-[11px]">Machine:</span>
+                                    <select id="dash-filter-machine" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans">
+                                        <option value="" class="bg-slate-900 text-slate-100">All Machines ${availableMachinesForSelect.length ? `(${availableMachinesForSelect.length})` : ''}</option>
+                                        ${availableMachinesForSelect.map(m => `<option value="${m.machine_code}" class="bg-slate-900 text-slate-100" ${this.dashMachineFilters?.machine === m.machine_code || this.dashMachineFilters?.machine === m.machine_name ? 'selected' : ''}>${m.machine_code} (${m.machine_name})</option>`).join('')}
+                                    </select>
+                                </div>
+
+                                <!-- PRODUCT FILTER -->
+                                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1">
+                                    <i data-lucide="package" class="w-3.5 h-3.5 text-amber-400"></i>
+                                    <span class="text-slate-400 font-medium text-[11px]">Product:</span>
+                                    <select id="dash-filter-product" class="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer font-sans max-w-[180px]">
+                                        <option value="" class="bg-slate-900 text-slate-100">All Products ${availableProductNames.length ? `(${availableProductNames.length})` : ''}</option>
+                                        ${availableProductNames.map(p => `<option value="${p}" class="bg-slate-900 text-slate-100" ${this.dashMachineFilters?.product === p ? 'selected' : ''}>${p}</option>`).join('')}
+                                    </select>
+                                </div>
+
+                                ${(this.dashMachineFilters?.line || this.dashMachineFilters?.machine || this.dashMachineFilters?.product || this.dashMachineFilters?.status) ? `
+                                    <button id="btn-clear-dash-filters" class="text-[11px] text-rose-400 hover:text-rose-300 font-semibold px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/60 flex items-center gap-1 cursor-pointer">
+                                        <i data-lucide="x" class="w-3 h-3"></i> Clear Filters
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- MACHINE LIVE STATUS CARDS GRID -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1 auto-rows-max">
+                            ${filteredMachines.length === 0 ? '<div class="col-span-2 text-center text-slate-500 py-8 text-xs font-sans">No machines found matching selected filters.</div>' : ''}
+                            ${filteredMachines.map(m => `
+                                <div class="bg-slate-950 border border-slate-800/80 rounded-lg p-3 flex items-center justify-between hover:border-slate-700 transition-all shadow-sm">
+                                    <div class="truncate pr-2">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="font-mono font-bold text-xs text-cyan-400">${m.machine_code}</span>
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${this.getMachineStatusBadge(m.status)}">
+                                                ${this.getStatusIcon(m.status)}
+                                                <span>${m.status}</span>
+                                            </span>
+                                        </div>
+                                        <div class="text-xs font-semibold text-slate-200 truncate">${m.machine_name} • <span class="text-slate-400 font-normal">${m.line_name || 'N/A'}</span></div>
+                                        <div class="text-[10px] text-amber-400 font-medium truncate flex items-center gap-1 mt-1 bg-amber-950/40 border border-amber-800/40 px-1.5 py-0.5 rounded w-fit max-w-full">
+                                            <i data-lucide="package" class="w-3 h-3 text-amber-400 flex-shrink-0"></i>
+                                            <span class="truncate font-mono">${m.product_name || 'No Active SKU'}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right font-mono flex-shrink-0">
+                                        <div class="text-sm font-extrabold text-cyan-300">${m.oee}% <span class="text-[10px] font-normal text-slate-400">OEE</span></div>
+                                        <div class="text-[10px] text-slate-400">${m.good_quantity || 0} / ${m.target_quantity || 0} pcs</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- SIX BIG LOSSES BREAKDOWN CARD (1 COL) -->
+                    <div id="card-dash-six-losses" class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl h-fit self-start cursor-pointer group hover:border-cyan-500/60 hover:shadow-cyan-500/10 transition-all">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2 group-hover:text-cyan-400 transition-colors">
+                                    <i data-lucide="pie-chart" class="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform"></i>
+                                    <span>Six Big Losses Breakdown</span>
+                                    <span class="text-[9.5px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded opacity-90 group-hover:opacity-100 flex items-center gap-1 shadow-sm"><i data-lucide="maximize-2" class="w-3 h-3"></i> Detail</span>
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Total downtime & speed loss across 6 TPM pillars &bull; <span class="text-cyan-400 underline group-hover:text-cyan-300">Klik untuk popup breakdown</span></p>
+                            </div>
+                            <div id="six-losses-total-badge"></div>
+                        </div>
+                        <div id="chart-six-losses" class="w-full"></div>
+                    </div>
                 </div>
             </div>
         `;
@@ -3707,7 +3709,7 @@ tbody.innerHTML = '';
 
         const subnavHtml = `
             <!-- TOP SUB-HEADER BAR -->
-            <div class="flex flex-wrap items-center justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl px-5 py-3 shadow-xl mb-4 gap-4">
+            <div class="flex flex-wrap items-center justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl px-5 py-3 shadow-xl gap-4">
                 <div class="flex items-center gap-6">
                     <h1 class="text-2xl font-black tracking-tight ${isLight ? 'text-slate-900' : 'text-white'} flex items-center gap-2">
                         <span class="text-cyan-400">OEE</span>
@@ -3738,10 +3740,11 @@ tbody.innerHTML = '';
         `;
 
         content.innerHTML = `
-            ${subnavHtml}
+            <div class="space-y-4 sm:space-y-5 animate-fadeIn">
+                ${subnavHtml}
 
-            <!-- ERROR ANALYSIS KPI SUMMARY ROW -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                <!-- ERROR ANALYSIS KPI SUMMARY ROW -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-xl">
                     <div class="flex items-center justify-between text-xs text-slate-400 font-bold mb-1">
                         <span>TOTAL DOWNTIME LOSS</span>
@@ -3923,7 +3926,8 @@ tbody.innerHTML = '';
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
         if (window.lucide) window.lucide.createIcons();
 
@@ -3996,7 +4000,7 @@ tbody.innerHTML = '';
 
         const subnavHtml = `
             <!-- TOP SUB-HEADER BAR -->
-            <div class="flex flex-wrap items-center justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl px-5 py-3 shadow-xl mb-4 gap-4">
+            <div class="flex flex-wrap items-center justify-between ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl px-5 py-3 shadow-xl gap-4">
                 <div class="flex items-center gap-6">
                     <h1 class="text-2xl font-black tracking-tight ${isLight ? 'text-slate-900' : 'text-white'} flex items-center gap-2">
                         <span class="text-cyan-400">OEE</span>
@@ -4027,10 +4031,11 @@ tbody.innerHTML = '';
         `;
 
         content.innerHTML = `
-            ${subnavHtml}
+            <div class="space-y-4 sm:space-y-5 animate-fadeIn">
+                ${subnavHtml}
 
-            <!-- SUB-ASSETS SUMMARY ROW -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                <!-- SUB-ASSETS SUMMARY ROW -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-4 shadow-xl">
                     <div class="flex items-center justify-between text-xs text-slate-400 font-bold mb-1">
                         <span>TOTAL PRODUCTION LINES</span>
@@ -4091,7 +4096,7 @@ tbody.innerHTML = '';
             </div>
 
             <!-- SECTION 1: PRODUCTION LINES HEALTH GRID -->
-            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-xl mb-6">
+            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-xl">
                 <div class="flex items-center justify-between pb-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} mb-4">
                     <div>
                         <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
@@ -4214,7 +4219,8 @@ tbody.innerHTML = '';
                     </table>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
         if (window.lucide) window.lucide.createIcons();
 
@@ -27601,13 +27607,13 @@ tbody.innerHTML = '';
             const activeTab = this.auditState.tab;
 
             content.innerHTML = `
-                <div class="p-4 sm:p-6 space-y-5 animate-fadeIn">
+                <div class="space-y-4 sm:space-y-5 animate-fadeIn">
                     
                     <!-- 1. HEADER & COMPLIANCE BANNER -->
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl ${isLight ? 'bg-white border-slate-200' : 'bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-indigo-900/40'} border shadow-xl">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl ${isLight ? 'bg-white border-slate-200' : 'bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-900 border-emerald-900/40'} border shadow-xl">
                         <div class="min-w-0">
                             <h1 class="text-xl sm:text-2xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight flex items-center gap-2.5">
-                                <i data-lucide="history" class="w-6 h-6 text-indigo-400"></i>
+                                <i data-lucide="history" class="w-6 h-6 text-emerald-400"></i>
                                 <span>Audit Trail & Log Integritas Sistem</span>
                             </h1>
                         </div>
@@ -27622,7 +27628,7 @@ tbody.innerHTML = '';
                                 <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
                                 <span>Ekspor Excel</span>
                             </button>
-                            <button type="button" id="btn-print-audit-report" class="px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-950/30" title="Cetak Laporan Kepatuhan Audit Resmi (PDF / Print)">
+                            <button type="button" id="btn-print-audit-report" class="px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950/30" title="Cetak Laporan Kepatuhan Audit Resmi (PDF / Print)">
                                 <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                                 <span>Cetak Dokumen</span>
                             </button>
@@ -27637,15 +27643,15 @@ tbody.innerHTML = '';
                         
                         <!-- CARD 1: TOTAL RECORDED -->
                         <div class="p-4 rounded-2xl ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800'} border shadow-md relative overflow-hidden group">
-                            <div class="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-indigo-500/10 blur-xl group-hover:bg-indigo-500/20 transition-all"></div>
+                            <div class="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-emerald-500/10 blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-[11px] font-bold uppercase tracking-wider ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">Total Log Audit</span>
-                                <div class="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400">
+                                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
                                     <i data-lucide="database" class="w-4 h-4"></i>
                                 </div>
                             </div>
                             <div class="text-2xl font-black font-mono ${isLight ? 'text-slate-900' : 'text-white'}">${summary.total_recorded.toLocaleString()}</div>
-                            <div class="mt-1 flex items-center gap-1.5 text-[11px] text-indigo-400">
+                            <div class="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-400">
                                 <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
                                 <span>${summary.distinct_users_count} Akun Terdaftar Beraktivitas</span>
                             </div>
@@ -27705,12 +27711,12 @@ tbody.innerHTML = '';
 
                     <!-- 3. NAVIGATION TAB SWITCHER -->
                     <div class="flex items-center gap-2 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-2">
-                        <button type="button" id="tab-btn-audit-logs" class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : (isLight ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-800/60')}">
+                        <button type="button" id="tab-btn-audit-logs" class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'logs' ? 'bg-emerald-600 text-white shadow-md' : (isLight ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-800/60')}">
                             <i data-lucide="list-filter" class="w-4 h-4"></i>
                             <span>Log Transaksi & Inspeksi Diff (Before & After)</span>
-                            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-mono ${activeTab === 'logs' ? 'bg-indigo-800/80 text-white' : 'bg-slate-700 text-slate-300'}">${pagination.total || items.length}</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-mono ${activeTab === 'logs' ? 'bg-emerald-800/80 text-white' : 'bg-slate-700 text-slate-300'}">${pagination.total || items.length}</span>
                         </button>
-                        <button type="button" id="tab-btn-audit-diagnostics" class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'diagnostics' ? 'bg-indigo-600 text-white shadow-md' : (isLight ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-800/60')}">
+                        <button type="button" id="tab-btn-audit-diagnostics" class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'diagnostics' ? 'bg-emerald-600 text-white shadow-md' : (isLight ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-800/60')}">
                             <i data-lucide="cpu" class="w-4 h-4"></i>
                             <span>Diagnosa Hosting Server Internal (On-Premise)</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800">HEALTHY</span>
@@ -27727,7 +27733,7 @@ tbody.innerHTML = '';
                                 <!-- KEYWORD SEARCH -->
                                 <div class="lg:col-span-2 relative">
                                     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="text" id="audit-filter-search" value="${this.auditState.search}" placeholder="Cari pengguna, deskripsi, IP, entri ID..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white' : 'bg-slate-950/80 border-slate-700 text-slate-100 focus:border-indigo-500'} border focus:outline-none transition-all">
+                                    <input type="text" id="audit-filter-search" value="${this.auditState.search}" placeholder="Cari pengguna, deskripsi, IP, entri ID..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white' : 'bg-slate-950/80 border-slate-700 text-slate-100 focus:border-emerald-500'} border focus:outline-none transition-all">
                                 </div>
 
                                 <!-- MODULE SELECT -->
@@ -27800,7 +27806,7 @@ tbody.innerHTML = '';
                                             <tr>
                                                 <td colspan="8" class="py-12 text-center">
                                                     <div class="flex flex-col items-center justify-center gap-2">
-                                                        <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                                                             <i data-lucide="shield-check" class="w-6 h-6"></i>
                                                         </div>
                                                         <p class="text-sm font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">Belum Ada Rekaman Log Audit</p>
@@ -27831,7 +27837,7 @@ tbody.innerHTML = '';
                                                     actionBadge = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">${log.action}</span>`;
                                                     break;
                                                 case 'CONFIG':
-                                                    actionBadge = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">CONFIG</span>`;
+                                                    actionBadge = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">CONFIG</span>`;
                                                     break;
                                                 default:
                                                     actionBadge = `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-slate-500/20 text-slate-300 border border-slate-500/40">${log.action}</span>`;
@@ -27852,12 +27858,12 @@ tbody.innerHTML = '';
                                                     <!-- USER -->
                                                     <td class="py-3 px-3.5 whitespace-nowrap">
                                                         <div class="flex items-center gap-2">
-                                                            <div class="w-6 h-6 rounded-lg bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center font-bold text-[10px] text-indigo-300">
+                                                            <div class="w-6 h-6 rounded-lg bg-emerald-600/30 border border-emerald-400/40 flex items-center justify-center font-bold text-[10px] text-emerald-300">
                                                                 ${initials}
                                                             </div>
                                                             <div>
                                                                 <div class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${log.user_name}</div>
-                                                                <div class="text-[10px] font-mono text-indigo-400">${log.user_role}</div>
+                                                                <div class="text-[10px] font-mono text-emerald-400">${log.user_role}</div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -27907,7 +27913,7 @@ tbody.innerHTML = '';
 
                                                     <!-- DIFF INSPECT BUTTON -->
                                                     <td class="py-3 px-3.5 text-center whitespace-nowrap">
-                                                        <button type="button" class="btn-inspect-diff px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 mx-auto ${log.has_diff ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-950/40' : (isLight ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}" data-id="${log.id}" title="Inspeksi Rincian Perubahan Before & After">
+                                                        <button type="button" class="btn-inspect-diff px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 mx-auto ${log.has_diff ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-950/40' : (isLight ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')}" data-id="${log.id}" title="Inspeksi Rincian Perubahan Before & After">
                                                             <i data-lucide="git-compare" class="w-3.5 h-3.5 text-cyan-300"></i>
                                                             <span>${log.has_diff ? 'Inspect Diff' : 'Detail'}</span>
                                                         </button>
@@ -27930,7 +27936,7 @@ tbody.innerHTML = '';
                                         <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
                                         <span>Prev</span>
                                     </button>
-                                    <span class="px-3 py-1.5 rounded-lg bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-mono font-bold">
+                                    <span class="px-3 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono font-bold">
                                         Hal ${pagination.current_page} / ${pagination.last_page || 1}
                                     </span>
                                     <button type="button" id="btn-audit-next" ${pagination.current_page >= pagination.last_page ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg text-xs font-bold ${pagination.current_page >= pagination.last_page ? 'opacity-40 cursor-not-allowed bg-slate-800 text-slate-500' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer'} border border-slate-700 transition-all flex items-center gap-1">
@@ -27971,7 +27977,7 @@ tbody.innerHTML = '';
                                     </div>
                                     <div class="flex justify-between p-2 rounded-lg ${isLight ? 'bg-slate-50' : 'bg-slate-950/60'}">
                                         <span class="text-slate-400 font-sans">Framework MES:</span>
-                                        <span class="font-bold text-indigo-400">Laravel ${diagData.hosting?.laravel_version || '13.x'}</span>
+                                        <span class="font-bold text-emerald-400">Laravel ${diagData.hosting?.laravel_version || '13.x'}</span>
                                     </div>
                                     <div class="flex justify-between p-2 rounded-lg ${isLight ? 'bg-slate-50' : 'bg-slate-950/60'}">
                                         <span class="text-slate-400 font-sans">Zona Waktu Server:</span>
@@ -28044,7 +28050,7 @@ tbody.innerHTML = '';
                                     </div>
                                     <div class="flex justify-between p-2 rounded-lg ${isLight ? 'bg-slate-50' : 'bg-slate-950/60'}">
                                         <span class="text-slate-400 font-sans">Status Sertifikasi:</span>
-                                        <span class="font-bold text-indigo-400">COMPLIANT</span>
+                                        <span class="font-bold text-emerald-400">COMPLIANT</span>
                                     </div>
                                 </div>
                             </div>
@@ -28117,7 +28123,7 @@ tbody.innerHTML = '';
                     subtitle: 'Apakah Anda ingin menambahkan contoh rekaman log audit real-world (Produksi OEE, Reject NG, Downtime, User Role, & Setting) untuk keperluan simulasi audit?',
                     confirmText: 'Ya, Buat Simulasi Log',
                     cancelText: 'Batal',
-                    confirmColor: 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                    confirmColor: 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 });
                 if (!confirmed) return;
 
@@ -28207,13 +28213,13 @@ tbody.innerHTML = '';
         modalDiv.className = 'fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn';
 
         modalDiv.innerHTML = `
-            <div class="w-full max-w-4xl max-h-[92vh] flex flex-col ${isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#0B142C] text-slate-100 border-indigo-900/60'} rounded-3xl shadow-2xl border overflow-hidden">
+            <div class="w-full max-w-4xl max-h-[92vh] flex flex-col ${isLight ? 'bg-white text-slate-900 border-slate-200' : 'bg-[#0B142C] text-slate-100 border-emerald-900/60'} rounded-3xl shadow-2xl border overflow-hidden">
                 
                 <!-- HEADER -->
                 <div class="px-5 py-4 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/80 border-slate-800'} border-b flex items-center justify-between shrink-0">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
-                            <i data-lucide="git-compare" class="w-5 h-5 text-indigo-400"></i>
+                        <div class="w-10 h-10 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                            <i data-lucide="git-compare" class="w-5 h-5 text-emerald-400"></i>
                         </div>
                         <div class="min-w-0">
                             <div class="flex items-center gap-2">
@@ -28238,8 +28244,8 @@ tbody.innerHTML = '';
                 <div class="p-5 overflow-y-auto custom-scrollbar space-y-5 flex-1">
                     
                     <!-- DESCRIPTION CARD -->
-                    <div class="p-4 rounded-2xl ${isLight ? 'bg-indigo-50/80 border-indigo-200' : 'bg-indigo-950/30 border-indigo-800/40'} border">
-                        <div class="text-[11px] font-bold font-mono text-indigo-400 uppercase tracking-wider mb-1">Aktivitas yang Tercatat:</div>
+                    <div class="p-4 rounded-2xl ${isLight ? 'bg-emerald-50/80 border-emerald-200' : 'bg-emerald-950/30 border-emerald-800/40'} border">
+                        <div class="text-[11px] font-bold font-mono text-emerald-400 uppercase tracking-wider mb-1">Aktivitas yang Tercatat:</div>
                         <p class="text-xs sm:text-sm ${isLight ? 'text-slate-800' : 'text-slate-200'} font-medium leading-relaxed">
                             ${log.description || 'Tidak ada keterangan tambahan.'}
                         </p>
@@ -28286,7 +28292,7 @@ tbody.innerHTML = '';
                     ${hasDiffs ? `
                         <div class="rounded-2xl ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900/80 border-slate-800'} border overflow-hidden shadow-md">
                             <div class="px-4 py-2.5 ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950/90 border-slate-800'} border-b flex items-center justify-between">
-                                <span class="text-xs font-bold font-mono text-indigo-400 flex items-center gap-1.5 uppercase">
+                                <span class="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5 uppercase">
                                     <i data-lucide="table" class="w-3.5 h-3.5"></i>
                                     <span>Matriks Perbandingan Properti / Field (${diffs.length} Kolom Berubah)</span>
                                 </span>
@@ -28304,7 +28310,7 @@ tbody.innerHTML = '';
                                     <tbody class="divide-y ${isLight ? 'divide-slate-200 font-mono text-[11px]' : 'divide-slate-800/60 font-mono text-[11px]'}">
                                         ${diffs.map(d => `
                                             <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'}">
-                                                <td class="py-2.5 px-3 font-bold text-indigo-400">${d.field}</td>
+                                                <td class="py-2.5 px-3 font-bold text-emerald-400">${d.field}</td>
                                                 <td class="py-2.5 px-3 text-rose-400 bg-rose-950/10 font-bold">${d.old !== null ? (typeof d.old === 'object' ? JSON.stringify(d.old) : d.old) : '<span class="text-slate-500 italic">null</span>'}</td>
                                                 <td class="py-2.5 px-3 text-emerald-400 bg-emerald-950/10 font-bold">${d.new !== null ? (typeof d.new === 'object' ? JSON.stringify(d.new) : d.new) : '<span class="text-slate-500 italic">null</span>'}</td>
                                                 <td class="py-2.5 px-3 text-center">
@@ -28342,7 +28348,7 @@ tbody.innerHTML = '';
 
                 <!-- FOOTER -->
                 <div class="px-5 py-3.5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/80 border-slate-800'} border-t flex justify-end shrink-0">
-                    <button type="button" id="btn-close-audit-diff-footer" class="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer transition-all shadow-md">
+                    <button type="button" id="btn-close-audit-diff-footer" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer transition-all shadow-md">
                         Tutup Inspeksi
                     </button>
                 </div>
