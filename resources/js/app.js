@@ -4882,6 +4882,16 @@ tbody.innerHTML = '';
                 const hrs = (mins / 60).toFixed(1);
                 const pct = totalMins > 0 ? ((mins / totalMins) * 100).toFixed(1) : '0.0';
 
+                // Real shop floor contributing records if available
+                let liveContributors = [];
+                if (mins > 0) {
+                    if (item.loss === 'Equipment Failure' && dtPareto.length > 0) {
+                        liveContributors = dtPareto.slice(0, 3).map(r => `${r.category || r.reason} (${Number(r.duration_minutes || 0).toFixed(1)}m)`);
+                    } else if (item.loss === 'Process Defects' && defPareto.length > 0) {
+                        liveContributors = defPareto.slice(0, 3).map(d => `${d.reason || d.defect_name || d.category} (${Number(d.reject_quantity || d.count || d.quantity || 0)} pcs)`);
+                    }
+                }
+
                 return `
                     <div class="${isLight ? 'bg-white border-slate-200/90 shadow-sm hover:shadow-md' : 'bg-[#0F1C3F]/90 border-[#1E3163] hover:border-cyan-500/40 shadow-lg'} border rounded-xl p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-200 gap-3 group">
                         
@@ -4889,7 +4899,7 @@ tbody.innerHTML = '';
                         <div>
                             <div class="flex items-start justify-between gap-2">
                                 <div class="flex items-center gap-2.5 min-w-0">
-                                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-black font-mono text-white text-xs shadow-sm ring-1 ring-white/10" style="background-color: ${meta.color};">
+                                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-black font-mono text-white text-xs shadow-sm ring-1 ring-white/10" style="background-color: ${mins > 0 ? meta.color : '#10b981'};">
                                         #${meta.number}
                                     </div>
                                     <div class="min-w-0">
@@ -4900,14 +4910,15 @@ tbody.innerHTML = '';
                                             <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold font-mono border ${meta.badgeBg}">
                                                 ${isJa ? meta.jaPillar : meta.pillar}
                                             </span>
+                                            ${mins <= 0 ? `<span class="text-[9px] px-1.5 py-0.2 rounded font-bold font-mono ${isLight ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">ZERO LOSS</span>` : ''}
                                         </div>
                                     </div>
                                 </div>
                                 <div class="text-right font-mono flex-shrink-0">
-                                    <div class="text-sm sm:text-base font-black ${isLight ? 'text-slate-900' : 'text-slate-100'}">
+                                    <div class="text-sm sm:text-base font-black ${mins > 0 ? (isLight ? 'text-rose-600' : 'text-rose-400') : (isLight ? 'text-emerald-600' : 'text-emerald-400')}">
                                         ${hrs}h <span class="text-[10px] font-normal text-slate-400">(${mins.toFixed(1)}m)</span>
                                     </div>
-                                    <span class="inline-block text-[9.5px] font-bold px-1.5 py-0.2 rounded ${mins > 0 ? (isLight ? 'bg-rose-100 text-rose-700 font-semibold' : 'bg-rose-950/80 text-rose-300 border border-rose-800/60') : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-slate-800 text-slate-400')}">
+                                    <span class="inline-block text-[9.5px] font-bold px-1.5 py-0.2 rounded ${mins > 0 ? (isLight ? 'bg-rose-100 text-rose-700 font-semibold' : 'bg-rose-950/80 text-rose-300 border border-rose-800/60') : (isLight ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-emerald-950/60 text-emerald-400 border border-emerald-900')}">
                                         ${pct}% of Total
                                     </span>
                                 </div>
@@ -4915,7 +4926,7 @@ tbody.innerHTML = '';
 
                             <!-- SLIM GRADIENT PROGRESS BAR -->
                             <div class="w-full h-1.5 rounded-full ${isLight ? 'bg-slate-100' : 'bg-slate-950'} overflow-hidden border ${isLight ? 'border-slate-200' : 'border-slate-800/80'} mt-2.5">
-                                <div class="h-full rounded-full bg-gradient-to-r ${meta.gradient} transition-all duration-500" style="width: ${Math.min(100, Math.max(0, pct))}%;"></div>
+                                <div class="h-full rounded-full ${mins > 0 ? 'bg-gradient-to-r ' + meta.gradient : 'bg-emerald-500'} transition-all duration-500" style="width: ${mins > 0 ? Math.min(100, Math.max(0, pct)) : 100}%;"></div>
                             </div>
                         </div>
 
@@ -4936,30 +4947,53 @@ tbody.innerHTML = '';
                                 <span class="truncate-two-lines text-[10px] font-semibold">${meta.formula}</span>
                             </div>
 
-                            <!-- CATEGORY / TYPICAL CAUSES IN FACTORY -->
-                            <div class="pt-1">
-                                <span class="font-bold text-[10px] uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-400'} flex items-center gap-1 mb-1">
-                                    <i data-lucide="alert-triangle" class="w-3 h-3 text-amber-400"></i>
-                                    <span>${isJa ? '主要な発生要因 (Kategori Losstime):' : 'Contoh Faktor & Losstime Penyebab:'}</span>
-                                </span>
-                                <ul class="space-y-1 text-[10.5px] ${isLight ? 'text-slate-600' : 'text-slate-400'} pl-0.5">
-                                    ${meta.categories.slice(0, 3).map(catItem => `
-                                        <li class="flex items-start gap-1.5">
-                                            <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style="background-color: ${meta.color};"></span>
-                                            <span class="leading-tight text-[10px]">${catItem}</span>
-                                        </li>
-                                    `).join('')}
-                                </ul>
-                            </div>
+                            <!-- REAL CAUSES OR ZERO LOSS STATUS -->
+                            ${mins <= 0 ? `
+                                <div class="${isLight ? 'bg-emerald-50/60 border-emerald-200 text-emerald-800' : 'bg-emerald-950/30 border-emerald-900/60 text-emerald-300'} p-2.5 rounded-lg border flex items-center gap-2">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+                                    <span class="text-[10.5px] font-semibold">${isJa ? '該当期間の損失記録なし (正常稼働)' : 'Tidak ada catatan kerugian waktu pada periode ini (Kondisi Normal)'}</span>
+                                </div>
+                            ` : `
+                                <!-- LIVE SHOP FLOOR CONTRIBUTORS IF AVAILABLE -->
+                                ${liveContributors.length > 0 ? `
+                                    <div class="${isLight ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-amber-950/40 border-amber-900 text-amber-300'} p-2 rounded-lg border text-[10.5px]">
+                                        <div class="font-bold flex items-center gap-1 mb-1 text-amber-500 text-[10px]">
+                                            <i data-lucide="database" class="w-3 h-3"></i>
+                                            <span>${isJa ? '実績データ要因 (Live Shop Floor Data):' : 'Data Riil Tercatat di Database:'}</span>
+                                        </div>
+                                        <div class="space-y-0.5 text-[10px] font-mono">
+                                            ${liveContributors.map(c => `<div>• ${c}</div>`).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                                <!-- CATEGORY / TYPICAL CAUSES IN FACTORY -->
+                                <div class="pt-1">
+                                    <span class="font-bold text-[10px] uppercase tracking-wider ${isLight ? 'text-slate-700' : 'text-slate-400'} flex items-center gap-1 mb-1">
+                                        <i data-lucide="alert-triangle" class="w-3 h-3 text-amber-400"></i>
+                                        <span>${isJa ? '主要な発生要因 (Kategori Losstime):' : 'Contoh Faktor & Losstime Penyebab:'}</span>
+                                    </span>
+                                    <ul class="space-y-1 text-[10.5px] ${isLight ? 'text-slate-600' : 'text-slate-400'} pl-0.5">
+                                        ${meta.categories.slice(0, 3).map(catItem => `
+                                            <li class="flex items-start gap-1.5">
+                                                <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style="background-color: ${meta.color};"></span>
+                                                <span class="leading-tight text-[10px]">${catItem}</span>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+                            `}
                         </div>
 
                         <!-- KAIZEN / TPM STRATEGY (DISTINCT ACTIONABLE FOOTER) -->
-                        <div class="${isLight ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' : 'bg-emerald-950/30 border-emerald-800/40 text-emerald-300'} p-2.5 rounded-lg border text-[10.5px]">
-                            <div class="font-bold flex items-center gap-1.5 mb-1 text-emerald-400 text-[10.5px]">
-                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0"></i>
-                                <span>${isJa ? '改善・TPM対策 (Kaizen Strategy):' : 'Solusi & Kaizen TPM:'}</span>
+                        <div class="${mins <= 0 ? (isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-900/60 border-slate-800 text-slate-300') : (isLight ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' : 'bg-emerald-950/30 border-emerald-800/40 text-emerald-300')} p-2.5 rounded-lg border text-[10.5px]">
+                            <div class="font-bold flex items-center gap-1.5 mb-1 ${mins <= 0 ? 'text-slate-400' : 'text-emerald-400'} text-[10.5px]">
+                                <i data-lucide="${mins <= 0 ? 'shield-check' : 'sparkles'}" class="w-3.5 h-3.5 ${mins <= 0 ? 'text-slate-400' : 'text-emerald-400'} flex-shrink-0"></i>
+                                <span>${isJa ? '改善・TPM対策 (Kaizen Strategy):' : (mins <= 0 ? 'Tindakan Pemeliharaan:' : 'Solusi & Kaizen TPM:')}</span>
                             </div>
-                            <p class="${isLight ? 'text-emerald-800' : 'text-emerald-300/90'} text-[10px] leading-relaxed">${meta.kaizen}</p>
+                            <p class="${mins <= 0 ? (isLight ? 'text-slate-600' : 'text-slate-400') : (isLight ? 'text-emerald-800' : 'text-emerald-300/90')} text-[10px] leading-relaxed">
+                                ${mins <= 0 ? (isJa ? '良好な稼働状態を維持するため、日常の5S・自主保全および始業前点検を継続推進してください。' : 'Pertahankan performa optimal & jalankan pemeliharaan preventif harian (SOP Standar 5S).') : meta.kaizen}
+                            </p>
                         </div>
                     </div>
                 `;
@@ -5728,19 +5762,45 @@ tbody.innerHTML = '';
                 const mins = Number(item.minutes) || 0;
                 const hrs = (mins / 60).toFixed(1);
                 const pct = totalMins > 0 ? ((mins / totalMins) * 100).toFixed(1) : '0.0';
-                const cats = Array.isArray(meta.categories) ? meta.categories.slice(0, 3).join('; ') : '-';
+                
+                let kendalaHtml = '';
+                let kaizenHtml = '';
+
+                if (mins <= 0) {
+                    kendalaHtml = `<span style="color: #059669; font-weight: bold; font-size: 6.8pt;">✓ ${isJa ? '発生なし (ゼロロス / 正常稼働)' : 'Tidak ada kendala tercatat (Zero Loss / Kondisi Normal)'}</span>`;
+                    kaizenHtml = `<span style="color: #64748b; font-size: 6.8pt;">✓ ${isJa ? '良好な稼働を維持し、日常点検・標準作業を継続。' : 'Pertahankan performa & lakukan pemeliharaan preventif harian (SOP Standar).'}</span>`;
+                } else {
+                    let realCauses = [];
+                    if (item.loss === 'Equipment Failure' && dtPareto.length > 0) {
+                        const topDt = dtPareto.slice(0, 3).map(r => `${r.category || r.reason} (${Number(r.duration_minutes || 0).toFixed(0)}m)`);
+                        if (topDt.length > 0) realCauses.push(`<strong>[Data Riil Trouble]:</strong> ${topDt.join('; ')}`);
+                    } else if (item.loss === 'Process Defects' && defPareto.length > 0) {
+                        const topDef = defPareto.slice(0, 3).map(d => `${d.reason || d.defect_name || d.category} (${Number(d.reject_quantity || d.count || d.quantity || 0)} pcs)`);
+                        if (topDef.length > 0) realCauses.push(`<strong>[Data Riil Cacat]:</strong> ${topDef.join('; ')}`);
+                    }
+
+                    if (realCauses.length > 0) {
+                        const cats = Array.isArray(meta.categories) ? meta.categories.slice(0, 2).join('; ') : '';
+                        kendalaHtml = `<div>${realCauses.join('<br>')}</div><div style="font-size: 6.3pt; color: #64748b; margin-top: 1.5px;"><em>Faktor Terkait: ${cats}</em></div>`;
+                    } else {
+                        const cats = Array.isArray(meta.categories) ? meta.categories.slice(0, 3).join('; ') : '-';
+                        kendalaHtml = cats;
+                    }
+                    kaizenHtml = meta.kaizen || '-';
+                }
+
                 return `
-                    <tr>
+                    <tr style="${mins <= 0 ? 'background-color: #fafbfc;' : ''}">
                         <td class="text-center font-bold font-mono">#${meta.number || 0}</td>
                         <td>
                             <strong>${item.loss}</strong>
                             <div style="font-size: 6.5pt; color: #64748b; font-family: monospace;">${meta.formula || ''}</div>
                         </td>
                         <td><span class="badge-pill">${meta.pillar || item.category || 'Loss'}</span></td>
-                        <td class="text-right font-mono font-bold">${hrs}h (${mins}m)</td>
+                        <td class="text-right font-mono font-bold" style="${mins > 0 ? 'color: #e11d48;' : 'color: #059669;'}">${hrs}h (${mins.toFixed(1)}m)</td>
                         <td class="text-right font-mono font-bold">${pct}%</td>
-                        <td style="font-size: 6.8pt; color: #334155;">${cats}</td>
-                        <td style="font-size: 6.8pt; color: #047857; font-weight: 500;">${meta.kaizen || '-'}</td>
+                        <td style="font-size: 6.8pt; color: #334155;">${kendalaHtml}</td>
+                        <td style="font-size: 6.8pt; color: ${mins > 0 ? '#047857' : '#64748b'}; font-weight: ${mins > 0 ? '500' : 'normal'};">${kaizenHtml}</td>
                     </tr>
                 `;
             }).join('')}
