@@ -11772,40 +11772,40 @@ tbody.innerHTML = '';
                         const linePhoto = line.image_url || defaultLinePhotos[line.code] || '/images/slideshow/slide-2-machining.webp';
                         
                         return `
-                            <div class="${isLight ? 'bg-white border-slate-200 hover:border-cyan-400/80 shadow-md hover:shadow-xl' : 'bg-slate-900 border-slate-800 hover:border-cyan-500/70 shadow-lg hover:shadow-2xl'} group relative border rounded-2xl p-3.5 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
+                            <div class="${isLight ? 'bg-white/20 hover:bg-white/30 border-slate-300/70 hover:border-cyan-400/90 shadow-md hover:shadow-xl' : 'bg-slate-900/30 hover:bg-slate-900/45 border-slate-700/60 hover:border-cyan-500/80 shadow-lg hover:shadow-2xl'} group relative border rounded-2xl p-3.5 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
                                 
-                                <!-- 1. AUTHENTIC SHOP FLOOR BACKGROUND PHOTO (35-50% CLEAR VISIBILITY) -->
+                                <!-- 1. AUTHENTIC SHOP FLOOR BACKGROUND PHOTO (FULL FULL-BLEED VISIBILITY 55-75%) -->
                                 <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-2xl">
                                     <img src="${linePhoto}" 
                                          alt="Foto Lini ${line.name}" 
-                                         class="w-full h-full object-cover opacity-40 group-hover:opacity-55 scale-100 group-hover:scale-105 transition-all duration-500 ease-out" 
+                                         class="w-full h-full object-cover opacity-55 group-hover:opacity-75 scale-100 group-hover:scale-105 transition-all duration-500 ease-out" 
                                          onerror="this.onerror=null; this.src='/images/slideshow/slide-2-machining.webp';" />
                                     
-                                    <!-- TOP-TO-BOTTOM SUBTLE SHIELD (KEEPS PHOTO VIBRANT WHILE ANCHORING BOTTOM) -->
-                                    <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-b from-white/20 via-transparent to-white/90' : 'bg-gradient-to-b from-slate-950/20 via-transparent to-slate-950/90'}"></div>
+                                    <!-- ULTRA-LIGHT 10-20% SHIELD (ENSURES FULL VISIBILITY OF FACTORY IMAGE) -->
+                                    <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-b from-white/10 via-transparent to-white/20' : 'bg-gradient-to-b from-slate-950/15 via-transparent to-slate-950/30'}"></div>
                                     
                                     <!-- SUBTLE INDUSTRIAL GRID OVERLAY -->
                                     <div class="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] ${isLight ? 'opacity-5' : 'opacity-10'}"></div>
                                 </div>
 
                                 <!-- TOP ACCENT COLOR BAR -->
-                                <div class="absolute top-0 left-0 right-0 h-1.5 ${statusBorderTop} opacity-85 group-hover:opacity-100 transition-opacity z-10"></div>
+                                <div class="absolute top-0 left-0 right-0 h-1.5 ${statusBorderTop} opacity-90 group-hover:opacity-100 transition-opacity z-10"></div>
 
-                                <!-- 2. CARD CONTENT (STRUCTURED WITH FROSTED WHITE SHADOW BACKDROPS FOR 100% READABILITY) -->
+                                <!-- 2. CARD CONTENT (SEMI-TRANSPARENT 20-30% GLASS BACKDROPS FOR FULL IMAGE VISIBILITY) -->
                                 <div class="relative z-10 flex flex-col justify-between h-full space-y-2">
                                     <div>
-                                        <!-- LINE HEADER BAR WITH FROSTED BACKDROP -->
-                                        <div class="flex items-center justify-between gap-2 mb-2 pt-0.5 px-2.5 py-1.5 rounded-xl ${isLight ? 'bg-white/90 shadow-sm border border-slate-200/80 backdrop-blur-md' : 'bg-slate-950/85 shadow-md border border-slate-800/80 backdrop-blur-md'}">
+                                        <!-- LINE HEADER BAR (20-25% TRANSLUCENT) -->
+                                        <div class="flex items-center justify-between gap-2 mb-2 pt-0.5 px-2.5 py-1.5 rounded-xl ${isLight ? 'bg-white/25 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
                                             <div class="flex items-center gap-1.5 min-w-0">
-                                                <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-mono font-black ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border shrink-0 shadow-2xs">
+                                                <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-mono font-black ${isLight ? 'bg-white/50 text-cyan-950 border-white/80' : 'bg-cyan-950/60 text-cyan-300 border-cyan-800/80'} border shrink-0 shadow-2xs">
                                                     ${line.code}
                                                 </span>
-                                                <h3 class="font-black text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate group-hover:text-cyan-400 transition-colors" title="${line.name}">${line.name}</h3>
+                                                <h3 class="font-black text-sm ${isLight ? 'text-slate-900 drop-shadow-xs' : 'text-white drop-shadow-xs'} truncate group-hover:text-cyan-400 transition-colors" title="${line.name}">${line.name}</h3>
                                             </div>
                                             <div class="flex items-center gap-1 shrink-0">
                                                 <!-- DYNAMIC UPLOAD PHOTO BUTTON -->
                                                 <button type="button" 
-                                                        class="btn-change-line-photo p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/80 border border-transparent hover:border-slate-700 transition-all cursor-pointer" 
+                                                        class="btn-change-line-photo p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 bg-white/40 dark:bg-slate-800/40 hover:bg-white/70 dark:hover:bg-slate-800/80 border border-white/60 dark:border-slate-700/60 transition-all cursor-pointer shadow-2xs" 
                                                         data-line-id="${line.id}" 
                                                         data-line-code="${line.code}" 
                                                         data-line-name="${line.name}" 
@@ -11813,79 +11813,79 @@ tbody.innerHTML = '';
                                                         title="Ubah / Upload Foto Dokumentasi Lini (Auto-Compress)">
                                                     <i data-lucide="camera" class="w-3.5 h-3.5"></i>
                                                 </button>
-                                                <span class="px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wide uppercase border ${this.getStatusBadge(line.oee_status)}">
+                                                <span class="px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wide uppercase border ${this.getStatusBadge(line.oee_status)} bg-opacity-30">
                                                     ${line.oee_status || 'CRITICAL'}
                                                 </span>
                                             </div>
                                         </div>
 
-                                        <!-- PRODUCT TYPE CHIPS WITH FROSTED BACKDROP -->
-                                        <div class="mb-2 p-2 rounded-xl ${isLight ? 'bg-white/90 shadow-sm border border-slate-200/80 backdrop-blur-md' : 'bg-slate-950/85 shadow-md border border-slate-800/80 backdrop-blur-md'}">
-                                            <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
-                                                <span class="flex items-center gap-1 font-medium">
-                                                    <i data-lucide="box" class="w-3 h-3 text-cyan-400"></i>
+                                        <!-- PRODUCT TYPE CHIPS (20-25% TRANSLUCENT) -->
+                                        <div class="mb-2 p-2 rounded-xl ${isLight ? 'bg-white/25 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
+                                            <div class="flex items-center justify-between text-[10px] ${isLight ? 'text-slate-700 font-semibold' : 'text-slate-300'} mb-1">
+                                                <span class="flex items-center gap-1 font-bold">
+                                                    <i data-lucide="box" class="w-3 h-3 text-cyan-500"></i>
                                                     Type Produk:
                                                 </span>
-                                                <span class="font-mono text-[9px] text-slate-500 font-semibold">${prodList.length} Model</span>
+                                                <span class="font-mono text-[9px] ${isLight ? 'text-slate-800' : 'text-slate-400'} font-bold">${prodList.length} Model</span>
                                             </div>
                                             <div class="flex flex-wrap gap-1 items-center min-h-[22px]">
                                                 ${prodList.length === 0 ? `
-                                                    <span class="text-[10px] text-slate-500 italic">Standby (0 produk)</span>
+                                                    <span class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} italic font-medium">Standby (0 produk)</span>
                                                 ` : visibleProds.map(p => `
-                                                    <span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono ${isLight ? 'bg-slate-50 text-cyan-800 border-cyan-200' : 'bg-cyan-950/90 text-cyan-300 border-cyan-800/70'} border shadow-2xs">
+                                                    <span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono ${isLight ? 'bg-white/50 text-slate-950 border-white/80' : 'bg-cyan-950/50 text-cyan-300 border-cyan-800/60'} border shadow-2xs">
                                                         ${p}
                                                     </span>
                                                 `).join('')}
                                                 ${remainingProds > 0 ? `
-                                                    <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold font-mono text-slate-400 bg-slate-800/60 border border-slate-700" title="${prodList.slice(3).join(', ')}">
+                                                    <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold font-mono ${isLight ? 'text-slate-800 bg-white/40 border-white/60' : 'text-slate-300 bg-slate-800/40 border-slate-700'}" title="${prodList.slice(3).join(', ')}">
                                                         +${remainingProds}
                                                     </span>
                                                 ` : ''}
                                             </div>
                                         </div>
 
-                                        <!-- HERO OEE SCORE & 3-PILLARS CONTAINER WITH WHITE FROSTED SHADOW -->
-                                        <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/95 shadow-md border border-slate-200/90 backdrop-blur-md' : 'bg-slate-950/90 shadow-lg border border-slate-800/90 backdrop-blur-md'}">
+                                        <!-- HERO OEE SCORE & 3-PILLARS CONTAINER (20-30% TRANSLUCENT) -->
+                                        <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/30 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
                                             <!-- HERO OEE SCORE ROW -->
-                                            <div class="flex items-center justify-between mb-2 pb-1.5 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
-                                                <span class="text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-slate-400'}">Overall OEE</span>
+                                            <div class="flex items-center justify-between mb-2 pb-1.5 border-b ${isLight ? 'border-white/50' : 'border-white/10'}">
+                                                <span class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">Overall OEE</span>
                                                 <div class="flex items-baseline gap-1">
-                                                    <span class="${oeeColor} text-lg font-black font-mono leading-none">${line.oee}%</span>
+                                                    <span class="${oeeColor} text-lg font-black font-mono leading-none drop-shadow-xs">${line.oee}%</span>
                                                 </div>
                                             </div>
 
                                             <!-- 3-PILLARS COMPACT MICRO GRID -->
                                             <div class="grid grid-cols-3 gap-1.5 font-mono text-center">
-                                                <div class="p-1 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900 border-slate-800'} border">
-                                                    <div class="text-[8.5px] text-slate-400 font-sans uppercase font-bold tracking-tight">Avail</div>
-                                                    <div class="text-xs font-bold text-cyan-400 mt-0.5">${line.availability}%</div>
+                                                <div class="p-1 rounded-lg ${isLight ? 'bg-white/40 border-white/70' : 'bg-slate-900/40 border-white/10'} border shadow-2xs">
+                                                    <div class="text-[8.5px] ${isLight ? 'text-slate-700' : 'text-slate-400'} font-sans uppercase font-bold tracking-tight">Avail</div>
+                                                    <div class="text-xs font-black text-cyan-600 dark:text-cyan-400 mt-0.5">${line.availability}%</div>
                                                 </div>
-                                                <div class="p-1 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900 border-slate-800'} border">
-                                                    <div class="text-[8.5px] text-slate-400 font-sans uppercase font-bold tracking-tight">Perf</div>
-                                                    <div class="text-xs font-bold text-amber-400 mt-0.5">${line.performance}%</div>
+                                                <div class="p-1 rounded-lg ${isLight ? 'bg-white/40 border-white/70' : 'bg-slate-900/40 border-white/10'} border shadow-2xs">
+                                                    <div class="text-[8.5px] ${isLight ? 'text-slate-700' : 'text-slate-400'} font-sans uppercase font-bold tracking-tight">Perf</div>
+                                                    <div class="text-xs font-black text-amber-600 dark:text-amber-400 mt-0.5">${line.performance}%</div>
                                                 </div>
-                                                <div class="p-1 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900 border-slate-800'} border">
-                                                    <div class="text-[8.5px] text-slate-400 font-sans uppercase font-bold tracking-tight">Qual</div>
-                                                    <div class="text-xs font-bold text-emerald-400 mt-0.5">${line.quality}%</div>
+                                                <div class="p-1 rounded-lg ${isLight ? 'bg-white/40 border-white/70' : 'bg-slate-900/40 border-white/10'} border shadow-2xs">
+                                                    <div class="text-[8.5px] ${isLight ? 'text-slate-700' : 'text-slate-400'} font-sans uppercase font-bold tracking-tight">Qual</div>
+                                                    <div class="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">${line.quality}%</div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS WITH HIGH-CONTRAST WHITE SHADOW -->
-                                    <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/95 shadow-lg border border-slate-200/90 backdrop-blur-md' : 'bg-slate-950/95 shadow-xl border border-slate-800/90 backdrop-blur-md'}">
-                                        <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}">
-                                            <span class="text-[10px] text-slate-400 font-sans font-medium">Output:</span>
-                                            <span class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">
-                                                ${(line.actual_quantity || 0).toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ ${(line.target_quantity || 0).toLocaleString()}</span>
+                                    <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS (20-30% TRANSLUCENT) -->
+                                    <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/30 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
+                                        <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 ${isLight ? 'text-slate-800 font-bold' : 'text-slate-300 font-semibold'}">
+                                            <span class="text-[10px] ${isLight ? 'text-slate-700' : 'text-slate-400'} font-sans font-bold">Output:</span>
+                                            <span class="font-black ${isLight ? 'text-slate-950' : 'text-slate-100'}">
+                                                ${(line.actual_quantity || 0).toLocaleString()} <span class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-normal">/ ${(line.target_quantity || 0).toLocaleString()}</span>
                                             </span>
                                         </div>
-                                        <div class="relative w-full ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-900 border-slate-800'} rounded-full h-2 overflow-hidden border">
+                                        <div class="relative w-full ${isLight ? 'bg-white/50 border-white/70' : 'bg-slate-900/50 border-white/10'} rounded-full h-2 overflow-hidden border">
                                             <div class="bg-gradient-to-r ${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, achieveNum)}%"></div>
                                         </div>
-                                        <div class="flex justify-between items-center text-[10px] font-mono text-slate-400 mt-1">
+                                        <div class="flex justify-between items-center text-[10px] font-mono ${isLight ? 'text-slate-800' : 'text-slate-400'} mt-1 font-bold">
                                             <span>Pencapaian:</span>
-                                            <span class="font-bold ${achieveNum >= 95 ? 'text-emerald-400' : (achieveNum >= 80 ? 'text-cyan-400' : 'text-amber-400')}">${line.achievement}%</span>
+                                            <span class="font-black ${achieveNum >= 95 ? 'text-emerald-600 dark:text-emerald-400' : (achieveNum >= 80 ? 'text-cyan-600 dark:text-cyan-400' : 'text-amber-600 dark:text-amber-400')}">${line.achievement}%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -12067,33 +12067,33 @@ tbody.innerHTML = '';
                         </div>
                     </div>
 
-                    <!-- LIVE CARD PREVIEW SIMULATOR -->
+                    <!-- LIVE CARD PREVIEW SIMULATOR (20-30% TRANSLUCENT) -->
                     <div>
                         <label class="block text-xs font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1.5">
                             Live Preview Tampilan Kartu:
                         </label>
-                        <div class="relative border ${isLight ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'} rounded-2xl p-4 overflow-hidden h-40 flex flex-col justify-between shadow-md">
-                            <!-- PREVIEW WATERMARK -->
+                        <div class="relative border ${isLight ? 'border-slate-300/80 bg-white/20' : 'border-slate-700/80 bg-slate-900/30'} rounded-2xl p-4 overflow-hidden h-40 flex flex-col justify-between shadow-md">
+                            <!-- PREVIEW WATERMARK FULL BLEED -->
                             <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                                <img id="preview-line-photo-img" src="${selectedPhotoData}" class="w-full h-full object-cover opacity-45 transition-all duration-300" alt="Preview" />
-                                <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-b from-white/20 via-transparent to-white/90' : 'bg-gradient-to-b from-slate-950/20 via-transparent to-slate-950/90'}"></div>
+                                <img id="preview-line-photo-img" src="${selectedPhotoData}" class="w-full h-full object-cover opacity-60 transition-all duration-300" alt="Preview" />
+                                <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-b from-white/10 via-transparent to-white/20' : 'bg-gradient-to-b from-slate-950/15 via-transparent to-slate-950/30'}"></div>
                                 <div class="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] opacity-10"></div>
                             </div>
                             
-                            <!-- SIMULATED CONTENT WITH WHITE SHADOW -->
-                            <div class="relative z-10 flex items-center justify-between p-1.5 rounded-xl ${isLight ? 'bg-white/90 shadow-sm' : 'bg-slate-950/85'}">
+                            <!-- SIMULATED CONTENT WITH 20-30% TRANSLUCENT GLASS -->
+                            <div class="relative z-10 flex items-center justify-between p-1.5 rounded-xl ${isLight ? 'bg-white/25 border border-white/60 shadow-2xs' : 'bg-slate-950/35 border border-white/10 shadow-2xs'}">
                                 <div class="flex items-center gap-2">
-                                    <span class="px-2 py-0.5 rounded-lg text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">${lineData.code}</span>
-                                    <span class="font-bold text-sm">${lineData.name}</span>
+                                    <span class="px-2 py-0.5 rounded-lg text-xs font-mono font-bold bg-white/50 text-cyan-950 border border-white/80">${lineData.code}</span>
+                                    <span class="font-bold text-sm text-slate-900 dark:text-white">${lineData.name}</span>
                                 </div>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">EXCELLENT</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800">EXCELLENT</span>
                             </div>
-                            <div class="relative z-10 flex items-end justify-between font-mono p-2 rounded-xl ${isLight ? 'bg-white/95 shadow-md' : 'bg-slate-950/90'}">
+                            <div class="relative z-10 flex items-end justify-between font-mono p-2 rounded-xl ${isLight ? 'bg-white/30 border border-white/60 shadow-2xs' : 'bg-slate-950/35 border border-white/10 shadow-2xs'}">
                                 <div>
-                                    <span class="text-[10px] text-slate-400">Overall OEE</span>
-                                    <div class="text-xl font-black text-emerald-400">96.02%</div>
+                                    <span class="text-[10px] text-slate-700 dark:text-slate-300 font-bold">Overall OEE</span>
+                                    <div class="text-xl font-black text-emerald-600 dark:text-emerald-400">96.02%</div>
                                 </div>
-                                <div class="text-right text-[10px] text-slate-400">
+                                <div class="text-right text-[10px] text-slate-700 dark:text-slate-300 font-bold">
                                     Dokumentasi Faktual Lapangan
                                 </div>
                             </div>
