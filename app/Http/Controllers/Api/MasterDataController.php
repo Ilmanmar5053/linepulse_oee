@@ -88,8 +88,13 @@ class MasterDataController extends Controller
             'plant_id' => 'nullable|exists:plants,id',
             'code' => 'required|string|unique:production_lines,code',
             'name' => 'required|string|max:255',
+            'image_url' => 'nullable|string',
             'target_oee' => 'required|numeric|between:0,100',
         ]);
+
+        if (!empty($validated['image_url'])) {
+            $validated['image_url'] = $this->processBase64Image($validated['image_url'], 'line_' . strtolower(str_replace('-', '_', $validated['code'])));
+        }
 
         $line = ProductionLine::create($validated);
 
@@ -103,11 +108,55 @@ class MasterDataController extends Controller
             'plant_id' => 'nullable|exists:plants,id',
             'code' => 'required|string|unique:production_lines,code,' . $id,
             'name' => 'required|string|max:255',
+            'image_url' => 'nullable|string',
             'target_oee' => 'nullable|numeric|between:0,100',
         ]);
 
+        if (array_key_exists('image_url', $validated) && !empty($validated['image_url'])) {
+            $validated['image_url'] = $this->processBase64Image($validated['image_url'], 'line_' . strtolower(str_replace('-', '_', $validated['code'] ?? $line->code)));
+        }
+
         $line->update($validated);
         return response()->json(['success' => true, 'message' => 'Production line updated', 'data' => $line]);
+    }
+
+    public function uploadLinePhoto(Request $request, $id): JsonResponse
+    {
+        $line = ProductionLine::findOrFail($id);
+
+        $request->validate([
+            'image' => 'nullable|image|max:10240',
+            'photo' => 'nullable|string',
+            'image_url' => 'nullable|string',
+        ]);
+
+        $finalUrl = null;
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = 'line_' . strtolower(str_replace('-', '_', $line->code)) . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $destDir = public_path('images/uploads/lines');
+            if (!file_exists($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+            $file->move($destDir, $filename);
+            $finalUrl = '/images/uploads/lines/' . $filename;
+        } elseif ($request->filled('photo')) {
+            $finalUrl = $this->processBase64Image($request->photo, 'line_' . strtolower(str_replace('-', '_', $line->code)));
+        } elseif ($request->filled('image_url')) {
+            $finalUrl = $this->processBase64Image($request->image_url, 'line_' . strtolower(str_replace('-', '_', $line->code)));
+        }
+
+        if ($finalUrl) {
+            $line->image_url = $finalUrl;
+            $line->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Foto dokumentasi lini ' . $line->name . ' berhasil diperbarui.',
+            'data' => $line,
+        ]);
     }
 
     public function destroyProductionLine($id): JsonResponse

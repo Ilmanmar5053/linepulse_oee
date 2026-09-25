@@ -11679,10 +11679,11 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 4. PRODUCTION LINES PAGE (FIT-TO-PROPER & DYNAMIC COMPACT CARDS)
+    // 4. PRODUCTION LINES PAGE (FIT-TO-PROPER & DYNAMIC COMPACT CARDS WITH AUTHENTIC BACKGROUNDS)
     // ==========================================
     async renderLines() {
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const isJa = this.currentLang === 'ja';
         const res = await api.getLineRanking(this.filters);
         const lines = res.data.data || [];
 
@@ -11694,159 +11695,527 @@ tbody.innerHTML = '';
         const overallAchieve = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) : '0.0';
         const activeLinesCount = lines.filter(l => (Number(l.actual_quantity) || 0) > 0 || Number(l.oee || 0) > 0).length;
 
+        // Default factory imagery fallback presets mapped to connecting rod processes
+        const defaultLinePhotos = {
+            'FX-1': '/images/slideshow/slide-2-machining.webp',
+            'FX-2': '/images/slideshow/slide-4-assembly.webp',
+            'FX-3': '/images/slideshow/slide-1-plant.webp',
+            'FX-4': '/images/slideshow/slide-2-machining.webp',
+            'FX-5': '/images/slideshow/slide-5-andon.webp',
+            'FX-6': '/images/slideshow/slide-3-measuring.webp',
+            'FX-7': '/images/slideshow/slide-4-assembly.webp',
+            'FX-8': '/images/slideshow/slide-2-machining.webp',
+            'FX-9': '/images/slideshow/slide-1-plant.webp',
+            'FX-10': '/images/slideshow/slide-3-measuring.webp',
+            'FX-11': '/images/slideshow/slide-5-andon.webp',
+        };
+
         const content = document.getElementById('content-body');
         content.innerHTML = `
-            <!-- HEADER & SUMMARY STRIP -->
-            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 shadow-xl mb-4">
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div>
-                        <div class="flex items-center gap-3">
-                            <h2 class="text-lg font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
-                                <i data-lucide="git-fork" class="w-5 h-5 text-cyan-400"></i>
-                                <span>Production Lines</span>
-                            </h2>
-                            <span class="px-2.5 py-0.5 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border font-mono font-bold text-xs">
-                                Total ${totalLines} Lini
-                            </span>
-                            <span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80'} border">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                ${activeLinesCount} Aktif
-                            </span>
+            <div class="space-y-4 sm:space-y-5 animate-fadeIn">
+                
+                <!-- HEADER & SUMMARY STRIP -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 sm:p-5 shadow-xl">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-3">
+                                <h2 class="text-lg font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                    <i data-lucide="git-fork" class="w-5 h-5 text-cyan-400"></i>
+                                    <span>${isJa ? '生産ライン管理 (Production Lines)' : 'Production Lines'}</span>
+                                </h2>
+                                <span class="px-2.5 py-0.5 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border font-mono font-bold text-xs">
+                                    Total ${totalLines} Lini
+                                </span>
+                                <span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80'} border">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    ${activeLinesCount} Aktif
+                                </span>
+                            </div>
+                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">
+                                ${isJa ? '実機データに基づく各ラインの総合設備効率 (OEE)、生産進捗、および設備実態ビジュアル。' : 'Ringkasan efisiensi OEE, ketersediaan mesin, kualitas produksi, dan dokumentasi visual faktual per lini produksi PT Yasunaga.'}
+                            </p>
                         </div>
-                        <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">
-                            Ringkasan efisiensi OEE, ketersediaan mesin, kualitas produksi, dan rasio pencapaian per lini.
-                        </p>
-                    </div>
 
-                    <!-- COMPACT KPI STRIP -->
-                    <div class="flex flex-wrap items-center gap-2 text-xs">
-                        <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
-                            <span class="text-slate-400">Rata-rata OEE:</span>
-                            <strong class="font-mono text-cyan-400 font-bold">${avgOee}%</strong>
-                        </div>
-                        <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
-                            <span class="text-slate-400">Total Output:</span>
-                            <strong class="font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'} font-bold">${totalActual.toLocaleString()} pcs</strong>
-                        </div>
-                        <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
-                            <span class="text-slate-400">Pencapaian:</span>
-                            <strong class="font-mono text-emerald-400 font-bold">${overallAchieve}%</strong>
+                        <!-- COMPACT KPI STRIP -->
+                        <div class="flex flex-wrap items-center gap-2 text-xs">
+                            <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                                <span class="text-slate-400">Rata-rata OEE:</span>
+                                <strong class="font-mono text-cyan-400 font-bold">${avgOee}%</strong>
+                            </div>
+                            <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                                <span class="text-slate-400">Total Output:</span>
+                                <strong class="font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'} font-bold">${totalActual.toLocaleString()} pcs</strong>
+                            </div>
+                            <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                                <span class="text-slate-400">Pencapaian:</span>
+                                <strong class="font-mono text-emerald-400 font-bold">${overallAchieve}%</strong>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- COMPACT & HIGH-DENSITY LINES GRID (4 COLUMNS) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5">
-                ${lines.map(line => {
-                    const oeeNum = Number(line.oee || 0);
-                    const oeeColor = oeeNum >= 85 ? 'text-emerald-400' : (oeeNum >= 65 ? 'text-amber-400' : (oeeNum > 0 ? 'text-rose-400' : 'text-slate-500'));
-                    const statusBorderTop = oeeNum >= 85 ? 'bg-emerald-500' : (oeeNum >= 65 ? 'bg-amber-500' : (oeeNum > 0 ? 'bg-rose-500' : 'bg-slate-700'));
-                    const achieveNum = Number(line.achievement || 0);
-                    const progressBarColor = achieveNum >= 95 ? 'from-cyan-500 to-emerald-500' : (achieveNum >= 80 ? 'from-cyan-500 to-blue-500' : 'from-amber-500 to-rose-500');
+                <!-- COMPACT & HIGH-DENSITY LINES GRID (4 COLUMNS) WITH AUTHENTIC TRANSLUCENT PHOTO WATERMARK -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5">
+                    ${lines.map(line => {
+                        const oeeNum = Number(line.oee || 0);
+                        const oeeColor = oeeNum >= 85 ? 'text-emerald-400' : (oeeNum >= 65 ? 'text-amber-400' : (oeeNum > 0 ? 'text-rose-400' : 'text-slate-500'));
+                        const statusBorderTop = oeeNum >= 85 ? 'bg-emerald-500' : (oeeNum >= 65 ? 'bg-amber-500' : (oeeNum > 0 ? 'bg-rose-500' : 'bg-slate-700'));
+                        const achieveNum = Number(line.achievement || 0);
+                        const progressBarColor = achieveNum >= 95 ? 'from-cyan-500 to-emerald-500' : (achieveNum >= 80 ? 'from-cyan-500 to-blue-500' : 'from-amber-500 to-rose-500');
 
-                    const prodList = (line.products_produced && line.products_produced.length > 0) 
-                        ? line.products_produced 
-                        : (line.products_assigned || []);
-                    
-                    const visibleProds = prodList.slice(0, 3);
-                    const remainingProds = prodList.length - visibleProds.length;
-                    
-                    return `
-                        <div class="${isLight ? 'bg-white border-slate-200 hover:border-cyan-400/80 shadow-md hover:shadow-xl' : 'bg-slate-900/90 border-slate-800 hover:border-cyan-500/70 shadow-lg hover:shadow-2xl'} group relative border rounded-xl p-3.5 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
-                            <!-- TOP ACCENT COLOR BAR -->
-                            <div class="absolute top-0 left-0 right-0 h-1 ${statusBorderTop} opacity-80 group-hover:opacity-100 transition-opacity"></div>
-
-                            <div>
-                                <!-- LINE HEADER -->
-                                <div class="flex items-center justify-between gap-2 mb-2.5 pt-0.5">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border shrink-0">
-                                            ${line.code}
-                                        </span>
-                                        <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate" title="${line.name}">${line.name}</h3>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wide uppercase border shrink-0 ${this.getStatusBadge(line.oee_status)}">
-                                        ${line.oee_status || 'CRITICAL'}
-                                    </span>
+                        const prodList = (line.products_produced && line.products_produced.length > 0) 
+                            ? line.products_produced 
+                            : (line.products_assigned || []);
+                        
+                        const visibleProds = prodList.slice(0, 3);
+                        const remainingProds = prodList.length - visibleProds.length;
+                        const linePhoto = line.image_url || defaultLinePhotos[line.code] || '/images/slideshow/slide-2-machining.webp';
+                        
+                        return `
+                            <div class="${isLight ? 'bg-white/95 border-slate-200 hover:border-cyan-400/80 shadow-md hover:shadow-xl' : 'bg-slate-900/90 border-slate-800 hover:border-cyan-500/70 shadow-lg hover:shadow-2xl'} group relative border rounded-2xl p-3.5 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
+                                
+                                <!-- 1. AUTHENTIC SHOP FLOOR BACKGROUND PHOTO (WATERMARK & GRID TEXTURE) -->
+                                <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-2xl">
+                                    <img src="${linePhoto}" 
+                                         alt="Foto Lini ${line.name}" 
+                                         class="w-full h-full object-cover ${isLight ? 'opacity-10 group-hover:opacity-22 mix-blend-multiply' : 'opacity-15 group-hover:opacity-28 mix-blend-luminosity'} scale-100 group-hover:scale-105 transition-all duration-700 ease-out" 
+                                         onerror="this.onerror=null; this.src='/images/slideshow/slide-2-machining.webp';" />
+                                    
+                                    <!-- GRADIENT SHIELD OVERLAY (ENSURES 100% TEXT READABILITY) -->
+                                    <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-t from-white/95 via-white/85 to-white/60' : 'bg-gradient-to-t from-slate-950 via-slate-900/85 to-slate-900/50'}"></div>
+                                    
+                                    <!-- SUBTLE INDUSTRIAL GRID OVERLAY -->
+                                    <div class="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] ${isLight ? 'opacity-4' : 'opacity-8'}"></div>
                                 </div>
 
-                                <!-- PRODUCT TYPE CHIPS (COMPACT & UNIFORM) -->
-                                <div class="mb-3 p-2 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-950/60 border-slate-800/70'} border">
-                                    <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
-                                        <span class="flex items-center gap-1">
-                                            <i data-lucide="box" class="w-3 h-3 text-cyan-400"></i>
-                                            Type Produk:
-                                        </span>
-                                        <span class="font-mono text-[9px] text-slate-500 font-semibold">${prodList.length} Model</span>
+                                <!-- TOP ACCENT COLOR BAR -->
+                                <div class="absolute top-0 left-0 right-0 h-1.5 ${statusBorderTop} opacity-80 group-hover:opacity-100 transition-opacity z-10"></div>
+
+                                <!-- 2. CARD CONTENT CONTAINER (Z-10 FOR CRISP HIGH CONTRAST) -->
+                                <div class="relative z-10 flex flex-col justify-between h-full">
+                                    <div>
+                                        <!-- LINE HEADER & QUICK PHOTO UPLOAD ACTION -->
+                                        <div class="flex items-center justify-between gap-2 mb-2.5 pt-0.5">
+                                            <div class="flex items-center gap-1.5 min-w-0">
+                                                <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-mono font-black ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border shrink-0 shadow-2xs">
+                                                    ${line.code}
+                                                </span>
+                                                <h3 class="font-black text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate group-hover:text-cyan-400 transition-colors" title="${line.name}">${line.name}</h3>
+                                            </div>
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                <!-- DYNAMIC UPLOAD PHOTO BUTTON -->
+                                                <button type="button" 
+                                                        class="btn-change-line-photo p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/80 border border-transparent hover:border-slate-700 transition-all cursor-pointer" 
+                                                        data-line-id="${line.id}" 
+                                                        data-line-code="${line.code}" 
+                                                        data-line-name="${line.name}" 
+                                                        data-line-image="${line.image_url || ''}"
+                                                        title="Ubah / Upload Foto Dokumentasi Lini (Auto-Compress)">
+                                                    <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                                <span class="px-2 py-0.5 rounded text-[9px] font-extrabold tracking-wide uppercase border ${this.getStatusBadge(line.oee_status)}">
+                                                    ${line.oee_status || 'CRITICAL'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- PRODUCT TYPE CHIPS (COMPACT & UNIFORM) -->
+                                        <div class="mb-3 p-2 rounded-xl ${isLight ? 'bg-slate-50/90 border-slate-200/90' : 'bg-slate-950/70 border-slate-800/80 backdrop-blur-xs'} border shadow-2xs">
+                                            <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                                                <span class="flex items-center gap-1 font-medium">
+                                                    <i data-lucide="box" class="w-3 h-3 text-cyan-400"></i>
+                                                    Type Produk:
+                                                </span>
+                                                <span class="font-mono text-[9px] text-slate-500 font-semibold">${prodList.length} Model</span>
+                                            </div>
+                                            <div class="flex flex-wrap gap-1 items-center min-h-[22px]">
+                                                ${prodList.length === 0 ? `
+                                                    <span class="text-[10px] text-slate-500 italic">Standby (0 produk)</span>
+                                                ` : visibleProds.map(p => `
+                                                    <span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono ${isLight ? 'bg-white text-cyan-800 border-cyan-200' : 'bg-cyan-950/90 text-cyan-300 border-cyan-800/70'} border shadow-2xs">
+                                                        ${p}
+                                                    </span>
+                                                `).join('')}
+                                                ${remainingProds > 0 ? `
+                                                    <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold font-mono text-slate-400 bg-slate-800/60 border border-slate-700" title="${prodList.slice(3).join(', ')}">
+                                                        +${remainingProds}
+                                                    </span>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+
+                                        <!-- HERO OEE SCORE ROW -->
+                                        <div class="flex items-center justify-between mb-2.5 pb-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
+                                            <span class="text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-slate-400'}">Overall OEE</span>
+                                            <div class="flex items-baseline gap-1">
+                                                <span class="${oeeColor} text-lg font-black font-mono leading-none">${line.oee}%</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- 3-PILLARS COMPACT MICRO GRID -->
+                                        <div class="grid grid-cols-3 gap-1.5 font-mono text-center mb-3">
+                                            <div class="p-1.5 rounded-xl ${isLight ? 'bg-slate-50/90 border-slate-200/80' : 'bg-slate-950/60 border-slate-800/70'} border">
+                                                <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Avail</div>
+                                                <div class="text-xs font-bold text-cyan-400 mt-0.5">${line.availability}%</div>
+                                            </div>
+                                            <div class="p-1.5 rounded-xl ${isLight ? 'bg-slate-50/90 border-slate-200/80' : 'bg-slate-950/60 border-slate-800/70'} border">
+                                                <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Perf</div>
+                                                <div class="text-xs font-bold text-amber-400 mt-0.5">${line.performance}%</div>
+                                            </div>
+                                            <div class="p-1.5 rounded-xl ${isLight ? 'bg-slate-50/90 border-slate-200/80' : 'bg-slate-950/60 border-slate-800/70'} border">
+                                                <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Qual</div>
+                                                <div class="text-xs font-bold text-emerald-400 mt-0.5">${line.quality}%</div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="flex flex-wrap gap-1 items-center min-h-[22px]">
-                                        ${prodList.length === 0 ? `
-                                            <span class="text-[10px] text-slate-500 italic">Standby (0 produk)</span>
-                                        ` : visibleProds.map(p => `
-                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono ${isLight ? 'bg-white text-cyan-800 border-cyan-200' : 'bg-cyan-950/90 text-cyan-300 border-cyan-800/70'} border shadow-2xs">
-                                                ${p}
+
+                                    <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS -->
+                                    <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
+                                        <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}">
+                                            <span class="text-[10px] text-slate-400 font-sans font-medium">Output:</span>
+                                            <span class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">
+                                                ${(line.actual_quantity || 0).toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ ${(line.target_quantity || 0).toLocaleString()}</span>
                                             </span>
-                                        `).join('')}
-                                        ${remainingProds > 0 ? `
-                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono text-slate-400 bg-slate-800/60 border border-slate-700" title="${prodList.slice(3).join(', ')}">
-                                                +${remainingProds}
-                                            </span>
-                                        ` : ''}
-                                    </div>
-                                </div>
-
-                                <!-- HERO OEE SCORE ROW -->
-                                <div class="flex items-center justify-between mb-2.5 pb-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
-                                    <span class="text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-slate-400'}">Overall OEE</span>
-                                    <div class="flex items-baseline gap-1">
-                                        <span class="${oeeColor} text-lg font-black font-mono leading-none">${line.oee}%</span>
-                                    </div>
-                                </div>
-
-                                <!-- 3-PILLARS COMPACT MICRO GRID -->
-                                <div class="grid grid-cols-3 gap-1.5 font-mono text-center mb-3">
-                                    <div class="p-1.5 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/70' : 'bg-slate-950/50 border-slate-800/60'} border">
-                                        <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Avail</div>
-                                        <div class="text-xs font-bold text-cyan-400 mt-0.5">${line.availability}%</div>
-                                    </div>
-                                    <div class="p-1.5 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/70' : 'bg-slate-950/50 border-slate-800/60'} border">
-                                        <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Perf</div>
-                                        <div class="text-xs font-bold text-amber-400 mt-0.5">${line.performance}%</div>
-                                    </div>
-                                    <div class="p-1.5 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/70' : 'bg-slate-950/50 border-slate-800/60'} border">
-                                        <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Qual</div>
-                                        <div class="text-xs font-bold text-emerald-400 mt-0.5">${line.quality}%</div>
+                                        </div>
+                                        <div class="relative w-full ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'} rounded-full h-2 overflow-hidden border">
+                                            <div class="bg-gradient-to-r ${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, achieveNum)}%"></div>
+                                        </div>
+                                        <div class="flex justify-between items-center text-[10px] font-mono text-slate-400 mt-1">
+                                            <span>Pencapaian:</span>
+                                            <span class="font-bold ${achieveNum >= 95 ? 'text-emerald-400' : (achieveNum >= 80 ? 'text-cyan-400' : 'text-amber-400')}">${line.achievement}%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        `;
+                    }).join('')}
+                </div>
 
-                            <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS -->
-                            <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
-                                <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}">
-                                    <span class="text-[10px] text-slate-400 font-sans font-medium">Output:</span>
-                                    <span class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">
-                                        ${(line.actual_quantity || 0).toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ ${(line.target_quantity || 0).toLocaleString()}</span>
-                                    </span>
-                                </div>
-                                <div class="relative w-full ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'} rounded-full h-2 overflow-hidden border">
-                                    <div class="bg-gradient-to-r ${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, achieveNum)}%"></div>
-                                </div>
-                                <div class="flex justify-between items-center text-[10px] font-mono text-slate-400 mt-1">
-                                    <span>Pencapaian:</span>
-                                    <span class="font-bold ${achieveNum >= 95 ? 'text-emerald-400' : (achieveNum >= 80 ? 'text-cyan-400' : 'text-amber-400')}">${line.achievement}%</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
             </div>
         `;
+
+        // Wire Event Listeners for dynamic photo uploads
+        document.querySelectorAll('.btn-change-line-photo').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-line-id');
+                const code = btn.getAttribute('data-line-code');
+                const name = btn.getAttribute('data-line-name');
+                const image = btn.getAttribute('data-line-image');
+                this.showLinePhotoUploadModal({ id, code, name, image_url: image });
+            });
+        });
 
         if (window.lucide) window.lucide.createIcons();
         if (this.currentLang === 'ja') {
             i18n.localizeDom(document.getElementById('content-body') || document.body);
         }
+    }
+
+    /**
+     * High-Performance Client-Side Image Compressor
+     * Uses HTML5 Canvas to scale & compress camera/phone uploads (from 5MB down to ~60KB-120KB)
+     */
+    compressImageFile(file, maxWidth = 1000, maxHeight = 650, quality = 0.82) {
+        return new Promise((resolve, reject) => {
+            if (!file || !file.type.startsWith('image/')) {
+                return reject(new Error('File yang dipilih bukan file gambar yang valid.'));
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Prefer WebP compression, fallback to JPEG
+                    let compressedDataUrl = canvas.toDataURL('image/webp', quality);
+                    if (!compressedDataUrl.startsWith('data:image/webp')) {
+                        compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    }
+
+                    const origSizeKb = (file.size / 1024).toFixed(1);
+                    const compSizeKb = (compressedDataUrl.length * 0.75 / 1024).toFixed(1);
+                    const savingsPct = Math.max(0, Math.round((1 - (Number(compSizeKb) / Number(origSizeKb))) * 100));
+
+                    resolve({
+                        dataUrl: compressedDataUrl,
+                        width,
+                        height,
+                        originalSizeKb: origSizeKb,
+                        compressedSizeKb: compSizeKb,
+                        savingsPct: savingsPct
+                    });
+                };
+                img.onerror = () => reject(new Error('Gagal memproses file gambar.'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /**
+     * Interactive Line Photo Upload & Realtime Compression Modal
+     */
+    showLinePhotoUploadModal(lineData) {
+        const modalContainer = document.getElementById('modal-container') || document.body;
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const isJa = this.currentLang === 'ja';
+
+        const presets = [
+            { label: 'Machining Line Center', url: '/images/slideshow/slide-2-machining.webp' },
+            { label: 'Assembly & Clamping', url: '/images/slideshow/slide-4-assembly.webp' },
+            { label: 'Measuring & Inspection', url: '/images/slideshow/slide-3-measuring.webp' },
+            { label: 'Factory Bay Overview', url: '/images/slideshow/slide-1-plant.webp' },
+            { label: 'Andon & Feeder Line', url: '/images/slideshow/slide-5-andon.webp' },
+        ];
+
+        let selectedPhotoData = lineData.image_url || presets[0].url;
+        let isCustomCompressed = false;
+
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'line-photo-upload-modal';
+        modalDiv.className = 'fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-fadeIn';
+
+        modalDiv.innerHTML = `
+            <div class="${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#0B142C] border-[#1B2C56] text-slate-100'} border rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden font-sans my-auto">
+                
+                <!-- MODAL HEADER -->
+                <div class="p-4 sm:p-5 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#070E22] border-[#152347]'} border-b flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-400">
+                            <i data-lucide="camera" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-sm sm:text-base ${isLight ? 'text-slate-900' : 'text-white'}">
+                                ${isJa ? '生産ライン実機写真の登録' : 'Foto Dokumentasi Lini Produksi'}
+                            </h3>
+                            <p class="text-xs text-slate-400 font-mono">${lineData.code} &bull; ${lineData.name}</p>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-close-line-photo-modal" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 cursor-pointer transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- MODAL BODY -->
+                <div class="p-4 sm:p-6 space-y-4">
+                    
+                    <!-- UPLOAD DRAG & DROP AREA -->
+                    <div>
+                        <label class="block text-xs font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1.5 flex items-center justify-between">
+                            <span>Upload Foto Lapangan (Kamera HP / File)</span>
+                            <span class="text-[10px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+                                <i data-lucide="sparkles" class="w-3 h-3"></i> Auto-Compress (< 100 KB)
+                            </span>
+                        </label>
+                        
+                        <div id="drop-zone-line-photo" class="border-2 border-dashed ${isLight ? 'border-slate-300 hover:border-cyan-500 bg-slate-50' : 'border-slate-700 hover:border-cyan-400 bg-slate-950/60'} rounded-2xl p-4 sm:p-5 text-center cursor-pointer transition-all">
+                            <input type="file" id="input-line-photo-file" accept="image/*" class="hidden" />
+                            <div class="flex flex-col items-center gap-2 pointer-events-none">
+                                <div class="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-400">
+                                    <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                                </div>
+                                <div class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">
+                                    Klik untuk memilih foto atau seret foto ke sini
+                                </div>
+                                <div class="text-[11px] text-slate-400">
+                                    Format JPG, PNG, WEBP dari kamera smartphone pabrik. Otomatis dikompresi instan.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COMPRESSION BADGE INFO -->
+                    <div id="compression-stats-box" class="hidden p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs font-mono flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+                            <span id="compression-stats-text">Kompresi Berhasil</span>
+                        </div>
+                        <span id="compression-savings-badge" class="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-[10px] font-bold">Hemat -95%</span>
+                    </div>
+
+                    <!-- PRESET SELECTOR -->
+                    <div>
+                        <label class="block text-xs font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1.5">
+                            Atau Pilih Template Visual Standar Pabrik:
+                        </label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            ${presets.map(p => `
+                                <button type="button" class="btn-preset-photo text-left p-2 rounded-xl border ${isLight ? 'border-slate-200 hover:border-cyan-400 bg-slate-50' : 'border-slate-800 hover:border-cyan-400 bg-slate-900/80'} text-[11px] flex items-center gap-2 transition-all cursor-pointer truncate" data-url="${p.url}">
+                                    <img src="${p.url}" class="w-7 h-7 rounded-lg object-cover shrink-0" alt="Preset" />
+                                    <span class="truncate font-medium">${p.label}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- LIVE CARD PREVIEW SIMULATOR -->
+                    <div>
+                        <label class="block text-xs font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1.5">
+                            Live Preview Tampilan Kartu:
+                        </label>
+                        <div class="relative border ${isLight ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'} rounded-2xl p-4 overflow-hidden h-36 flex flex-col justify-between shadow-md">
+                            <!-- PREVIEW WATERMARK -->
+                            <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                                <img id="preview-line-photo-img" src="${selectedPhotoData}" class="w-full h-full object-cover ${isLight ? 'opacity-15' : 'opacity-25'} transition-all duration-300" alt="Preview" />
+                                <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-t from-white via-white/85 to-white/60' : 'bg-gradient-to-t from-slate-950 via-slate-900/85 to-slate-900/50'}"></div>
+                                <div class="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] opacity-10"></div>
+                            </div>
+                            
+                            <!-- SIMULATED CONTENT -->
+                            <div class="relative z-10 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded-lg text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">${lineData.code}</span>
+                                    <span class="font-bold text-sm">${lineData.name}</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">EXCELLENT</span>
+                            </div>
+                            <div class="relative z-10 flex items-end justify-between font-mono">
+                                <div>
+                                    <span class="text-[10px] text-slate-400">Overall OEE</span>
+                                    <div class="text-xl font-black text-emerald-400">96.02%</div>
+                                </div>
+                                <div class="text-right text-[10px] text-slate-400">
+                                    Dokumentasi Faktual Lapangan
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- MODAL FOOTER -->
+                <div class="p-4 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#070E22] border-[#152347]'} border-t flex items-center justify-end gap-2">
+                    <button type="button" id="btn-cancel-line-photo" class="px-4 py-2 rounded-xl text-xs font-semibold ${isLight ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} cursor-pointer transition-colors">
+                        Batal
+                    </button>
+                    <button type="button" id="btn-save-line-photo" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950/30 flex items-center gap-1.5 cursor-pointer transition-all">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Simpan Foto Lini</span>
+                    </button>
+                </div>
+
+            </div>
+        `;
+
+        modalContainer.appendChild(modalDiv);
+        if (window.lucide) window.lucide.createIcons();
+
+        const closeModal = () => modalDiv.remove();
+        document.getElementById('btn-close-line-photo-modal')?.addEventListener('click', closeModal);
+        document.getElementById('btn-cancel-line-photo')?.addEventListener('click', closeModal);
+        modalDiv.addEventListener('click', (e) => {
+            if (e.target === modalDiv) closeModal();
+        });
+
+        // Drop zone & file input
+        const dropZone = document.getElementById('drop-zone-line-photo');
+        const fileInput = document.getElementById('input-line-photo-file');
+        const previewImg = document.getElementById('preview-line-photo-img');
+        const statsBox = document.getElementById('compression-stats-box');
+        const statsText = document.getElementById('compression-stats-text');
+        const savingsBadge = document.getElementById('compression-savings-badge');
+
+        if (dropZone && fileInput) {
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-cyan-400', 'bg-cyan-500/10');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-cyan-400', 'bg-cyan-500/10');
+            });
+
+            dropZone.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-cyan-400', 'bg-cyan-500/10');
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    await processFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', async (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    await processFile(e.target.files[0]);
+                }
+            });
+        }
+
+        const processFile = async (file) => {
+            try {
+                this.showNotification('Mengompresi Gambar', 'Mengoptimalkan foto resolusi tinggi untuk performa server...', 'info');
+                const compressed = await this.compressImageFile(file, 1000, 650, 0.82);
+                selectedPhotoData = compressed.dataUrl;
+                isCustomCompressed = true;
+
+                if (previewImg) previewImg.src = selectedPhotoData;
+
+                if (statsBox && statsText && savingsBadge) {
+                    statsBox.classList.remove('hidden');
+                    statsText.textContent = `Ukuran: ${compressed.originalSizeKb} KB ➔ ${compressed.compressedSizeKb} KB`;
+                    savingsBadge.textContent = `Hemat -${compressed.savingsPct}% Server`;
+                }
+
+                this.showNotification('Kompresi Siap', `Foto berhasil dikompresi menjadi ${compressed.compressedSizeKb} KB (-${compressed.savingsPct}%).`, 'success');
+            } catch (err) {
+                console.error('Compression error:', err);
+                this.showNotification('Gagal Memproses Foto', err.message, 'error');
+            }
+        };
+
+        // Preset buttons
+        document.querySelectorAll('.btn-preset-photo').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const url = btn.getAttribute('data-url');
+                if (url) {
+                    selectedPhotoData = url;
+                    isCustomCompressed = false;
+                    if (previewImg) previewImg.src = url;
+                    if (statsBox) statsBox.classList.add('hidden');
+                }
+            });
+        });
+
+        // Save action
+        document.getElementById('btn-save-line-photo')?.addEventListener('click', async () => {
+            const saveBtn = document.getElementById('btn-save-line-photo');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Menyimpan...';
+            }
+
+            try {
+                await api.uploadProductionLinePhoto(lineData.id, { photo: selectedPhotoData });
+                this.showNotification('Foto Lini Disimpan', `Dokumentasi visual untuk lini ${lineData.name} berhasil diperbarui.`, 'success');
+                closeModal();
+                await this.renderLines();
+            } catch (err) {
+                console.error('Save photo error:', err);
+                this.showNotification('Gagal Menyimpan', err.message || 'Terjadi kesalahan saat menyimpan foto lini.', 'error');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Simpan Foto Lini';
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            }
+        });
     }
 
     // ==========================================

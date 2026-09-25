@@ -57,6 +57,7 @@ export const api = {
     getProductionLines: () => axios.get(`${API_BASE}/master/production-lines`),
     createProductionLine: (data) => axios.post(`${API_BASE}/master/production-lines`, data),
     updateProductionLine: (id, data) => axios.put(`${API_BASE}/master/production-lines/${id}`, data),
+    uploadProductionLinePhoto: (id, data) => axios.post(`${API_BASE}/master/production-lines/${id}/photo`, data),
     deleteProductionLine: (id) => axios.delete(`${API_BASE}/master/production-lines/${id}`),
 
     getMachines: () => axios.get(`${API_BASE}/master/machines`),

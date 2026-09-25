@@ -13,7 +13,7 @@ class ProductionLine extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['area_id', 'plant_id', 'code', 'name', 'target_oee', 'is_active'];
+    protected $fillable = ['area_id', 'plant_id', 'code', 'name', 'image_url', 'target_oee', 'is_active'];
 
     protected $casts = [
         'target_oee' => 'float',

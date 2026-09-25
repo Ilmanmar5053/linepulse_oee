@@ -89,6 +89,7 @@ Route::prefix('api/v1')->group(function () {
         Route::get('/production-lines', [MasterDataController::class, 'productionLines']);
         Route::post('/production-lines', [MasterDataController::class, 'storeProductionLine']);
         Route::put('/production-lines/{id}', [MasterDataController::class, 'updateProductionLine']);
+        Route::post('/production-lines/{id}/photo', [MasterDataController::class, 'uploadLinePhoto']);
         Route::delete('/production-lines/{id}', [MasterDataController::class, 'destroyProductionLine']);
 
         Route::get('/machines', [MasterDataController::class, 'machines']);

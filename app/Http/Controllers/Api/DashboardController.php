@@ -826,8 +826,8 @@ class DashboardController extends Controller
                 'performance' => $perf,
                 'quality' => $qual,
                 'oee' => $oee,
-                'target_oee' => (float) $line->target_oee,
                 'oee_status' => $this->oeeService->evaluateStatus($oee),
+                'image_url' => $line->image_url,
             ];
         })->sort(function ($a, $b) {
             return strnatcasecmp($a['code'], $b['code']);
