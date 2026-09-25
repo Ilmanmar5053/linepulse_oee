@@ -11772,30 +11772,30 @@ tbody.innerHTML = '';
                         const linePhoto = line.image_url || defaultLinePhotos[line.code] || '/images/slideshow/slide-2-machining.webp';
                         
                         return `
-                            <div class="${isLight ? 'bg-white/95 border-slate-200 hover:border-cyan-400/80 shadow-md hover:shadow-xl' : 'bg-slate-900/90 border-slate-800 hover:border-cyan-500/70 shadow-lg hover:shadow-2xl'} group relative border rounded-2xl p-3.5 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
+                            <div class="${isLight ? 'bg-white border-slate-200 hover:border-cyan-400/80 shadow-md hover:shadow-xl' : 'bg-slate-900 border-slate-800 hover:border-cyan-500/70 shadow-lg hover:shadow-2xl'} group relative border rounded-2xl p-3.5 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
                                 
-                                <!-- 1. AUTHENTIC SHOP FLOOR BACKGROUND PHOTO (WATERMARK & GRID TEXTURE) -->
+                                <!-- 1. AUTHENTIC SHOP FLOOR BACKGROUND PHOTO (35-50% CLEAR VISIBILITY) -->
                                 <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-2xl">
                                     <img src="${linePhoto}" 
                                          alt="Foto Lini ${line.name}" 
-                                         class="w-full h-full object-cover ${isLight ? 'opacity-10 group-hover:opacity-22 mix-blend-multiply' : 'opacity-15 group-hover:opacity-28 mix-blend-luminosity'} scale-100 group-hover:scale-105 transition-all duration-700 ease-out" 
+                                         class="w-full h-full object-cover opacity-40 group-hover:opacity-55 scale-100 group-hover:scale-105 transition-all duration-500 ease-out" 
                                          onerror="this.onerror=null; this.src='/images/slideshow/slide-2-machining.webp';" />
                                     
-                                    <!-- GRADIENT SHIELD OVERLAY (ENSURES 100% TEXT READABILITY) -->
-                                    <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-t from-white/95 via-white/85 to-white/60' : 'bg-gradient-to-t from-slate-950 via-slate-900/85 to-slate-900/50'}"></div>
+                                    <!-- TOP-TO-BOTTOM SUBTLE SHIELD (KEEPS PHOTO VIBRANT WHILE ANCHORING BOTTOM) -->
+                                    <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-b from-white/20 via-transparent to-white/90' : 'bg-gradient-to-b from-slate-950/20 via-transparent to-slate-950/90'}"></div>
                                     
                                     <!-- SUBTLE INDUSTRIAL GRID OVERLAY -->
-                                    <div class="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] ${isLight ? 'opacity-4' : 'opacity-8'}"></div>
+                                    <div class="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] ${isLight ? 'opacity-5' : 'opacity-10'}"></div>
                                 </div>
 
                                 <!-- TOP ACCENT COLOR BAR -->
-                                <div class="absolute top-0 left-0 right-0 h-1.5 ${statusBorderTop} opacity-80 group-hover:opacity-100 transition-opacity z-10"></div>
+                                <div class="absolute top-0 left-0 right-0 h-1.5 ${statusBorderTop} opacity-85 group-hover:opacity-100 transition-opacity z-10"></div>
 
-                                <!-- 2. CARD CONTENT CONTAINER (Z-10 FOR CRISP HIGH CONTRAST) -->
-                                <div class="relative z-10 flex flex-col justify-between h-full">
+                                <!-- 2. CARD CONTENT (STRUCTURED WITH FROSTED WHITE SHADOW BACKDROPS FOR 100% READABILITY) -->
+                                <div class="relative z-10 flex flex-col justify-between h-full space-y-2">
                                     <div>
-                                        <!-- LINE HEADER & QUICK PHOTO UPLOAD ACTION -->
-                                        <div class="flex items-center justify-between gap-2 mb-2.5 pt-0.5">
+                                        <!-- LINE HEADER BAR WITH FROSTED BACKDROP -->
+                                        <div class="flex items-center justify-between gap-2 mb-2 pt-0.5 px-2.5 py-1.5 rounded-xl ${isLight ? 'bg-white/90 shadow-sm border border-slate-200/80 backdrop-blur-md' : 'bg-slate-950/85 shadow-md border border-slate-800/80 backdrop-blur-md'}">
                                             <div class="flex items-center gap-1.5 min-w-0">
                                                 <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-mono font-black ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border shrink-0 shadow-2xs">
                                                     ${line.code}
@@ -11819,8 +11819,8 @@ tbody.innerHTML = '';
                                             </div>
                                         </div>
 
-                                        <!-- PRODUCT TYPE CHIPS (COMPACT & UNIFORM) -->
-                                        <div class="mb-3 p-2 rounded-xl ${isLight ? 'bg-slate-50/90 border-slate-200/90' : 'bg-slate-950/70 border-slate-800/80 backdrop-blur-xs'} border shadow-2xs">
+                                        <!-- PRODUCT TYPE CHIPS WITH FROSTED BACKDROP -->
+                                        <div class="mb-2 p-2 rounded-xl ${isLight ? 'bg-white/90 shadow-sm border border-slate-200/80 backdrop-blur-md' : 'bg-slate-950/85 shadow-md border border-slate-800/80 backdrop-blur-md'}">
                                             <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
                                                 <span class="flex items-center gap-1 font-medium">
                                                     <i data-lucide="box" class="w-3 h-3 text-cyan-400"></i>
@@ -11832,7 +11832,7 @@ tbody.innerHTML = '';
                                                 ${prodList.length === 0 ? `
                                                     <span class="text-[10px] text-slate-500 italic">Standby (0 produk)</span>
                                                 ` : visibleProds.map(p => `
-                                                    <span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono ${isLight ? 'bg-white text-cyan-800 border-cyan-200' : 'bg-cyan-950/90 text-cyan-300 border-cyan-800/70'} border shadow-2xs">
+                                                    <span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono ${isLight ? 'bg-slate-50 text-cyan-800 border-cyan-200' : 'bg-cyan-950/90 text-cyan-300 border-cyan-800/70'} border shadow-2xs">
                                                         ${p}
                                                     </span>
                                                 `).join('')}
@@ -11844,40 +11844,43 @@ tbody.innerHTML = '';
                                             </div>
                                         </div>
 
-                                        <!-- HERO OEE SCORE ROW -->
-                                        <div class="flex items-center justify-between mb-2.5 pb-2 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
-                                            <span class="text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-slate-400'}">Overall OEE</span>
-                                            <div class="flex items-baseline gap-1">
-                                                <span class="${oeeColor} text-lg font-black font-mono leading-none">${line.oee}%</span>
+                                        <!-- HERO OEE SCORE & 3-PILLARS CONTAINER WITH WHITE FROSTED SHADOW -->
+                                        <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/95 shadow-md border border-slate-200/90 backdrop-blur-md' : 'bg-slate-950/90 shadow-lg border border-slate-800/90 backdrop-blur-md'}">
+                                            <!-- HERO OEE SCORE ROW -->
+                                            <div class="flex items-center justify-between mb-2 pb-1.5 border-b ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
+                                                <span class="text-xs font-semibold ${isLight ? 'text-slate-600' : 'text-slate-400'}">Overall OEE</span>
+                                                <div class="flex items-baseline gap-1">
+                                                    <span class="${oeeColor} text-lg font-black font-mono leading-none">${line.oee}%</span>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <!-- 3-PILLARS COMPACT MICRO GRID -->
-                                        <div class="grid grid-cols-3 gap-1.5 font-mono text-center mb-3">
-                                            <div class="p-1.5 rounded-xl ${isLight ? 'bg-slate-50/90 border-slate-200/80' : 'bg-slate-950/60 border-slate-800/70'} border">
-                                                <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Avail</div>
-                                                <div class="text-xs font-bold text-cyan-400 mt-0.5">${line.availability}%</div>
-                                            </div>
-                                            <div class="p-1.5 rounded-xl ${isLight ? 'bg-slate-50/90 border-slate-200/80' : 'bg-slate-950/60 border-slate-800/70'} border">
-                                                <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Perf</div>
-                                                <div class="text-xs font-bold text-amber-400 mt-0.5">${line.performance}%</div>
-                                            </div>
-                                            <div class="p-1.5 rounded-xl ${isLight ? 'bg-slate-50/90 border-slate-200/80' : 'bg-slate-950/60 border-slate-800/70'} border">
-                                                <div class="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-tight">Qual</div>
-                                                <div class="text-xs font-bold text-emerald-400 mt-0.5">${line.quality}%</div>
+                                            <!-- 3-PILLARS COMPACT MICRO GRID -->
+                                            <div class="grid grid-cols-3 gap-1.5 font-mono text-center">
+                                                <div class="p-1 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900 border-slate-800'} border">
+                                                    <div class="text-[8.5px] text-slate-400 font-sans uppercase font-bold tracking-tight">Avail</div>
+                                                    <div class="text-xs font-bold text-cyan-400 mt-0.5">${line.availability}%</div>
+                                                </div>
+                                                <div class="p-1 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900 border-slate-800'} border">
+                                                    <div class="text-[8.5px] text-slate-400 font-sans uppercase font-bold tracking-tight">Perf</div>
+                                                    <div class="text-xs font-bold text-amber-400 mt-0.5">${line.performance}%</div>
+                                                </div>
+                                                <div class="p-1 rounded-lg ${isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900 border-slate-800'} border">
+                                                    <div class="text-[8.5px] text-slate-400 font-sans uppercase font-bold tracking-tight">Qual</div>
+                                                    <div class="text-xs font-bold text-emerald-400 mt-0.5">${line.quality}%</div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS -->
-                                    <div class="pt-2 border-t ${isLight ? 'border-slate-100' : 'border-slate-800/80'}">
+                                    <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS WITH HIGH-CONTRAST WHITE SHADOW -->
+                                    <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/95 shadow-lg border border-slate-200/90 backdrop-blur-md' : 'bg-slate-950/95 shadow-xl border border-slate-800/90 backdrop-blur-md'}">
                                         <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}">
                                             <span class="text-[10px] text-slate-400 font-sans font-medium">Output:</span>
                                             <span class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">
                                                 ${(line.actual_quantity || 0).toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ ${(line.target_quantity || 0).toLocaleString()}</span>
                                             </span>
                                         </div>
-                                        <div class="relative w-full ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'} rounded-full h-2 overflow-hidden border">
+                                        <div class="relative w-full ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-900 border-slate-800'} rounded-full h-2 overflow-hidden border">
                                             <div class="bg-gradient-to-r ${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, achieveNum)}%"></div>
                                         </div>
                                         <div class="flex justify-between items-center text-[10px] font-mono text-slate-400 mt-1">
@@ -12069,23 +12072,23 @@ tbody.innerHTML = '';
                         <label class="block text-xs font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1.5">
                             Live Preview Tampilan Kartu:
                         </label>
-                        <div class="relative border ${isLight ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'} rounded-2xl p-4 overflow-hidden h-36 flex flex-col justify-between shadow-md">
+                        <div class="relative border ${isLight ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'} rounded-2xl p-4 overflow-hidden h-40 flex flex-col justify-between shadow-md">
                             <!-- PREVIEW WATERMARK -->
                             <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                                <img id="preview-line-photo-img" src="${selectedPhotoData}" class="w-full h-full object-cover ${isLight ? 'opacity-15' : 'opacity-25'} transition-all duration-300" alt="Preview" />
-                                <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-t from-white via-white/85 to-white/60' : 'bg-gradient-to-t from-slate-950 via-slate-900/85 to-slate-900/50'}"></div>
+                                <img id="preview-line-photo-img" src="${selectedPhotoData}" class="w-full h-full object-cover opacity-45 transition-all duration-300" alt="Preview" />
+                                <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-b from-white/20 via-transparent to-white/90' : 'bg-gradient-to-b from-slate-950/20 via-transparent to-slate-950/90'}"></div>
                                 <div class="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] opacity-10"></div>
                             </div>
                             
-                            <!-- SIMULATED CONTENT -->
-                            <div class="relative z-10 flex items-center justify-between">
+                            <!-- SIMULATED CONTENT WITH WHITE SHADOW -->
+                            <div class="relative z-10 flex items-center justify-between p-1.5 rounded-xl ${isLight ? 'bg-white/90 shadow-sm' : 'bg-slate-950/85'}">
                                 <div class="flex items-center gap-2">
                                     <span class="px-2 py-0.5 rounded-lg text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">${lineData.code}</span>
                                     <span class="font-bold text-sm">${lineData.name}</span>
                                 </div>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">EXCELLENT</span>
                             </div>
-                            <div class="relative z-10 flex items-end justify-between font-mono">
+                            <div class="relative z-10 flex items-end justify-between font-mono p-2 rounded-xl ${isLight ? 'bg-white/95 shadow-md' : 'bg-slate-950/90'}">
                                 <div>
                                     <span class="text-[10px] text-slate-400">Overall OEE</span>
                                     <div class="text-xl font-black text-emerald-400">96.02%</div>
