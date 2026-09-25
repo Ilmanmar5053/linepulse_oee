@@ -17397,8 +17397,8 @@ tbody.innerHTML = '';
     <title>${ngFilename}</title>
     <style>
         @page {
-            size: A4 landscape;
-            margin: 8mm 8mm 8mm 8mm;
+            size: A4 portrait;
+            margin: 6mm 6mm 6mm 6mm;
         }
         * {
             box-sizing: border-box;
@@ -17407,38 +17407,38 @@ tbody.innerHTML = '';
         }
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 8.5px;
+            font-size: 8px;
             color: #000000;
             background: #ffffff;
             margin: 0;
             padding: 0;
-            line-height: 1.25;
+            line-height: 1.2;
         }
         .section-header {
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: bold;
             text-transform: uppercase;
             background-color: #E2E8F0;
             padding: 2.5px 5px;
             border-left: 3px solid #D97706;
-            margin: 6px 0 2.5px 0;
+            margin: 5px 0 2.5px 0;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 5px;
-            font-size: 8.5px;
+            margin-bottom: 4px;
+            font-size: 8px;
         }
         th, td {
             border: 1px solid #475569;
-            padding: 3px 4px;
+            padding: 2.5px 3px;
             vertical-align: middle;
         }
         th {
             background-color: #F1F5F9;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 8px;
+            font-size: 7.5px;
             color: #000000;
             text-align: left;
         }
@@ -17450,20 +17450,20 @@ tbody.innerHTML = '';
         .signatures {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 8.5px;
+            margin-top: 8px;
+            font-size: 8px;
             page-break-inside: avoid;
         }
         .signatures td {
             border: none;
             text-align: center;
-            padding: 3px 5px;
+            padding: 2px 4px;
             vertical-align: top;
         }
         .sig-line {
             border-bottom: 1px solid #000000;
             width: 75%;
-            margin: 28px auto 3px auto;
+            margin: 24px auto 3px auto;
             font-weight: bold;
         }
     </style>
@@ -17492,7 +17492,7 @@ tbody.innerHTML = '';
                     <div style="border-left: 2.5px solid #d97706; padding-left: 8px; display: inline-block; text-align: right;">
                         <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #b45309; letter-spacing: 0.3px;">LAPORAN DATA NG & DEFECT MUTU</div>
                         <div style="font-size: 7.5px; color: #333333; font-family: monospace; font-weight: bold; margin-top: 2px;">Doc ID: <span style="color: #b45309;">QC-NG-${header.production_date || new Date().toISOString().slice(0,10)}</span></div>
-                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Form: A4-Landscape QC Defect Inspection Report</div>
+                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Form: A4-Portrait QC Defect Inspection Report</div>
                     </div>
                 </td>
             </tr>
@@ -17930,8 +17930,8 @@ tbody.innerHTML = '';
     <title>${troubleFilename}</title>
     <style>
         @page {
-            size: A4 landscape;
-            margin: 8mm 8mm 8mm 8mm;
+            size: A4 portrait;
+            margin: 6mm 6mm 6mm 6mm;
         }
         * {
             box-sizing: border-box;
@@ -17940,38 +17940,38 @@ tbody.innerHTML = '';
         }
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 8.5px;
+            font-size: 8px;
             color: #000000;
             background: #ffffff;
             margin: 0;
             padding: 0;
-            line-height: 1.25;
+            line-height: 1.2;
         }
         .section-header {
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: bold;
             text-transform: uppercase;
             background-color: #E2E8F0;
             padding: 2.5px 5px;
             border-left: 3px solid #BE123C;
-            margin: 6px 0 2.5px 0;
+            margin: 5px 0 2.5px 0;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 5px;
-            font-size: 8.5px;
+            margin-bottom: 4px;
+            font-size: 8px;
         }
         th, td {
             border: 1px solid #475569;
-            padding: 3px 4px;
+            padding: 2.5px 3px;
             vertical-align: middle;
         }
         th {
             background-color: #F1F5F9;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 8px;
+            font-size: 7.5px;
             color: #000000;
             text-align: left;
         }
@@ -17983,20 +17983,20 @@ tbody.innerHTML = '';
         .signatures {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 8.5px;
+            margin-top: 8px;
+            font-size: 8px;
             page-break-inside: avoid;
         }
         .signatures td {
             border: none;
             text-align: center;
-            padding: 3px 5px;
+            padding: 2px 4px;
             vertical-align: top;
         }
         .sig-line {
             border-bottom: 1px solid #000000;
             width: 75%;
-            margin: 28px auto 3px auto;
+            margin: 24px auto 3px auto;
         }
     </style>
 </head>
@@ -18024,7 +18024,7 @@ tbody.innerHTML = '';
                     <div style="border-left: 2.5px solid #e11d48; padding-left: 8px; display: inline-block; text-align: right;">
                         <div style="font-size: 11px; font-weight: 900; text-transform: uppercase; line-height: 1.2; color: #be123c; letter-spacing: 0.3px;">LAPORAN DATA TROUBLE & DOWNTIME</div>
                         <div style="font-size: 7.5px; color: #333333; font-family: monospace; font-weight: bold; margin-top: 2px;">Doc ID: <span style="color: #be123c;">TRB-${header.production_date || new Date().toISOString().slice(0,10)}</span></div>
-                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Form: A4-Landscape Trouble & Downtime Report</div>
+                        <div style="font-size: 7px; color: #64748b; font-family: monospace;">Form: A4-Portrait Trouble & Downtime Report</div>
                     </div>
                 </td>
             </tr>
