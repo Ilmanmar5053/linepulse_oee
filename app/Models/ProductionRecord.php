@@ -44,6 +44,17 @@ class ProductionRecord extends Model
         'production_rate' => 'float',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (ProductionRecord $record) {
+            $record->items()->delete();
+            $record->downtimes()->delete();
+            $record->qualityRecords()->delete();
+            $record->oeeRecord()?->delete();
+            $record->ngRecord()?->delete();
+        });
+    }
+
     public function productionLine(): BelongsTo
     {
         return $this->belongsTo(ProductionLine::class);
@@ -87,5 +98,10 @@ class ProductionRecord extends Model
     public function ngRecord(): HasOne
     {
         return $this->hasOne(NgRecord::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ProductionRecordItem::class);
     }
 }

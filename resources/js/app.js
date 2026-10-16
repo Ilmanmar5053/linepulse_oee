@@ -364,6 +364,127 @@ class OeeApp {
         return isLight ? selected.light : selected.dark;
     }
 
+    /**
+     * Standardized Due Date & Operational Status Metadata Evaluator
+     * Implements floor management meeting rules:
+     * 1. Closed problem/defect -> CLOSED badge (green)
+     * 2. Open problem with active due_date (>= today) -> OPEN / ONGOING badge, standard due date badge
+     * 3. Open problem with past due_date (< today) -> OPEN / ONGOING, "Over duedate" badge
+     * 4. Open problem without due_date -> "BELUM DI-SET" status badge, "Belum di-set waktu" due date badge
+     */
+    getDueStatusMeta(data = {}, isLight = false) {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        
+        const rawStatus = String(data.status || '').toUpperCase().trim();
+        const hasEndTime = !!data.end_time;
+        const isClosed = data.is_closed || rawStatus === 'CLOSED' || (hasEndTime && rawStatus !== 'OPEN');
+        
+        const rawDueDate = data.due_date ? String(data.due_date).slice(0, 10) : null;
+        
+        if (isClosed) {
+            return {
+                statusCode: 'CLOSED',
+                statusLabel: 'CLOSED',
+                isClosed: true,
+                isOngoing: false,
+                isOverdue: false,
+                isUnset: false,
+                rawDueDate,
+                statusBadge: `
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black tracking-wider ${isLight ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs' : 'bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-emerald-200 border border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.35)]'} select-none hover:scale-105 transition-all">
+                        <span class="flex items-center justify-center w-3.5 h-3.5 rounded-full ${isLight ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-slate-950'} font-black">
+                            <i data-lucide="check" class="w-2.5 h-2.5 stroke-[4]"></i>
+                        </span>
+                        <span class="tracking-wide ${isLight ? 'text-emerald-950' : 'text-emerald-100'} font-extrabold drop-shadow">CLOSED</span>
+                    </div>
+                `,
+                dueDateHtml: rawDueDate ? `
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono font-bold text-xs ${isLight ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>${rawDueDate}</span>
+                    </div>
+                ` : `<span class="text-slate-400 italic text-[11px]">-</span>`
+            };
+        }
+        
+        // Open / Ongoing Problem
+        const openStatusBadge = `
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black tracking-wider ${isLight ? 'bg-rose-100 text-rose-900 border border-rose-300 shadow-xs' : 'bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 text-rose-200 border border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)]'} animate-pulse select-none">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+                <span class="tracking-wide ${isLight ? 'text-rose-950' : 'text-rose-100'} font-extrabold drop-shadow">OPEN</span>
+            </div>
+        `;
+
+        if (!rawDueDate) {
+            // Case 2: Belum di-set waktu di kolom due date, status kolom tetap OPEN
+            return {
+                statusCode: 'OPEN',
+                statusLabel: 'OPEN',
+                isClosed: false,
+                isOngoing: true,
+                isOverdue: false,
+                isUnset: true,
+                rawDueDate: null,
+                statusBadge: openStatusBadge,
+                dueDateHtml: `
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${isLight ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs' : 'bg-amber-950/70 text-amber-300 border border-amber-600/60 shadow-[0_0_8px_rgba(245,158,11,0.25)]'}">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-500 flex-shrink-0"></i>
+                        <span>Belum di-set waktu</span>
+                    </div>
+                `
+            };
+        }
+        
+        const isOverdue = rawDueDate < todayStr;
+        if (isOverdue) {
+            // Case 1: Over Duedate di kolom due date, status kolom tetap OPEN
+            return {
+                statusCode: 'OPEN',
+                statusLabel: 'OPEN',
+                isClosed: false,
+                isOngoing: true,
+                isOverdue: true,
+                isUnset: false,
+                rawDueDate,
+                statusBadge: openStatusBadge,
+                dueDateHtml: `
+                    <div class="flex flex-col gap-1 items-start">
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg font-mono font-bold text-xs ${isLight ? 'bg-rose-50 text-rose-900 border border-rose-300' : 'bg-rose-950/80 text-rose-300 border border-rose-600'}">
+                            <i data-lucide="calendar-x-2" class="w-3.5 h-3.5 text-rose-500"></i>
+                            <span>${rawDueDate}</span>
+                        </div>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-xs animate-pulse">
+                            <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+                            Over Duedate
+                        </span>
+                    </div>
+                `
+            };
+        }
+        
+        // Active Duedate (>= today), status kolom tetap OPEN
+        return {
+            statusCode: 'OPEN',
+            statusLabel: 'OPEN',
+            isClosed: false,
+            isOngoing: true,
+            isOverdue: false,
+            isUnset: false,
+            rawDueDate,
+            statusBadge: openStatusBadge,
+            dueDateHtml: `
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono font-bold text-xs ${isLight ? 'bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs' : 'bg-amber-950/60 text-amber-300 border border-amber-600/50'}">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-500"></i>
+                    <span>${rawDueDate}</span>
+                </div>
+            `
+        };
+    }
+
     async init() {
         console.log('Initializing OEE Performance System UI...');
         this.applyTheme();
@@ -515,16 +636,31 @@ class OeeApp {
                     </div>
 
                     <!-- SISI KANAN (FORM LOGIN MANUAL ONLY - SLIM & PROPORTIONAL) -->
-                    <div class="md:col-span-7 p-5 sm:p-7 md:p-8 flex flex-col justify-center ${isLight ? 'bg-white/95' : 'bg-[#091124]'}">
+                    <div class="md:col-span-7 p-5 sm:p-7 md:p-8 flex flex-col justify-center relative ${isLight ? 'bg-white/95' : 'bg-[#091124]'}">
+                        <!-- THEME TOGGLE BUTTON TOP RIGHT -->
+                        <div class="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
+                            <button id="btn-login-theme-toggle" class="p-2 rounded-xl ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-400'} border transition-colors cursor-pointer" title="Toggle Theme">
+                                <i data-lucide="${isLight ? 'moon' : 'sun'}" class="w-4 h-4 text-amber-400"></i>
+                            </button>
+                        </div>
+
                         <div>
-                            <div class="flex items-center justify-between mb-4 sm:mb-6">
-                                <div>
-                                    <h3 class="text-lg sm:text-xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight">Selamat Datang</h3>
-                                    <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Silakan masuk menggunakan akun corporate Anda.</p>
+                            <!-- LOGO YASUNAGA (CENTER & DINAMIS) -->
+                            <div class="flex flex-col items-center justify-center text-center mb-3 sm:mb-4">
+                                <div class="p-2.5 rounded-2xl ${isLight ? 'bg-slate-50/80 border border-slate-200/60 shadow-xs' : 'bg-slate-900/60 border border-slate-800/80 shadow-inner'} inline-flex items-center justify-center transition-transform duration-300 hover:scale-105">
+                                    <img 
+                                        src="${this.escapeHtml(this.getCompanyLogo())}" 
+                                        class="h-9 sm:h-11 w-auto object-contain max-w-[180px]" 
+                                        alt="PT Yasunaga Indonesia" 
+                                        onerror="this.onerror=null; this.src='/images/yasunaga-logo.png';" 
+                                    />
                                 </div>
-                                <button id="btn-login-theme-toggle" class="p-2 rounded-xl ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-400'} border transition-colors cursor-pointer" title="Toggle Theme">
-                                    <i data-lucide="${isLight ? 'moon' : 'sun'}" class="w-4 h-4 text-amber-400"></i>
-                                </button>
+                            </div>
+
+                            <!-- HEADER SELAMAT DATANG -->
+                            <div class="text-center mb-4 sm:mb-5">
+                                <h3 class="text-lg sm:text-xl font-black ${isLight ? 'text-slate-900' : 'text-white'} tracking-tight">Selamat Datang</h3>
+                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5">Silakan masuk menggunakan akun corporate Anda.</p>
                             </div>
 
                             <!-- LOGIN ERROR ALERT -->
@@ -919,8 +1055,15 @@ class OeeApp {
         // Update Theme Toggle Button Icon & Title in Topbar
         const btnTheme = document.getElementById('btn-theme-toggle');
         if (btnTheme) {
-            btnTheme.title = this.theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
-            btnTheme.innerHTML = `<i data-lucide="${this.theme === 'dark' ? 'sun' : 'moon'}" class="w-4 h-4 ${this.theme === 'dark' ? 'text-amber-400 hover:text-amber-300' : 'text-cyan-600 hover:text-cyan-700'}"></i>`;
+            const isLight = this.theme === 'light';
+            btnTheme.title = isLight 
+                ? (this.currentLang === 'ja' ? 'ダークモードに切替' : 'Ganti ke Mode Gelap (Dark Mode)')
+                : (this.currentLang === 'ja' ? 'ライトモードに切替' : 'Ganti ke Mode Terang (Light Mode)');
+            btnTheme.className = `flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm ${isLight ? 'bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300' : 'bg-[#0E1A38] hover:bg-[#16254C] text-slate-100 border border-[#16254C]'}`;
+            btnTheme.innerHTML = `
+                <i data-lucide="${isLight ? 'sun' : 'moon'}" class="w-3.5 h-3.5 ${isLight ? 'text-amber-600' : 'text-amber-400'}"></i>
+                <span class="hidden sm:inline font-mono text-[11px] font-bold">${isLight ? 'Light' : 'Dark'}</span>
+            `;
             if (window.lucide) window.lucide.createIcons();
         }
 
@@ -1593,7 +1736,7 @@ class OeeApp {
                                 </div>
                                 ${this.navItem('reports', 'file-bar-chart', this.t('nav.reports', 'Laporan & Ekspor Data'))}
                                 ${this.navItem('master', 'database', this.t('nav.master_data', 'Master Data'))}
-                                ${this.navItem('oee-education', 'graduation-cap', this.t('nav.oee_education', 'OEE Education'))}
+                                ${this.navItem('oee-education', 'graduation-cap', this.t('nav.oee_education', 'Materi OEE'))}
                             ` : ''}
 
                             <!-- MODUL 4: PENGATURAN SISTEM -->
@@ -1685,9 +1828,10 @@ class OeeApp {
                                 </div>
                             </div>
 
-                            <!-- THEME TOGGLE -->
-                            <button id="btn-theme-toggle" class="p-1 text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer" title="${this.theme === 'dark' ? (this.currentLang === 'ja' ? 'ライトモードに切替' : 'Switch to Light Mode') : (this.currentLang === 'ja' ? 'ダークモードに切替' : 'Switch to Dark Mode')}">
-                                <i data-lucide="${this.theme === 'dark' ? 'sun' : 'moon'}" class="w-4 h-4 ${this.theme === 'dark' ? 'text-amber-400 hover:text-amber-300' : 'text-cyan-400 hover:text-cyan-300'}"></i>
+                            <!-- THEME TOGGLE (LIGHT & DARK MODE CONTROL) -->
+                            <button id="btn-theme-toggle" type="button" class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm ${isLight ? 'bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300' : 'bg-[#0E1A38] hover:bg-[#16254C] text-slate-100 border border-[#16254C]'}" title="${this.theme === 'dark' ? (this.currentLang === 'ja' ? 'ライトモードに切替' : 'Ganti ke Mode Terang (Light Mode)') : (this.currentLang === 'ja' ? 'ダークモードに切替' : 'Ganti ke Mode Gelap (Dark Mode)')}">
+                                <i data-lucide="${isLight ? 'sun' : 'moon'}" class="w-3.5 h-3.5 ${isLight ? 'text-amber-600' : 'text-amber-400'}"></i>
+                                <span class="hidden sm:inline font-mono text-[11px] font-bold">${isLight ? 'Light' : 'Dark'}</span>
                             </button>
 
                             <!-- LANGUAGE SELECTOR TOGGLE (INTERNATIONAL STYLE) -->
@@ -1748,10 +1892,10 @@ class OeeApp {
                             </button>
 
                             <!-- ADD RECORD BUTTON -->
-                            <button id="btn-add-record" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2 sm:px-2.5 py-1.5 rounded-lg font-medium transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex-shrink-0" title="Buka Form Input Produksi & OEE (Desktop View)">
-                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                                <span class="hidden md:inline">${this.t('header.add_record', '+ Entry Record')}</span>
-                                <span class="md:hidden font-bold text-[11px]">Entry</span>
+                            <button id="btn-add-record" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex-shrink-0" title="Buka Form Input Produksi & OEE (Desktop View)">
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-100"></i>
+                                <span class="hidden md:inline">${this.t('header.add_record', '+ Input Laporan Produksi')}</span>
+                                <span class="md:hidden font-bold text-[11px]">+ Input</span>
                             </button>
                         </div>
                     </header>
@@ -2312,7 +2456,8 @@ class OeeApp {
 
         const btnTv = document.getElementById('btn-tv-mode');
         if (btnTv) {
-            btnTv.addEventListener('click', () => {
+            btnTv.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.toggleTvMode();
             });
         }
@@ -4096,7 +4241,7 @@ tbody.innerHTML = '';
             </div>
 
             <!-- SECTION 1: PRODUCTION LINES HEALTH GRID -->
-            <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-xl p-5 shadow-xl">
+            <div class="${isLight ? 'bg-white/80 border-slate-200' : 'bg-slate-900/80 border-slate-800'} backdrop-blur-xl border rounded-2xl p-5 shadow-xl">
                 <div class="flex items-center justify-between pb-3 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} mb-4">
                     <div>
                         <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
@@ -4112,43 +4257,313 @@ tbody.innerHTML = '';
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    ${lineList.map(l => `
-                        <div class="${isLight ? 'bg-slate-50 border-slate-200 hover:border-cyan-400' : 'bg-slate-950 border-slate-800 hover:border-cyan-500/60'} border rounded-xl p-3.5 transition-all shadow-xs">
-                            <div class="flex items-center justify-between mb-1.5">
-                                <div class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-1.5">
-                                    <i data-lucide="git-fork" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                    <span>${l.name}</span>
+                    ${(() => {
+                        const linePalettes = [
+                            {
+                                name: 'Cyan Neon',
+                                rgb: '6, 182, 212',
+                                borderLight: 'border-cyan-200/80',
+                                borderDark: 'border-cyan-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(236, 254, 255, 0.75) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(8, 30, 45, 0.85) 100%)',
+                                iconGrad: 'from-cyan-500 to-blue-500',
+                                stripeGrad: 'from-cyan-400 via-sky-400 to-blue-500',
+                                barGrad: 'from-cyan-500 to-blue-500',
+                                tagBgLight: 'bg-cyan-50/90 text-cyan-800 border-cyan-200/90',
+                                tagBgDark: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+                                accentTextLight: 'text-cyan-700',
+                                accentTextDark: 'text-cyan-400',
+                                pulseColor: 'bg-cyan-400'
+                            },
+                            {
+                                name: 'Emerald Mint',
+                                rgb: '16, 185, 129',
+                                borderLight: 'border-emerald-200/80',
+                                borderDark: 'border-emerald-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(236, 253, 245, 0.75) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(6, 35, 25, 0.85) 100%)',
+                                iconGrad: 'from-emerald-500 to-teal-500',
+                                stripeGrad: 'from-emerald-400 via-teal-400 to-green-500',
+                                barGrad: 'from-emerald-500 to-teal-500',
+                                tagBgLight: 'bg-emerald-50/90 text-emerald-800 border-emerald-200/90',
+                                tagBgDark: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                                accentTextLight: 'text-emerald-700',
+                                accentTextDark: 'text-emerald-400',
+                                pulseColor: 'bg-emerald-400'
+                            },
+                            {
+                                name: 'Indigo Violet',
+                                rgb: '99, 102, 241',
+                                borderLight: 'border-indigo-200/80',
+                                borderDark: 'border-indigo-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(238, 242, 255, 0.75) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(20, 20, 48, 0.85) 100%)',
+                                iconGrad: 'from-indigo-500 to-purple-500',
+                                stripeGrad: 'from-indigo-400 via-violet-400 to-purple-500',
+                                barGrad: 'from-indigo-500 to-purple-500',
+                                tagBgLight: 'bg-indigo-50/90 text-indigo-800 border-indigo-200/90',
+                                tagBgDark: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+                                accentTextLight: 'text-indigo-700',
+                                accentTextDark: 'text-indigo-400',
+                                pulseColor: 'bg-indigo-400'
+                            },
+                            {
+                                name: 'Amber Sunrise',
+                                rgb: '245, 158, 11',
+                                borderLight: 'border-amber-200/80',
+                                borderDark: 'border-amber-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(254, 243, 199, 0.7) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(45, 30, 10, 0.85) 100%)',
+                                iconGrad: 'from-amber-500 to-orange-500',
+                                stripeGrad: 'from-amber-400 via-orange-400 to-yellow-500',
+                                barGrad: 'from-amber-500 to-orange-500',
+                                tagBgLight: 'bg-amber-50/90 text-amber-800 border-amber-200/90',
+                                tagBgDark: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                                accentTextLight: 'text-amber-700',
+                                accentTextDark: 'text-amber-400',
+                                pulseColor: 'bg-amber-400'
+                            },
+                            {
+                                name: 'Rose Crimson',
+                                rgb: '244, 63, 94',
+                                borderLight: 'border-rose-200/80',
+                                borderDark: 'border-rose-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 228, 230, 0.7) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(45, 12, 22, 0.85) 100%)',
+                                iconGrad: 'from-rose-500 to-pink-500',
+                                stripeGrad: 'from-rose-400 via-pink-400 to-red-500',
+                                barGrad: 'from-rose-500 to-pink-500',
+                                tagBgLight: 'bg-rose-50/90 text-rose-800 border-rose-200/90',
+                                tagBgDark: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+                                accentTextLight: 'text-rose-700',
+                                accentTextDark: 'text-rose-400',
+                                pulseColor: 'bg-rose-400'
+                            },
+                            {
+                                name: 'Teal Lagoon',
+                                rgb: '20, 184, 166',
+                                borderLight: 'border-teal-200/80',
+                                borderDark: 'border-teal-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(204, 251, 241, 0.7) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(8, 38, 35, 0.85) 100%)',
+                                iconGrad: 'from-teal-500 to-emerald-500',
+                                stripeGrad: 'from-teal-400 via-cyan-400 to-emerald-500',
+                                barGrad: 'from-teal-500 to-cyan-500',
+                                tagBgLight: 'bg-teal-50/90 text-teal-800 border-teal-200/90',
+                                tagBgDark: 'bg-teal-500/15 text-teal-300 border-teal-500/30',
+                                accentTextLight: 'text-teal-700',
+                                accentTextDark: 'text-teal-400',
+                                pulseColor: 'bg-teal-400'
+                            },
+                            {
+                                name: 'Purple Orchid',
+                                rgb: '168, 85, 247',
+                                borderLight: 'border-purple-200/80',
+                                borderDark: 'border-purple-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(243, 232, 255, 0.7) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(35, 12, 45, 0.85) 100%)',
+                                iconGrad: 'from-purple-500 to-fuchsia-500',
+                                stripeGrad: 'from-purple-400 via-fuchsia-400 to-pink-500',
+                                barGrad: 'from-purple-500 to-fuchsia-500',
+                                tagBgLight: 'bg-purple-50/90 text-purple-800 border-purple-200/90',
+                                tagBgDark: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+                                accentTextLight: 'text-purple-700',
+                                accentTextDark: 'text-purple-400',
+                                pulseColor: 'bg-purple-400'
+                            },
+                            {
+                                name: 'Blue Sapphire',
+                                rgb: '59, 130, 246',
+                                borderLight: 'border-blue-200/80',
+                                borderDark: 'border-blue-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(239, 246, 255, 0.75) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(10, 22, 48, 0.85) 100%)',
+                                iconGrad: 'from-blue-500 to-indigo-600',
+                                stripeGrad: 'from-blue-400 via-indigo-400 to-sky-500',
+                                barGrad: 'from-blue-500 to-indigo-600',
+                                tagBgLight: 'bg-blue-50/90 text-blue-800 border-blue-200/90',
+                                tagBgDark: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+                                accentTextLight: 'text-blue-700',
+                                accentTextDark: 'text-blue-400',
+                                pulseColor: 'bg-blue-400'
+                            },
+                            {
+                                name: 'Orange Sunset',
+                                rgb: '249, 115, 22',
+                                borderLight: 'border-orange-200/80',
+                                borderDark: 'border-orange-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 237, 213, 0.7) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(45, 20, 8, 0.85) 100%)',
+                                iconGrad: 'from-orange-500 to-red-500',
+                                stripeGrad: 'from-orange-400 via-amber-400 to-red-500',
+                                barGrad: 'from-orange-500 to-red-500',
+                                tagBgLight: 'bg-orange-50/90 text-orange-800 border-orange-200/90',
+                                tagBgDark: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
+                                accentTextLight: 'text-orange-700',
+                                accentTextDark: 'text-orange-400',
+                                pulseColor: 'bg-orange-400'
+                            },
+                            {
+                                name: 'Fuchsia Neon',
+                                rgb: '217, 70, 239',
+                                borderLight: 'border-fuchsia-200/80',
+                                borderDark: 'border-fuchsia-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(250, 232, 255, 0.7) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(40, 10, 42, 0.85) 100%)',
+                                iconGrad: 'from-fuchsia-500 to-pink-500',
+                                stripeGrad: 'from-fuchsia-400 via-pink-400 to-purple-500',
+                                barGrad: 'from-fuchsia-500 to-rose-500',
+                                tagBgLight: 'bg-fuchsia-50/90 text-fuchsia-800 border-fuchsia-200/90',
+                                tagBgDark: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30',
+                                accentTextLight: 'text-fuchsia-700',
+                                accentTextDark: 'text-fuchsia-400',
+                                pulseColor: 'bg-fuchsia-400'
+                            },
+                            {
+                                name: 'Sky Azure',
+                                rgb: '14, 165, 233',
+                                borderLight: 'border-sky-200/80',
+                                borderDark: 'border-sky-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(224, 242, 254, 0.75) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(8, 25, 42, 0.85) 100%)',
+                                iconGrad: 'from-sky-500 to-teal-500',
+                                stripeGrad: 'from-sky-400 via-cyan-400 to-teal-400',
+                                barGrad: 'from-sky-500 to-teal-400',
+                                tagBgLight: 'bg-sky-50/90 text-sky-800 border-sky-200/90',
+                                tagBgDark: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+                                accentTextLight: 'text-sky-700',
+                                accentTextDark: 'text-sky-400',
+                                pulseColor: 'bg-sky-400'
+                            },
+                            {
+                                name: 'Lime Cyber',
+                                rgb: '132, 204, 22',
+                                borderLight: 'border-lime-200/80',
+                                borderDark: 'border-lime-500/30',
+                                bgGradientLight: 'linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(247, 254, 231, 0.7) 100%)',
+                                bgGradientDark: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(25, 38, 6, 0.85) 100%)',
+                                iconGrad: 'from-lime-500 to-emerald-500',
+                                stripeGrad: 'from-lime-400 via-emerald-400 to-teal-500',
+                                barGrad: 'from-lime-500 to-emerald-500',
+                                tagBgLight: 'bg-lime-50/90 text-lime-800 border-lime-200/90',
+                                tagBgDark: 'bg-lime-500/15 text-lime-300 border-lime-500/30',
+                                accentTextLight: 'text-lime-700',
+                                accentTextDark: 'text-lime-400',
+                                pulseColor: 'bg-lime-400'
+                            }
+                        ];
+
+                        return lineList.map((l, idx) => {
+                            const pal = linePalettes[idx % linePalettes.length];
+                            const actualQty = Number(l.actual_quantity) || 0;
+                            const targetQty = Number(l.target_quantity) || 0;
+                            const outputPct = targetQty > 0 ? Math.min(100, Math.round((actualQty / targetQty) * 100)) : 0;
+                            const oeeNum = Number(l.oee) || 0;
+
+                            const oeeBadgeStyle = oeeNum >= 85 
+                                ? (isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-emerald-500/10' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40')
+                                : (oeeNum >= 65 
+                                    ? (isLight ? 'bg-amber-50 text-amber-700 border-amber-300 shadow-amber-500/10' : 'bg-amber-500/20 text-amber-300 border-amber-500/40')
+                                    : (oeeNum > 0 
+                                        ? (isLight ? 'bg-rose-50 text-rose-700 border-rose-300 shadow-rose-500/10' : 'bg-rose-500/20 text-rose-300 border-rose-500/40')
+                                        : (isLight ? 'bg-slate-100 text-slate-500 border-slate-300' : 'bg-slate-800 text-slate-400 border-slate-700')));
+
+                            return `
+                                <div class="line-matrix-card group p-4 border ${isLight ? pal.borderLight : pal.borderDark} shadow-md overflow-hidden cursor-pointer"
+                                     style="background: ${isLight ? pal.bgGradientLight : pal.bgGradientDark}; --card-glow: rgba(${pal.rgb}, 0.35);"
+                                     data-line-id="${l.id || ''}"
+                                     title="Klik untuk melihat detail lini ${l.name}">
+                                     
+                                     <!-- AMBIENT SHEEN & GLOW -->
+                                     <div class="sheen-glow"></div>
+                                     
+                                     <!-- TOP AMBIENT ACCENT STRIPE -->
+                                     <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${pal.stripeGrad} opacity-85 group-hover:opacity-100 group-hover:h-1.5 transition-all duration-300"></div>
+
+                                     <!-- HEADER: LINE BADGE + OEE SCORE -->
+                                     <div class="flex items-center justify-between mb-2.5 pt-0.5">
+                                         <div class="flex items-center gap-2.5 min-w-0">
+                                             <div class="w-8 h-8 rounded-xl bg-gradient-to-tr ${pal.iconGrad} text-white flex items-center justify-center shadow-md shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
+                                                 <i data-lucide="git-fork" class="w-4 h-4"></i>
+                                             </div>
+                                             <div class="truncate">
+                                                 <div class="font-extrabold text-sm ${isLight ? 'text-slate-900' : 'text-white'} flex items-center gap-1.5 tracking-tight">
+                                                     <span class="truncate">${l.name}</span>
+                                                     <span class="w-1.5 h-1.5 rounded-full ${pal.pulseColor} shrink-0 animate-pulse"></span>
+                                                 </div>
+                                                 <span class="text-[10px] font-mono ${isLight ? pal.accentTextLight : pal.accentTextDark} font-bold opacity-90">${pal.name.split(' ')[0]} Line</span>
+                                             </div>
+                                         </div>
+                                         
+                                         <!-- OEE SCORE PILL -->
+                                         <div class="text-right shrink-0">
+                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-mono font-black border backdrop-blur-md shadow-xs ${oeeBadgeStyle}">
+                                                 <span class="text-[10px] font-medium opacity-75">OEE</span>
+                                                 <span>${l.oee}%</span>
+                                             </span>
+                                         </div>
+                                     </div>
+
+                                     <!-- DYNAMIC PRODUCT/MODEL CHIP -->
+                                     <div class="flex items-center gap-1.5 text-[11px] mb-3 px-2.5 py-1 rounded-lg ${isLight ? pal.tagBgLight : pal.tagBgDark} border truncate backdrop-blur-xs font-sans" title="Model Type: ${l.product_summary || '-'}">
+                                         <i data-lucide="layers" class="w-3.5 h-3.5 shrink-0 opacity-80"></i>
+                                         <span class="text-[10px] font-bold uppercase tracking-wider opacity-60 shrink-0">Model:</span>
+                                         <span class="font-bold truncate">${l.product_summary || '-'}</span>
+                                     </div>
+
+                                     <!-- A / P / Q TRI-GRID -->
+                                     <div class="grid grid-cols-3 gap-1.5 text-[10px] font-mono text-center mb-3">
+                                         <!-- AVAILABILITY -->
+                                         <div class="${isLight ? 'bg-white/85 border-slate-200/90 shadow-xs' : 'bg-slate-900/70 border-slate-800'} p-1.5 rounded-lg border backdrop-blur-xs group-hover:border-cyan-400/40 transition-colors">
+                                             <div class="text-slate-400 text-[9px] font-bold uppercase tracking-wider mb-0.5">Avail</div>
+                                             <div class="font-black text-xs text-cyan-600 dark:text-cyan-400">${l.availability}%</div>
+                                             <div class="w-full bg-slate-200/80 dark:bg-slate-800 h-1 rounded-full mt-1 overflow-hidden">
+                                                 <div class="bg-cyan-500 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, Math.max(0, Number(l.availability) || 0))}%"></div>
+                                             </div>
+                                         </div>
+                                         <!-- PERFORMANCE -->
+                                         <div class="${isLight ? 'bg-white/85 border-slate-200/90 shadow-xs' : 'bg-slate-900/70 border-slate-800'} p-1.5 rounded-lg border backdrop-blur-xs group-hover:border-amber-400/40 transition-colors">
+                                             <div class="text-slate-400 text-[9px] font-bold uppercase tracking-wider mb-0.5">Perf</div>
+                                             <div class="font-black text-xs text-amber-600 dark:text-amber-400">${l.performance}%</div>
+                                             <div class="w-full bg-slate-200/80 dark:bg-slate-800 h-1 rounded-full mt-1 overflow-hidden">
+                                                 <div class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, Math.max(0, Number(l.performance) || 0))}%"></div>
+                                             </div>
+                                         </div>
+                                         <!-- QUALITY -->
+                                         <div class="${isLight ? 'bg-white/85 border-slate-200/90 shadow-xs' : 'bg-slate-900/70 border-slate-800'} p-1.5 rounded-lg border backdrop-blur-xs group-hover:border-emerald-400/40 transition-colors">
+                                             <div class="text-slate-400 text-[9px] font-bold uppercase tracking-wider mb-0.5">Qual</div>
+                                             <div class="font-black text-xs text-emerald-600 dark:text-emerald-400">${l.quality}%</div>
+                                             <div class="w-full bg-slate-200/80 dark:bg-slate-800 h-1 rounded-full mt-1 overflow-hidden">
+                                                 <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, Math.max(0, Number(l.quality) || 0))}%"></div>
+                                             </div>
+                                         </div>
+                                     </div>
+
+                                     <!-- OUTPUT METRICS & COMPLETION BAR -->
+                                     <div class="pt-2 border-t ${isLight ? 'border-slate-200/70' : 'border-slate-800/80'}">
+                                         <div class="flex items-center justify-between text-[11px] font-mono mb-1.5">
+                                             <span class="text-slate-400 flex items-center gap-1 font-sans text-[11px]">
+                                                 <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                                                 <span>Output:</span>
+                                             </span>
+                                             <div class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'}">
+                                                 <span>${actualQty.toLocaleString()}</span>
+                                                 <span class="text-slate-400 text-[10px] font-normal"> / ${targetQty.toLocaleString()} pcs</span>
+                                             </div>
+                                         </div>
+                                         
+                                         <!-- DYNAMIC COMPLETION BAR -->
+                                         <div class="flex items-center gap-2">
+                                             <div class="flex-1 bg-slate-200/80 dark:bg-slate-800/90 rounded-full h-1.5 overflow-hidden">
+                                                 <div class="h-full rounded-full bg-gradient-to-r ${pal.barGrad} transition-all duration-700 ease-out" style="width: ${outputPct}%"></div>
+                                             </div>
+                                             <span class="text-[9px] font-mono font-bold ${isLight ? 'text-slate-600' : 'text-slate-400'} shrink-0">${outputPct}%</span>
+                                         </div>
+                                     </div>
                                 </div>
-                                <span class="font-mono font-extrabold text-sm ${Number(l.oee) >= 85 ? 'text-emerald-400' : (Number(l.oee) >= 65 ? 'text-amber-400' : (Number(l.oee) > 0 ? 'text-rose-400' : 'text-slate-500'))}">
-                                    ${l.oee}% OEE
-                                </span>
-                            </div>
-                            <!-- DYNAMIC PRODUCT INFO -->
-                            <div class="flex items-center gap-1 text-[11px] mb-2.5 truncate font-sans" title="Type: ${l.product_summary || '-'}">
-                                <i data-lucide="box" class="w-3 h-3 text-cyan-400 shrink-0"></i>
-                                <span class="text-slate-400 text-[10px] shrink-0">Type:</span>
-                                <span class="font-semibold ${isLight ? 'text-cyan-800' : 'text-cyan-300'} truncate">${l.product_summary || '-'}</span>
-                            </div>
-                            <div class="grid grid-cols-3 gap-1 text-[10px] font-mono text-center mb-2.5 pt-2 border-t ${isLight ? 'border-slate-200' : 'border-slate-800/80'}">
-                                <div class="${isLight ? 'bg-white' : 'bg-slate-900'} p-1 rounded border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
-                                    <div class="text-slate-500 text-[9px]">Avail</div>
-                                    <div class="font-bold text-cyan-400">${l.availability}%</div>
-                                </div>
-                                <div class="${isLight ? 'bg-white' : 'bg-slate-900'} p-1 rounded border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
-                                    <div class="text-slate-500 text-[9px]">Perf</div>
-                                    <div class="font-bold text-amber-400">${l.performance}%</div>
-                                </div>
-                                <div class="${isLight ? 'bg-white' : 'bg-slate-900'} p-1 rounded border ${isLight ? 'border-slate-200' : 'border-slate-800'}">
-                                    <div class="text-slate-500 text-[9px]">Qual</div>
-                                    <div class="font-bold text-emerald-400">${l.quality}%</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                                <span>Output:</span>
-                                <span class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${(l.actual_quantity || 0).toLocaleString()} / ${(l.target_quantity || 0).toLocaleString()} pcs</span>
-                            </div>
-                        </div>
-                    `).join('')}
+                            `;
+                        }).join('');
+                    })()}
                 </div>
             </div>
 
@@ -4237,6 +4652,17 @@ tbody.innerHTML = '';
 
         document.getElementById('btn-jump-lines')?.addEventListener('click', () => this.switchTab('lines'));
         document.getElementById('btn-jump-machines')?.addEventListener('click', () => this.switchTab('machines'));
+
+        // Bind interactive line card click to navigate to lines view
+        document.querySelectorAll('.line-matrix-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const lineId = card.getAttribute('data-line-id');
+                if (lineId && this.filters) {
+                    this.filters.line_id = lineId;
+                }
+                this.switchTab('lines');
+            });
+        });
 
         if (this.currentLang === 'ja') {
             i18n.localizeDom(document.getElementById('content-body') || document.body);
@@ -6851,13 +7277,14 @@ tbody.innerHTML = '';
                 </div>
                 <div class="flex items-center gap-2 self-end md:self-auto shrink-0">
                     ${!isAllLinesComplete ? `
-                        <button id="btn-quick-fill-missing" class="px-3.5 py-1.5 ${isLight ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-400 text-slate-950'} font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all">
-                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                            <span>+ Input Laporan Line</span>
-                        </button>
+                        <span class="px-3 py-1 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 font-sans shadow-xs">
+                            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                            <span>Menunggu ${missingLines.length} Line</span>
+                        </span>
                     ` : `
-                        <span class="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1">
-                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Terverifikasi Lengkap
+                        <span class="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1 font-sans shadow-xs">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                            <span>Terverifikasi Lengkap</span>
                         </span>
                     `}
                 </div>
@@ -6897,6 +7324,7 @@ tbody.innerHTML = '';
                         <span>Total Downtime Harian</span>
                         <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
                     </div>
+                    <div class="text-2xl font-bold font-mono text-amber-400">${totalDowntimeMins} m</div>
                     <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">${downtimes.length} trouble stop event</div>
                 </div>
             </div>
@@ -6925,10 +7353,12 @@ tbody.innerHTML = '';
                             <span class="px-3 py-1 rounded-full text-xs font-mono font-bold ${isLight ? 'bg-slate-100 text-cyan-700 border-slate-300' : 'bg-slate-950 text-cyan-400 border-slate-800'} border">
                                 ${this.selectedDailyDate}
                             </span>
-                            <!-- PRIMARY ACTION BUTTON TO OPEN MODAL -->
-                            <button id="btn-open-create-prod-modal" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer transition-all text-xs">
-                                <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                                <span>+ Input Laporan Produksi</span>
+                            <!-- SINGLE PRIMARY FOCUS CTA BUTTON WITH SMOOTH SONAR ANIMATION -->
+                            <button id="btn-open-create-prod-modal" class="btn-sonar-cta px-4 py-2 text-white font-bold rounded-xl flex items-center gap-2 cursor-pointer text-xs select-none">
+                                <span class="sonar-ring"></span>
+                                <span class="sonar-glow"></span>
+                                <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-100"></i>
+                                <span>+ Klik untuk Input Laporan Produksi</span>
                             </button>
                         </div>
                     </div>
@@ -6958,9 +7388,11 @@ tbody.innerHTML = '';
                                             <div class="flex flex-col items-center gap-2">
                                                 <i data-lucide="inbox" class="w-8 h-8 opacity-40"></i>
                                                 <span>Belum ada laporan produksi di-input pada tanggal <strong>${this.selectedDailyDate}</strong>.</span>
-                                                <button id="btn-empty-open-create-prod" class="mt-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all">
-                                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                                                    <span>Klik untuk Input Laporan Produksi</span>
+                                                <button id="btn-empty-open-create-prod" class="btn-sonar-cta mt-3 px-5 py-2.5 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer select-none">
+                                                    <span class="sonar-ring"></span>
+                                                    <span class="sonar-glow"></span>
+                                                    <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-100"></i>
+                                                    <span>+ Klik untuk Input Laporan Produksi</span>
                                                 </button>
                                             </div>
                                         </td>
@@ -7046,8 +7478,24 @@ tbody.innerHTML = '';
                                                     <div class="text-[10px] text-slate-400 font-mono mt-0.5">${r.machine ? r.machine.code : ''}</div>
                                                 </td>
                                                 <td class="p-3 font-sans ${isLight ? 'text-slate-800' : 'text-slate-200'}">
-                                                    <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${r.product ? `${r.product.name} - ${r.product.sku}` : 'Product #' + r.product_id}</div>
-                                                    <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Target: ${r.target_quantity ? r.target_quantity.toLocaleString() : 0} pcs</div>
+                                                    ${r.items && r.items.length > 1 ? `
+                                                        <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${isLight ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' : 'bg-cyan-950 text-cyan-300 border border-cyan-800'}">
+                                                                Multi-SKU (${r.items.length} Model)
+                                                            </span>
+                                                        </div>
+                                                        <div class="text-[11px] font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} space-y-0.5">
+                                                            ${r.items.map(it => `
+                                                                <div class="flex items-center justify-between text-[11px] gap-2">
+                                                                    <span class="truncate max-w-[130px]" title="${it.product?.name || 'Item'}">${it.product?.name || 'SKU ' + it.product_id}</span>
+                                                                    <span class="font-mono text-emerald-500 font-bold">OK: ${(it.good_quantity || 0).toLocaleString()}</span>
+                                                                </div>
+                                                            `).join('')}
+                                                        </div>
+                                                    ` : `
+                                                        <div class="font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${r.product ? `${r.product.name} - ${r.product.sku}` : 'Product #' + r.product_id}</div>
+                                                        <div class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Target: ${r.target_quantity ? r.target_quantity.toLocaleString() : 0} pcs</div>
+                                                    `}
                                                 </td>
                                                 <td class="p-3 font-sans">
                                                     <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-200 border-slate-700'} border">
@@ -7111,9 +7559,14 @@ tbody.innerHTML = '';
                                 </button>
                             </div>
 
-                            <button id="btn-open-create-dt-modal" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all text-xs">
-                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                                <span>+ Tambah Problem Log</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold ${isLight ? 'bg-slate-100 text-amber-700 border-slate-300' : 'bg-slate-950 text-amber-400 border-slate-800'} border">
+                                ${this.selectedDailyDate}
+                            </span>
+
+                            <!-- TOMBOL UTAMA INPUT LOG TROUBLE DINAMIS -->
+                            <button id="btn-open-create-dt-modal" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-bold rounded-xl flex items-center gap-2 cursor-pointer text-xs shadow-lg shadow-amber-500/25 active:scale-95 transition-all select-none">
+                                <i data-lucide="plus-circle" class="w-4 h-4 text-amber-100"></i>
+                                <span>+ Input Log Problem / Downtime</span>
                             </button>
                         </div>
                     </div>
@@ -7144,6 +7597,10 @@ tbody.innerHTML = '';
                                             <div class="flex flex-col items-center gap-2">
                                                 <i data-lucide="check-circle" class="w-7 h-7 text-emerald-400 opacity-80"></i>
                                                 <span class="font-medium text-slate-300 text-xs">Zero Breakdown! Tidak ada log problem & downtime tercatat pada tanggal <strong>${this.selectedDailyDate}</strong>.</span>
+                                                <button id="btn-empty-open-create-dt" class="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-amber-600/30">
+                                                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                                    <span>+ Tambah Log Trouble Tanggal ${this.selectedDailyDate}</span>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -7197,7 +7654,11 @@ tbody.innerHTML = '';
                                                 ${grpTotalMins} m
                                             </td>
                                             <td class="p-3 text-center font-sans text-xs" colspan="2">
-                                                <span class="text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-400'} font-mono">Klik baris</span>
+                                                <div class="flex items-center justify-center gap-2" onclick="event.stopPropagation()">
+                                                    <button data-action="add-dt-for-line" data-line-id="${grp.lineId}" title="Tambah Log Trouble untuk ${grp.lineName}" class="px-2 py-1 rounded-lg ${isLight ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300' : 'bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-amber-300'} border text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-xs hover:scale-105 active:scale-95">
+                                                        <i data-lucide="plus" class="w-3 h-3 text-amber-400"></i> + Trouble
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
 
@@ -7293,7 +7754,17 @@ tbody.innerHTML = '';
             this.showCreateDailyProductionModal();
         });
         document.getElementById('btn-open-create-dt-modal')?.addEventListener('click', () => {
-            this.showCreateDailyTroubleModal();
+            this.showCreateDailyTroubleModal(null, this.selectedDailyDate);
+        });
+        document.getElementById('btn-empty-open-create-dt')?.addEventListener('click', () => {
+            this.showCreateDailyTroubleModal(null, this.selectedDailyDate);
+        });
+        document.querySelectorAll('[data-action="add-dt-for-line"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const lineId = e.currentTarget.getAttribute('data-line-id');
+                this.showCreateDailyTroubleModal(lineId, this.selectedDailyDate);
+            });
         });
 
         // 2. Date Navigation Controls
@@ -7516,15 +7987,15 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 3B-1. MODAL POPUP: CREATE DAILY PRODUCTION RECORD
+    // 3B-1. MODAL POPUP: CREATE DAILY PRODUCTION RECORD (MULTI-PRODUCT SUPPORT)
     // ==========================================
     showCreateDailyProductionModal() {
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
         let dailyTroubleLogsState = [];
+        let dailyProductsState = [];
 
         const defaultLineId = this.filters.line_id || this.masterData.lines?.[0]?.id || '';
         const defaultShiftId = this.filters.shift_id || this.masterData.shifts?.[0]?.id || '';
-        const defaultMachineId = this.filters.machine_id || '';
 
         const modalHtml = `
             <div id="modal-create-daily-prod" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
@@ -7555,13 +8026,13 @@ tbody.innerHTML = '';
                             <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
                                 <div class="flex items-center gap-2">
                                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/40">1</span>
-                                    <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-100'} uppercase tracking-wider">Tanggal Laporan, Line, Mesin, Produk & Shift</h4>
+                                    <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-100'} uppercase tracking-wider">Tanggal Laporan, Line, Mesin & Shift</h4>
                                 </div>
-                                <span id="modal-cycle-time-badge" class="text-[11px] font-mono text-cyan-400 font-bold px-2 py-0.5 rounded ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-950 border border-cyan-800'}">
+                                <span id="modal-cycle-time-badge" class="text-[11px] font-mono text-cyan-400 font-bold px-2.5 py-0.5 rounded ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-950 border border-cyan-800'}">
                                     Cycle Time: 9.5s
                                 </span>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                                 <div>
                                     <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium flex items-center gap-1">
                                         <i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan-400"></i>
@@ -7571,7 +8042,7 @@ tbody.innerHTML = '';
                                 </div>
                                 <div>
                                     <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Production Line</label>
-                                    <select name="production_line_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-cyan-500">
+                                    <select name="production_line_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 outline-none focus:border-cyan-500 font-bold text-cyan-500">
                                         ${this.masterData.lines.map(l => `<option value="${l.id}" ${(defaultLineId == l.id) ? 'selected' : ''}>${l.name}</option>`).join('')}
                                     </select>
                                 </div>
@@ -7579,12 +8050,6 @@ tbody.innerHTML = '';
                                     <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Mesin Input</label>
                                     <select name="machine_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-cyan-500">
                                         <!-- Populated dynamically -->
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Nama Produk</label>
-                                    <select name="product_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-cyan-500">
-                                        <!-- Will be populated by filterProductsByLine() -->
                                     </select>
                                 </div>
                                 <div>
@@ -7596,53 +8061,78 @@ tbody.innerHTML = '';
                             </div>
                         </div>
 
-                        <!-- LANGKAH 2: HASIL PRODUKSI & WAKTU -->
+                        <!-- LANGKAH 2: HASIL PRODUKSI PER PRODUK (MULTI-SKU) & JAM KERJA -->
                         <div class="form-step-card ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-3">
-                            <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
+                            <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2 gap-2">
                                 <div class="flex items-center gap-2">
                                     <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center border border-emerald-500/40">2</span>
-                                    <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-100'} uppercase tracking-wider">Hasil Output & Jam Kerja</h4>
+                                    <h4 class="font-bold text-xs ${isLight ? 'text-slate-900' : 'text-slate-100'} uppercase tracking-wider">Hasil Output per Produk & Jam Kerja</h4>
                                 </div>
-                                <span class="text-[10px] text-emerald-500 font-mono font-semibold">Formula: Target = (Planned Time × 60) ÷ Cycle Time</span>
-                            </div>
-                            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium flex items-center gap-1">
-                                        Target Qty
-                                        <span class="text-[10px] text-cyan-400 font-mono font-bold">(Auto)</span>
-                                    </label>
-                                    <input type="number" name="target_quantity" value="0" min="0" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-cyan-600' : 'bg-slate-900 border-slate-800 text-cyan-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-cyan-500 shadow-2xs" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Total Measuring</label>
-                                    <input type="number" name="total_quantity" value="0" min="0" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-cyan-500" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Finish Good (OK)</label>
-                                    <input type="number" name="good_quantity" value="0" min="0" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-emerald-600' : 'bg-slate-900 border-slate-800 text-emerald-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-cyan-500" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Not Good (NG)</label>
-                                    <input type="number" name="reject_quantity" value="0" min="0" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-rose-600' : 'bg-slate-900 border-slate-800 text-rose-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-cyan-500" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Scrap / Afkir</label>
-                                    <input type="number" name="scrap_quantity" value="0" min="0" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-amber-600' : 'bg-slate-900 border-slate-800 text-amber-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-cyan-500" />
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-emerald-500 font-mono font-semibold hidden sm:inline">Formula: Target = (Planned Time × 60) ÷ Avg Cycle Time</span>
+                                    <button type="button" id="btn-modal-add-product" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-1.5 cursor-pointer transition-all">
+                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                        <span>+ Tambah Produk</span>
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-3 gap-3 pt-1">
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Planned Time (min)</label>
-                                    <input type="number" name="planned_production_time" value="480" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'} border rounded-lg px-2.5 py-1.5 font-mono outline-none focus:border-cyan-500" />
+                            <!-- CONTAINER DYNAMIC PRODUK MULTI-ROW -->
+                            <div id="modal-products-container" class="space-y-3 pt-1">
+                                <!-- Populated dynamically by renderProductRows() -->
+                            </div>
+
+                            <!-- RINGKASAN TOTAL SHIFT & JAM KERJA -->
+                            <div class="p-3.5 rounded-xl ${isLight ? 'bg-white border-slate-300' : 'bg-slate-900/90 border-slate-800'} border space-y-3 mt-2 shadow-inner">
+                                <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-2">
+                                    <span class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                                        Total Akumulasi Output Shift
+                                    </span>
+                                    <span id="modal-product-count-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                                        1 Produk
+                                    </span>
                                 </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Break / Istirahat (min)</label>
-                                    <input type="number" name="planned_downtime" value="60" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'} border rounded-lg px-2.5 py-1.5 font-mono outline-none focus:border-cyan-500" />
+                                
+                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium flex items-center gap-1">
+                                            Target Total
+                                            <span class="text-[10px] text-cyan-400 font-mono font-bold">(Auto)</span>
+                                        </label>
+                                        <input type="number" name="target_quantity" id="modal-summary-target" value="0" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-cyan-700' : 'bg-slate-950 border-slate-800 text-cyan-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none cursor-default" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Total Measuring</label>
+                                        <input type="number" name="total_quantity" id="modal-summary-total" value="0" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none cursor-default" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Total Finish Good (OK)</label>
+                                        <input type="number" name="good_quantity" id="modal-summary-good" value="0" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-emerald-700' : 'bg-slate-950 border-slate-800 text-emerald-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none cursor-default" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Total Not Good (NG)</label>
+                                        <input type="number" name="reject_quantity" id="modal-summary-reject" value="0" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-rose-700' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none cursor-default" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Total Scrap / Afkir</label>
+                                        <input type="number" name="scrap_quantity" id="modal-summary-scrap" value="0" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-amber-700' : 'bg-slate-950 border-slate-800 text-amber-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none cursor-default" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Run Time (min)</label>
-                                    <input type="number" name="run_time" value="420" required class="w-full ${isLight ? 'bg-white border-slate-300 text-emerald-700' : 'bg-slate-900 border-slate-800 text-emerald-400'} border rounded-lg px-2.5 py-1.5 font-mono font-bold outline-none focus:border-cyan-500" />
+
+                                <div class="grid grid-cols-3 gap-3 pt-1 border-t ${isLight ? 'border-slate-200' : 'border-slate-800/80'}">
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Planned Time (min)</label>
+                                        <input type="number" name="planned_production_time" value="480" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'} border rounded-lg px-2.5 py-1.5 font-mono outline-none focus:border-cyan-500" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Break / Istirahat (min)</label>
+                                        <input type="number" name="planned_downtime" value="60" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'} border rounded-lg px-2.5 py-1.5 font-mono outline-none focus:border-cyan-500" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">Run Time (min)</label>
+                                        <input type="number" name="run_time" value="420" required class="w-full ${isLight ? 'bg-white border-slate-300 text-emerald-700' : 'bg-slate-900 border-slate-800 text-emerald-400'} border rounded-lg px-2.5 py-1.5 font-mono font-bold outline-none focus:border-cyan-500" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -7673,6 +8163,7 @@ tbody.innerHTML = '';
                         <input type="hidden" name="downtime" value="0" />
                         <input type="hidden" name="idle_time" value="0" />
                         <input type="hidden" name="ideal_cycle_time" value="9.5" />
+                        <input type="hidden" name="product_id" value="" />
 
                         <!-- MODAL FOOTER BUTTONS -->
                         <div class="pt-3 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} flex items-center justify-end gap-3">
@@ -7711,27 +8202,31 @@ tbody.innerHTML = '';
         document.getElementById('btn-cancel-modal-create-daily')?.addEventListener('click', closeModal);
 
         // Elements inside modal
+        const productsContainer = document.getElementById('modal-products-container');
+        const addProductBtn = document.getElementById('btn-modal-add-product');
+        const productCountBadge = document.getElementById('modal-product-count-badge');
         const troubleContainer = document.getElementById('modal-trouble-logs-container');
         const totalDtBadge = document.getElementById('modal-dt-total-badge');
         const addTroubleBtn = document.getElementById('btn-modal-add-trouble');
         const cycleTimeBadge = document.getElementById('modal-cycle-time-badge');
 
         const lineSelect = document.querySelector('#form-modal-daily-entry select[name="production_line_id"]');
-        const productSelect = document.querySelector('#form-modal-daily-entry select[name="product_id"]');
         const shiftSelect = document.querySelector('#form-modal-daily-entry select[name="shift_id"]');
         const machineSelect = document.querySelector('#form-modal-daily-entry select[name="machine_id"]');
+        const mainProductIdInp = document.querySelector('#form-modal-daily-entry input[name="product_id"]');
 
         const plannedTimeInp = document.querySelector('#form-modal-daily-entry input[name="planned_production_time"]');
         const plannedDtInp = document.querySelector('#form-modal-daily-entry input[name="planned_downtime"]');
         const runTimeInp = document.querySelector('#form-modal-daily-entry input[name="run_time"]');
-        const targetQtyInp = document.querySelector('#form-modal-daily-entry input[name="target_quantity"]');
         const idealCycleInp = document.querySelector('#form-modal-daily-entry input[name="ideal_cycle_time"]');
         const mainDowntimeInp = document.querySelector('#form-modal-daily-entry input[name="downtime"]');
 
-        const totalQtyInp = document.querySelector('#form-modal-daily-entry input[name="total_quantity"]');
-        const goodQtyInp = document.querySelector('#form-modal-daily-entry input[name="good_quantity"]');
-        const rejectQtyInp = document.querySelector('#form-modal-daily-entry input[name="reject_quantity"]');
-        const scrapQtyInp = document.querySelector('#form-modal-daily-entry input[name="scrap_quantity"]');
+        // Summary inputs
+        const summaryTargetInp = document.getElementById('modal-summary-target');
+        const summaryTotalInp = document.getElementById('modal-summary-total');
+        const summaryGoodInp = document.getElementById('modal-summary-good');
+        const summaryRejectInp = document.getElementById('modal-summary-reject');
+        const summaryScrapInp = document.getElementById('modal-summary-scrap');
 
         const getLeaderName = (teamVal) => {
             if (!lineSelect) return 'Belum Didaftar';
@@ -7758,37 +8253,253 @@ tbody.innerHTML = '';
             }
         };
 
-        // 1. Target Qty Calculation based on Product Ideal Cycle Time & Planned Production Time
-        const calcTargetQty = () => {
-            const selectedProdId = productSelect ? productSelect.value : null;
-            const selectedProd = (this.masterData.products || []).find(p => p.id == selectedProdId);
-            const cycleTime = selectedProd && selectedProd.ideal_cycle_time ? parseFloat(selectedProd.ideal_cycle_time) : 9.5;
+        // Recalculate totals across all product rows
+        const updateProductCalculations = () => {
+            let totalGood = 0;
+            let totalReject = 0;
+            let totalScrap = 0;
+            let totalMeasuring = 0;
+            let totalNetSeconds = 0;
 
-            if (idealCycleInp) idealCycleInp.value = cycleTime;
-            if (cycleTimeBadge) cycleTimeBadge.textContent = `Cycle Time: ${cycleTime}s`;
+            dailyProductsState.forEach(item => {
+                const g = parseInt(item.good_quantity || 0);
+                const r = parseInt(item.reject_quantity || 0);
+                const s = parseInt(item.scrap_quantity || 0);
+                const tot = parseInt(item.total_quantity || (g + r + s));
+                const ct = parseFloat(item.ideal_cycle_time || 9.5);
 
+                totalGood += g;
+                totalReject += r;
+                totalScrap += s;
+                totalMeasuring += tot;
+                totalNetSeconds += (tot * ct);
+            });
+
+            if (summaryGoodInp) summaryGoodInp.value = totalGood;
+            if (summaryRejectInp) summaryRejectInp.value = totalReject;
+            if (summaryScrapInp) summaryScrapInp.value = totalScrap;
+            if (summaryTotalInp) summaryTotalInp.value = totalMeasuring;
+
+            // Weighted average cycle time
+            let avgCycleTime = 9.5;
+            if (totalMeasuring > 0 && totalNetSeconds > 0) {
+                avgCycleTime = Number((totalNetSeconds / totalMeasuring).toFixed(2));
+            } else if (dailyProductsState.length > 0 && dailyProductsState[0].ideal_cycle_time) {
+                avgCycleTime = parseFloat(dailyProductsState[0].ideal_cycle_time);
+            }
+
+            if (idealCycleInp) idealCycleInp.value = avgCycleTime;
+            if (cycleTimeBadge) {
+                if (dailyProductsState.length > 1) {
+                    cycleTimeBadge.textContent = `Avg Cycle Time: ${avgCycleTime}s (${dailyProductsState.length} Produk)`;
+                } else {
+                    cycleTimeBadge.textContent = `Cycle Time: ${avgCycleTime}s`;
+                }
+            }
+
+            if (productCountBadge) {
+                productCountBadge.textContent = `${dailyProductsState.length} Jenis Produk`;
+            }
+
+            // Target Qty calculation based on Planned Time and Weighted Cycle Time
             const plannedMins = plannedTimeInp ? parseFloat(plannedTimeInp.value || 0) : 480;
-            if (targetQtyInp && cycleTime > 0 && plannedMins > 0) {
-                const computedTarget = Math.floor((plannedMins * 60) / cycleTime);
-                targetQtyInp.value = computedTarget;
+            if (summaryTargetInp && avgCycleTime > 0 && plannedMins > 0) {
+                const computedTarget = Math.floor((plannedMins * 60) / avgCycleTime);
+                summaryTargetInp.value = computedTarget;
+            }
+
+            if (dailyProductsState.length > 0 && mainProductIdInp) {
+                mainProductIdInp.value = dailyProductsState[0].product_id || '';
             }
         };
 
-        // 2. Cascading Line -> Products & Machines
-        const filterProductsByLine = () => {
-            if (!lineSelect || !productSelect) return;
+        // Render Multi-Product Input Rows
+        const renderProductRows = () => {
+            if (!productsContainer) return;
+            const selectedLineId = lineSelect ? lineSelect.value : null;
+            let lineProducts = this.getProductsForLine(selectedLineId);
+            if (lineProducts.length === 0) {
+                lineProducts = this.masterData.products || [];
+            }
+
+            // Ensure at least 1 product row exists
+            if (dailyProductsState.length === 0 && lineProducts.length > 0) {
+                const firstP = lineProducts[0];
+                dailyProductsState.push({
+                    product_id: firstP.id,
+                    ideal_cycle_time: parseFloat(firstP.ideal_cycle_time || 9.5),
+                    good_quantity: 0,
+                    reject_quantity: 0,
+                    scrap_quantity: 0,
+                    total_quantity: 0,
+                });
+            }
+
+            productsContainer.innerHTML = dailyProductsState.map((row, idx) => {
+                const curProd = lineProducts.find(p => p.id == row.product_id) || (this.masterData.products || []).find(p => p.id == row.product_id);
+                const ct = row.ideal_cycle_time || (curProd?.ideal_cycle_time) || 9.5;
+                const subtotalMeasuring = parseInt(row.total_quantity || 0) > 0 ? row.total_quantity : (parseInt(row.good_quantity || 0) + parseInt(row.reject_quantity || 0) + parseInt(row.scrap_quantity || 0));
+
+                return `
+                    <div class="product-row-card ${isLight ? 'bg-white border-slate-300' : 'bg-slate-900 border-slate-800'} border rounded-xl p-3.5 space-y-3 hover:border-cyan-500/50 transition-all shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2 gap-2">
+                            <div class="flex items-center gap-2.5 flex-1 min-w-[280px]">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 shrink-0">
+                                    Produk #${idx + 1}
+                                </span>
+                                <div class="flex-1">
+                                    <select data-prod-field="product_id" data-row="${idx}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-cyan-500">
+                                        ${lineProducts.map(p => `
+                                            <option value="${p.id}" ${p.id == row.product_id ? 'selected' : ''}>
+                                                ${p.name} — SKU: ${p.sku} (${p.ideal_cycle_time}s)
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-mono text-cyan-400 font-bold px-2 py-0.5 rounded ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-950 border border-cyan-800'}">
+                                    CT: ${ct}s
+                                </span>
+                                ${dailyProductsState.length > 1 ? `
+                                    <button type="button" data-del-modal-prod-idx="${idx}" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors cursor-pointer" title="Hapus Produk Ini">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- OUTPUT INPUTS PER PRODUCT -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-semibold text-[11px] flex items-center justify-between">
+                                    <span>Finish Good (OK)</span>
+                                    <span class="text-[10px] text-emerald-400 font-mono">Pcs</span>
+                                </label>
+                                <input type="number" data-prod-field="good_quantity" data-row="${idx}" value="${row.good_quantity || 0}" min="0" required class="w-full ${isLight ? 'bg-emerald-50/40 border-slate-300 text-emerald-700' : 'bg-slate-950 border-slate-800 text-emerald-400'} border rounded-lg px-2.5 py-2 font-mono font-bold text-xs outline-none focus:border-emerald-500" />
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-semibold text-[11px] flex items-center justify-between">
+                                    <span>Not Good (NG)</span>
+                                    <span class="text-[10px] text-rose-400 font-mono">Pcs</span>
+                                </label>
+                                <input type="number" data-prod-field="reject_quantity" data-row="${idx}" value="${row.reject_quantity || 0}" min="0" required class="w-full ${isLight ? 'bg-rose-50/40 border-slate-300 text-rose-700' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded-lg px-2.5 py-2 font-mono font-bold text-xs outline-none focus:border-rose-500" />
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-semibold text-[11px] flex items-center justify-between">
+                                    <span>Scrap / Afkir</span>
+                                    <span class="text-[10px] text-amber-400 font-mono">Pcs</span>
+                                </label>
+                                <input type="number" data-prod-field="scrap_quantity" data-row="${idx}" value="${row.scrap_quantity || 0}" min="0" class="w-full ${isLight ? 'bg-amber-50/40 border-slate-300 text-amber-700' : 'bg-slate-950 border-slate-800 text-amber-400'} border rounded-lg px-2.5 py-2 font-mono font-bold text-xs outline-none focus:border-amber-500" />
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-semibold text-[11px] flex items-center justify-between">
+                                    <span>Subtotal Measuring</span>
+                                    <span class="text-[10px] text-cyan-400 font-mono">Pcs</span>
+                                </label>
+                                <input type="number" data-prod-field="total_quantity" data-row="${idx}" value="${subtotalMeasuring}" min="0" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono font-bold text-xs outline-none focus:border-cyan-500" />
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Event listeners for product inputs
+            productsContainer.querySelectorAll('[data-prod-field]').forEach(inp => {
+                const handler = (e) => {
+                    const field = e.target.getAttribute('data-prod-field');
+                    const rowIdx = parseInt(e.target.getAttribute('data-row'));
+                    if (!dailyProductsState[rowIdx]) return;
+
+                    if (field === 'product_id') {
+                        const newProdId = e.target.value;
+                        const matchProd = (this.masterData.products || []).find(p => p.id == newProdId);
+                        dailyProductsState[rowIdx].product_id = newProdId;
+                        dailyProductsState[rowIdx].ideal_cycle_time = matchProd ? parseFloat(matchProd.ideal_cycle_time || 9.5) : 9.5;
+                        renderProductRows();
+                    } else if (field === 'good_quantity' || field === 'reject_quantity' || field === 'scrap_quantity') {
+                        dailyProductsState[rowIdx][field] = parseInt(e.target.value || 0);
+                        const autoMeasuring = parseInt(dailyProductsState[rowIdx].good_quantity || 0) + 
+                                              parseInt(dailyProductsState[rowIdx].reject_quantity || 0) + 
+                                              parseInt(dailyProductsState[rowIdx].scrap_quantity || 0);
+                        dailyProductsState[rowIdx].total_quantity = autoMeasuring;
+                        
+                        const measuringInp = productsContainer.querySelector(`input[data-prod-field="total_quantity"][data-row="${rowIdx}"]`);
+                        if (measuringInp) measuringInp.value = autoMeasuring;
+                    } else if (field === 'total_quantity') {
+                        dailyProductsState[rowIdx].total_quantity = parseInt(e.target.value || 0);
+                    }
+
+                    updateProductCalculations();
+                };
+
+                inp.addEventListener('input', handler);
+                inp.addEventListener('change', handler);
+            });
+
+            // Delete product row button
+            productsContainer.querySelectorAll('[data-del-modal-prod-idx]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.currentTarget.getAttribute('data-del-modal-prod-idx'));
+                    if (dailyProductsState.length > 1) {
+                        dailyProductsState.splice(idx, 1);
+                        renderProductRows();
+                    }
+                });
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+            updateProductCalculations();
+        };
+
+        // Add Product button handler
+        if (addProductBtn) {
+            addProductBtn.addEventListener('click', () => {
+                const selectedLineId = lineSelect ? lineSelect.value : null;
+                const lineProducts = this.getProductsForLine(selectedLineId);
+                const availableProds = lineProducts.length > 0 ? lineProducts : (this.masterData.products || []);
+                const unusedProd = availableProds.find(p => !dailyProductsState.some(dp => dp.product_id == p.id)) || availableProds[0] || { id: 1, ideal_cycle_time: 9.5 };
+
+                dailyProductsState.push({
+                    product_id: unusedProd.id,
+                    ideal_cycle_time: parseFloat(unusedProd.ideal_cycle_time || 9.5),
+                    good_quantity: 0,
+                    reject_quantity: 0,
+                    scrap_quantity: 0,
+                    total_quantity: 0,
+                });
+                renderProductRows();
+            });
+        }
+
+        // Cascading Line -> Products & Machines
+        const filterProductsAndMachinesByLine = () => {
+            if (!lineSelect) return;
             const selectedLineId = lineSelect.value;
             const lineProducts = this.getProductsForLine(selectedLineId);
+            const allProds = lineProducts.length > 0 ? lineProducts : (this.masterData.products || []);
 
-            if (lineProducts.length === 0) {
-                const allProds = this.masterData.products || [];
-                productSelect.innerHTML = allProds.map(p => `
-                    <option value="${p.id}">${p.name} — SKU: ${p.sku} (${p.ideal_cycle_time}s)</option>
-                `).join('');
+            // Re-sync product IDs in dailyProductsState with line's products
+            if (dailyProductsState.length === 0) {
+                const firstP = allProds[0] || { id: 1, ideal_cycle_time: 9.5 };
+                dailyProductsState.push({
+                    product_id: firstP.id,
+                    ideal_cycle_time: parseFloat(firstP.ideal_cycle_time || 9.5),
+                    good_quantity: 0,
+                    reject_quantity: 0,
+                    scrap_quantity: 0,
+                    total_quantity: 0,
+                });
             } else {
-                productSelect.innerHTML = lineProducts.map(p => `
-                    <option value="${p.id}">${p.name} — SKU: ${p.sku} (${p.ideal_cycle_time}s)</option>
-                `).join('');
+                dailyProductsState.forEach((item, i) => {
+                    if (!allProds.some(p => p.id == item.product_id)) {
+                        const nextP = allProds[i % allProds.length] || allProds[0];
+                        if (nextP) {
+                            item.product_id = nextP.id;
+                            item.ideal_cycle_time = parseFloat(nextP.ideal_cycle_time || 9.5);
+                        }
+                    }
+                });
             }
 
             // Update machine select strictly for the selected line & auto-select Measuring Machine
@@ -7809,10 +8520,10 @@ tbody.innerHTML = '';
                 }
             }
 
-            calcTargetQty();
+            renderProductRows();
         };
 
-        // 3. Shift Time Calculation
+        // Shift Time Calculation
         const updateShiftCalc = () => {
             if (!shiftSelect) return;
             const shiftId = shiftSelect.value;
@@ -7835,13 +8546,19 @@ tbody.innerHTML = '';
             if (plannedTimeInp) plannedTimeInp.value = plannedTimeMins;
             if (plannedDtInp) plannedDtInp.value = breakMins;
             
-            calcTargetQty();
+            updateProductCalculations();
             updateRunTimeAndDowntime();
         };
 
-        // 5. Problem Log Rows Renderer
+        // Problem Log Rows Renderer
         const renderTroubleRows = () => {
             if (!troubleContainer) return;
+
+            const selectedLineId = lineSelect ? lineSelect.value : null;
+            let lineMachines = this.getMachinesForLine(selectedLineId);
+            if (lineMachines.length === 0) {
+                lineMachines = this.masterData.machines || [];
+            }
 
             if (dailyTroubleLogsState.length === 0) {
                 troubleContainer.innerHTML = `
@@ -7854,93 +8571,119 @@ tbody.innerHTML = '';
                     addTroubleBtn?.click();
                 });
             } else {
-                troubleContainer.innerHTML = dailyTroubleLogsState.map((row, idx) => `
-                    <div class="trouble-row-card ${isLight ? 'bg-white border-slate-300' : 'bg-slate-900 border-slate-800'} border rounded-xl p-3 space-y-3 hover:border-amber-500/40 transition-colors">
-                        <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
-                            <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">
-                                    Problem #${idx + 1}
-                                </span>
-                                <span class="text-[11px] ${isLight ? 'text-slate-800' : 'text-slate-300'} font-sans font-medium">${row.problem_type || 'Mesin'} (${row.duration_minutes || 0} Menit Losstime)</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.status === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
-                                    ${row.status || 'CLOSED'}
-                                </span>
-                                <button type="button" data-del-modal-dt-idx="${idx}" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors cursor-pointer" title="Hapus Baris Problem Ini">
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                </button>
-                            </div>
-                        </div>
+                troubleContainer.innerHTML = dailyTroubleLogsState.map((row, idx) => {
+                    if (!row.machine_id && lineMachines.length > 0) {
+                        const defaultOp = lineMachines.find(m => !((m.name && m.name.toLowerCase().includes('measuring')) || (m.code && m.code.toLowerCase().includes('measuring')))) || lineMachines[0];
+                        row.machine_id = defaultOp ? defaultOp.id : lineMachines[0].id;
+                    }
+                    const matchMc = lineMachines.find(m => String(m.id) === String(row.machine_id));
+                    const mcLabel = matchMc ? (matchMc.code ? `[${matchMc.code}] ` : '') + matchMc.name : '';
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Team & Leader</label>
-                                <div class="grid grid-cols-2 gap-1.5">
-                                    <select data-trouble-field="team" data-row="${idx}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold text-amber-500">
-                                        <option value="Team A" ${row.team === 'Team A' ? 'selected' : ''}>Team A</option>
-                                        <option value="Team B" ${row.team === 'Team B' ? 'selected' : ''}>Team B</option>
-                                        <option value="Team C" ${row.team === 'Team C' ? 'selected' : ''}>Team C</option>
-                                        <option value="Team D" ${row.team === 'Team D' ? 'selected' : ''}>Team D</option>
+                    return `
+                        <div class="trouble-row-card ${isLight ? 'bg-white border-slate-300' : 'bg-slate-900 border-slate-800'} border rounded-xl p-3 space-y-3 hover:border-amber-500/40 transition-colors">
+                            <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">
+                                        Problem #${idx + 1}
+                                    </span>
+                                    <span class="text-[11px] ${isLight ? 'text-slate-800' : 'text-slate-300'} font-sans font-medium">
+                                        ${mcLabel ? `<span class="text-cyan-400 font-mono font-bold">${mcLabel}</span> &bull; ` : ''}${row.problem_type || 'Mesin'} (<span class="trouble-header-dur-${idx}">${row.duration_minutes || 0}</span> Menit Losstime)
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${row.status === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
+                                        ${row.status || 'CLOSED'}
+                                    </span>
+                                    <button type="button" data-del-modal-dt-idx="${idx}" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors cursor-pointer" title="Hapus Baris Problem Ini">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Team & Leader</label>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <select data-trouble-field="team" data-row="${idx}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-1.5 py-1 text-xs font-bold text-amber-500">
+                                            <option value="Team A" ${row.team === 'Team A' ? 'selected' : ''}>Team A</option>
+                                            <option value="Team B" ${row.team === 'Team B' ? 'selected' : ''}>Team B</option>
+                                            <option value="Team C" ${row.team === 'Team C' ? 'selected' : ''}>Team C</option>
+                                            <option value="Team D" ${row.team === 'Team D' ? 'selected' : ''}>Team D</option>
+                                        </select>
+                                        <input type="text" readonly value="${row.leader_name || getLeaderName(row.team)}" class="${isLight ? 'bg-slate-100 border-slate-300 text-amber-700' : 'bg-slate-950/80 border-slate-800 text-amber-300'} border rounded px-1.5 py-1 font-bold text-[10px] truncate" title="${row.leader_name || ''}" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold flex items-center justify-between">
+                                        <span>OP Mesin (Bermasalah)*</span>
+                                        <span class="text-[9px] text-cyan-400 font-mono">OP</span>
+                                    </label>
+                                    <select data-trouble-field="machine_id" data-row="${idx}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-mono font-medium outline-none focus:border-amber-500">
+                                        ${lineMachines.map(m => `
+                                            <option value="${m.id}" ${String(m.id) === String(row.machine_id) ? 'selected' : ''}>
+                                                ${m.code ? `[${m.code}] ` : ''}${m.name}
+                                            </option>
+                                        `).join('')}
                                     </select>
-                                    <input type="text" readonly value="${row.leader_name || getLeaderName(row.team)}" class="${isLight ? 'bg-slate-100 border-slate-300 text-amber-700' : 'bg-slate-950/80 border-slate-800 text-amber-300'} border rounded px-2 py-1 font-bold text-[10px] truncate" title="${row.leader_name || ''}" />
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Kategori Problem*</label>
+                                    <select data-trouble-field="problem_type" data-row="${idx}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold outline-none focus:border-amber-500">
+                                        <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || (!row.problem_type && idx === 0) || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik</option>
+                                        <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik</option>
+                                        <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' || row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool</option>
+                                        <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime</option>
+                                        <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory</option>
+                                        <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold flex items-center justify-between">
+                                        <span>Losstime (Menit)*</span>
+                                        <span class="text-[9px] text-amber-500 font-mono font-bold">Menit</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" data-trouble-field="duration_minutes" data-row="${idx}" value="${row.duration_minutes !== undefined && row.duration_minutes !== null ? row.duration_minutes : 0}" min="0" step="1" placeholder="Contoh: 30" class="w-full ${isLight ? 'bg-white border-slate-300 text-rose-600' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded px-2.5 py-1 font-bold text-xs font-mono outline-none focus:border-amber-500 pr-14" />
+                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold pointer-events-none">Menit</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Kategori Problem*</label>
-                                <select data-trouble-field="problem_type" data-row="${idx}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold">
-                                    <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory</option>
-                                    <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others</option>
-                                    <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime</option>
-                                    <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik</option>
-                                    <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || (!row.problem_type && idx === 0) || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik</option>
-                                    <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' || row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool</option>
-                                </select>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Problem (Deskripsi Masalah / Kerusakan)*</label>
+                                    <input type="text" data-trouble-field="description" data-row="${idx}" placeholder="Deskripsi kendala kerusakan / masalah..." value="${row.description || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs outline-none focus:border-amber-500 font-sans" />
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Penyebab (Akar Masalah)*</label>
+                                    <input type="text" data-trouble-field="cause" data-row="${idx}" placeholder="Akar masalah terjadinya kerusakan..." value="${row.cause || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs outline-none focus:border-amber-500 font-sans" />
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Jam Mulai, Selesai & Losstime (Menit)*</label>
-                                <div class="grid grid-cols-3 gap-1.5">
-                                    <input type="time" data-trouble-field="start_time" data-row="${idx}" value="${row.start_time || '08:00'}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-1.5 py-1 text-xs font-mono" />
-                                    <input type="time" data-trouble-field="end_time" data-row="${idx}" value="${row.end_time || ''}" class="${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-1.5 py-1 text-xs font-mono" />
-                                    <input type="number" data-trouble-field="duration_minutes" data-row="${idx}" value="${row.duration_minutes || 0}" min="0" placeholder="Mins" class="${isLight ? 'bg-white border-slate-300 text-rose-600' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded px-1.5 py-1 font-bold text-xs font-mono" />
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                                <div class="md:col-span-1">
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Perbaikan (Tindakan CAPA)*</label>
+                                    <input type="text" data-trouble-field="action_taken" data-row="${idx}" placeholder="Tindakan perbaikan yang dilakukan..." value="${row.action_taken || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-emerald-800' : 'bg-slate-950 border-slate-800 text-emerald-300'} border rounded px-2 py-1 text-xs outline-none focus:border-emerald-500 font-sans" />
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold">PIC Departemen*</label>
+                                    <input type="text" data-trouble-field="pic" data-row="${idx}" placeholder="Nama PIC..." value="${row.pic || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-cyan-800' : 'bg-slate-950 border-slate-800 text-cyan-300'} border rounded px-2 py-1 text-xs outline-none focus:border-cyan-500 font-sans font-medium" />
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Status*</label>
+                                    <select data-trouble-field="status" data-row="${idx}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold outline-none focus:border-amber-500">
+                                        <option value="CLOSED" ${row.status === 'CLOSED' ? 'selected' : ''}>CLOSED</option>
+                                        <option value="OPEN" ${row.status === 'OPEN' ? 'selected' : ''}>OPEN</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                            <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Problem (Deskripsi Masalah / Kerusakan)*</label>
-                                <input type="text" data-trouble-field="description" data-row="${idx}" placeholder="Deskripsi kendala kerusakan / masalah..." value="${row.description || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs outline-none focus:border-amber-500 font-sans" />
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Penyebab (Akar Masalah)*</label>
-                                <input type="text" data-trouble-field="cause" data-row="${idx}" placeholder="Akar masalah terjadinya kerusakan..." value="${row.cause || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs outline-none focus:border-amber-500 font-sans" />
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                            <div class="md:col-span-1">
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Perbaikan (Tindakan CAPA)*</label>
-                                <input type="text" data-trouble-field="action_taken" data-row="${idx}" placeholder="Tindakan perbaikan yang dilakukan..." value="${row.action_taken || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-emerald-800' : 'bg-slate-950 border-slate-800 text-emerald-300'} border rounded px-2 py-1 text-xs outline-none focus:border-emerald-500 font-sans" />
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">PIC Departemen*</label>
-                                <input type="text" data-trouble-field="pic" data-row="${idx}" placeholder="Nama PIC..." value="${row.pic || ''}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-cyan-800' : 'bg-slate-950 border-slate-800 text-cyan-300'} border rounded px-2 py-1 text-xs outline-none focus:border-cyan-500 font-sans font-medium" />
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 text-[10px] mb-1 font-semibold">Status*</label>
-                                <select data-trouble-field="status" data-row="${idx}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded px-2 py-1 text-xs font-bold outline-none focus:border-amber-500">
-                                    <option value="CLOSED" ${row.status === 'CLOSED' ? 'selected' : ''}>CLOSED</option>
-                                    <option value="OPEN" ${row.status === 'OPEN' ? 'selected' : ''}>OPEN</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
                 // Problem field change bindings
                 troubleContainer.querySelectorAll('[data-trouble-field]').forEach(input => {
-                    input.addEventListener('input', (e) => {
+                    const handleFieldChange = (e) => {
                         const field = e.target.getAttribute('data-trouble-field');
                         const rowIdx = parseInt(e.target.getAttribute('data-row'));
                         if (dailyTroubleLogsState[rowIdx]) {
@@ -7954,24 +8697,24 @@ tbody.innerHTML = '';
                                 renderTroubleRows();
                             }
 
-                            if (field === 'start_time' || field === 'end_time') {
-                                const st = dailyTroubleLogsState[rowIdx].start_time;
-                                const et = dailyTroubleLogsState[rowIdx].end_time;
-                                if (st && et) {
-                                    const stParts = st.split(':');
-                                    const etParts = et.split(':');
-                                    let stMin = parseInt(stParts[0]) * 60 + parseInt(stParts[1]);
-                                    let etMin = parseInt(etParts[0]) * 60 + parseInt(etParts[1]);
-                                    if (etMin < stMin) etMin += 24 * 60;
-                                    const diff = Math.max(0, etMin - stMin);
-                                    dailyTroubleLogsState[rowIdx].duration_minutes = diff;
-                                    renderTroubleRows();
+                            if (field === 'machine_id') {
+                                renderTroubleRows();
+                            }
+
+                            if (field === 'duration_minutes') {
+                                dailyTroubleLogsState[rowIdx].duration_minutes = parseFloat(e.target.value || 0);
+                                const durSpan = troubleContainer.querySelector(`.trouble-header-dur-${rowIdx}`);
+                                if (durSpan) {
+                                    durSpan.textContent = dailyTroubleLogsState[rowIdx].duration_minutes;
                                 }
                             }
 
                             updateRunTimeAndDowntime();
                         }
-                    });
+                    };
+
+                    input.addEventListener('input', handleFieldChange);
+                    input.addEventListener('change', handleFieldChange);
                 });
 
                 // Problem delete row bindings
@@ -7996,13 +8739,17 @@ tbody.innerHTML = '';
             addTroubleBtn.addEventListener('click', () => {
                 const defaultTeam = 'Team A';
                 const defaultLeader = getLeaderName(defaultTeam);
+                const selectedLineId = lineSelect ? lineSelect.value : null;
+                const lineMachines = this.getMachinesForLine(selectedLineId);
+                const opMachine = lineMachines.find(m => !((m.name && m.name.toLowerCase().includes('measuring')) || (m.code && m.code.toLowerCase().includes('measuring')))) || lineMachines[0];
+                const defaultMachineId = opMachine ? opMachine.id : (machineSelect ? machineSelect.value : null);
+
                 dailyTroubleLogsState.push({
+                    machine_id: defaultMachineId,
                     team: defaultTeam,
                     leader_name: defaultLeader,
                     problem_type: 'Problem Mesin Mekanik',
                     downtime_reason_id: '',
-                    start_time: '08:00',
-                    end_time: '',
                     duration_minutes: 0,
                     description: '',
                     cause: '',
@@ -8018,16 +8765,18 @@ tbody.innerHTML = '';
         // Change Event Listeners
         if (lineSelect) {
             lineSelect.addEventListener('change', () => {
-                filterProductsByLine();
+                filterProductsAndMachinesByLine();
+                const selectedLineId = lineSelect.value;
+                const lineMachines = this.getMachinesForLine(selectedLineId);
+                const defaultOp = lineMachines.find(m => !((m.name && m.name.toLowerCase().includes('measuring')) || (m.code && m.code.toLowerCase().includes('measuring')))) || lineMachines[0];
                 dailyTroubleLogsState.forEach(r => {
                     r.leader_name = getLeaderName(r.team);
+                    if (!lineMachines.some(m => String(m.id) === String(r.machine_id))) {
+                        r.machine_id = defaultOp ? defaultOp.id : (lineMachines[0]?.id || null);
+                    }
                 });
                 renderTroubleRows();
             });
-        }
-
-        if (productSelect) {
-            productSelect.addEventListener('change', calcTargetQty);
         }
 
         if (shiftSelect) {
@@ -8036,7 +8785,7 @@ tbody.innerHTML = '';
 
         if (plannedTimeInp) {
             plannedTimeInp.addEventListener('input', () => {
-                calcTargetQty();
+                updateProductCalculations();
                 updateRunTimeAndDowntime();
             });
         }
@@ -8045,14 +8794,14 @@ tbody.innerHTML = '';
             plannedDtInp.addEventListener('input', updateRunTimeAndDowntime);
         }
 
-        // 6. INITIAL TRIGGER ON MODAL OPEN
-        filterProductsByLine();
+        // INITIAL TRIGGER ON MODAL OPEN
+        filterProductsAndMachinesByLine();
         updateShiftCalc();
-        calcTargetQty();
+        updateProductCalculations();
         updateRunTimeAndDowntime();
         renderTroubleRows();
 
-        // 7. Form Submit Inside Modal
+        // Form Submit Inside Modal
         const modalForm = document.getElementById('form-modal-daily-entry');
         if (modalForm) {
             modalForm.addEventListener('submit', async (e) => {
@@ -8062,13 +8811,14 @@ tbody.innerHTML = '';
 
                 const prodDate = data.production_date || this.selectedDailyDate;
                 const validTroubleLogs = dailyTroubleLogsState.filter(r => 
-                    (r.duration_minutes > 0) || (r.description && r.description.trim() !== '') || (r.start_time && r.start_time.trim() !== '')
+                    (parseFloat(r.duration_minutes || 0) > 0) || (r.description && r.description.trim() !== '')
                 ).map(r => ({
+                    machine_id: r.machine_id ? parseInt(r.machine_id) : (data.machine_id ? parseInt(data.machine_id) : null),
                     team: r.team || null,
                     problem_type: r.problem_type || 'Problem Mesin Mekanik',
                     downtime_reason_id: r.downtime_reason_id || null,
-                    start_time: r.start_time ? `${prodDate} ${r.start_time}:00` : `${prodDate} 08:00:00`,
-                    end_time: r.end_time ? `${prodDate} ${r.end_time}:00` : null,
+                    start_time: null,
+                    end_time: null,
                     duration_minutes: parseFloat(r.duration_minutes || 0),
                     description: r.description || null,
                     cause: r.cause || null,
@@ -8079,6 +8829,12 @@ tbody.innerHTML = '';
                 }));
 
                 data.downtime_logs = validTroubleLogs;
+                data.items = dailyProductsState;
+
+                // Sync first product id if not populated
+                if ((!data.product_id || data.product_id === '') && dailyProductsState.length > 0) {
+                    data.product_id = dailyProductsState[0].product_id;
+                }
 
                 if (!this.validateProductionForm(data, modalForm)) return;
 
@@ -8087,7 +8843,12 @@ tbody.innerHTML = '';
                         this.selectedDailyDate = data.production_date;
                     }
                     await api.createProductionRecord(data);
-                    this.showNotification('Laporan Produksi Tersimpan', `Data laporan produksi tanggal ${this.selectedDailyDate} beserta ${validTroubleLogs.length} Log Problem berhasil disimpan!`, 'create');
+                    const prodNames = dailyProductsState.map(dp => {
+                        const p = (this.masterData.products || []).find(prod => prod.id == dp.product_id);
+                        return p ? p.sku || p.name : `#${dp.product_id}`;
+                    }).join(', ');
+
+                    this.showNotification('Laporan Produksi Tersimpan', `Laporan produksi [${prodNames}] tanggal ${this.selectedDailyDate} beserta ${validTroubleLogs.length} Log Problem berhasil disimpan!`, 'create');
                     closeModal();
                     await this.renderDailyReport();
                 } catch (err) {
@@ -8131,11 +8892,11 @@ tbody.innerHTML = '';
     // ==========================================
     // 3B-2. MODAL POPUP: CREATE STANDALONE TROUBLE LOG
     // ==========================================
-    showCreateDailyTroubleModal() {
+    showCreateDailyTroubleModal(presetLineId = null, presetDate = null) {
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
-        const defaultLineId = this.filters.line_id || this.masterData.lines?.[0]?.id || '';
+        const defaultLineId = presetLineId || this.filters.line_id || this.masterData.lines?.[0]?.id || '';
         const defaultShiftId = this.filters.shift_id || this.masterData.shifts?.[0]?.id || '';
-        const curDate = this.selectedDailyDate || new Date().toISOString().slice(0, 10);
+        const curDate = presetDate || this.selectedDailyDate || new Date().toISOString().slice(0, 10);
 
         const picOptions = [
             'Leader Team A (Alim Utama)',
@@ -8185,7 +8946,10 @@ tbody.innerHTML = '';
                             <div>
                                 <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Line*</label>
                                 <select name="production_line_id" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-bold text-cyan-600 dark:text-cyan-400 outline-none focus:border-amber-500">
-                                    ${this.masterData.lines.map(l => `<option value="${l.id}" ${l.id == defaultLineId ? 'selected' : ''}>${l.name}</option>`).join('')}
+                                    ${[...(this.masterData.lines || [])].sort((a,b) => (a.name||a.code||'').localeCompare(b.name||b.code||'', undefined, {numeric:true})).map(l => {
+                                        const cleanLName = (!l.code || l.name.toLowerCase().includes(l.code.toLowerCase())) ? l.name : `${l.code} - ${l.name}`;
+                                        return `<option value="${l.id}" ${l.id == defaultLineId ? 'selected' : ''}>${cleanLName}</option>`;
+                                    }).join('')}
                                 </select>
                             </div>
                             <div>
@@ -8250,22 +9014,17 @@ tbody.innerHTML = '';
                             <input type="text" name="action_taken" placeholder="Tindakan perbaikan dan countermeasure yang dilakukan..." required class="w-full ${isLight ? 'bg-white border-slate-300 text-emerald-700' : 'bg-slate-950 border-slate-800 text-emerald-300'} border rounded-lg px-2.5 py-2 outline-none focus:border-emerald-500 font-sans" />
                         </div>
 
-                        <!-- ROW 6: Jam Mulai, Jam Selesai & Losstime (Wajib Angka)* -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Mulai</label>
-                                <input type="time" name="start_time" value="08:00" required class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
-                            </div>
-                            <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Selesai</label>
-                                <input type="time" name="end_time" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-amber-500" />
-                            </div>
-                            <div>
-                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold flex items-center justify-between">
-                                    <span>Losstime (Menit)*</span>
-                                    <span class="text-[10px] text-amber-400 font-mono font-bold">(Wajib Angka)</span>
-                                </label>
-                                <input type="number" name="duration_minutes" min="1" step="1" placeholder="0" required class="w-full ${isLight ? 'bg-white border-slate-300 text-rose-600' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded-lg px-2.5 py-2 font-mono font-bold outline-none focus:border-amber-500" />
+                        <!-- ROW 6: Losstime (Menit)* -->
+                        <div>
+                            <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold flex items-center justify-between">
+                                <span>Losstime (Menit)*</span>
+                                <span class="text-[10px] text-amber-500 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded">Isian Menit Langsung</span>
+                            </label>
+                            <div class="relative">
+                                <input type="number" name="duration_minutes" min="1" step="1" placeholder="Masukkan durasi dalam menit (contoh: 20)" required class="w-full ${isLight ? 'bg-white border-slate-300 text-rose-600 focus:border-amber-500' : 'bg-slate-950 border-slate-800 text-rose-400 focus:border-amber-500'} border rounded-xl px-3.5 py-2.5 font-mono font-bold text-base outline-none pr-16" />
+                                <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold ${isLight ? 'text-slate-500' : 'text-slate-400'} pointer-events-none">
+                                    Menit
+                                </div>
                             </div>
                         </div>
 
@@ -8281,6 +9040,28 @@ tbody.innerHTML = '';
                                     <option value="CLOSED">CLOSED</option>
                                     <option value="OPEN">OPEN</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <!-- ROW 8: Perbaikan Selanjutnya, Due Date, PIC Follow-Up (Untuk Laporan F-PROD/CR-030/R0) -->
+                        <div class="p-3 border rounded-xl ${isLight ? 'bg-indigo-50/50 border-indigo-200' : 'bg-indigo-950/20 border-indigo-900/50'} space-y-2.5">
+                            <div class="font-bold text-[11px] ${isLight ? 'text-indigo-800' : 'text-indigo-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-indigo-200' : 'border-indigo-900/50'} pb-1">
+                                <i data-lucide="calendar-check-2" class="w-3.5 h-3.5"></i>
+                                Tindakan Pencegahan / Kaizen (Follow-Up), Due Date & PIC
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Perbaikan Selanjutnya (Kaizen / Tindakan Lanjutan)</label>
+                                <input type="text" name="follow_up_action" placeholder="Rencana tindakan lanjutan / Kaizen / modifikasi..." class="w-full ${isLight ? 'bg-white border-slate-300 text-indigo-900' : 'bg-slate-950 border-slate-800 text-indigo-300'} border rounded-lg px-2.5 py-2 outline-none focus:border-indigo-500 font-sans" />
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Target Selesai (Due Date)</label>
+                                    <input type="date" name="due_date" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-indigo-500" />
+                                </div>
+                                <div>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PIC Follow-up (Penanggung Jawab)</label>
+                                    <input type="text" name="pic_followup" list="standalone-problem-pic-list" placeholder="PIC penanggung jawab tindakan lanjutan..." class="w-full ${isLight ? 'bg-white border-slate-300 text-indigo-900' : 'bg-slate-950 border-slate-800 text-indigo-300'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-indigo-500" />
+                                </div>
                             </div>
                         </div>
 
@@ -8394,8 +9175,6 @@ tbody.innerHTML = '';
 
         lineSelect?.addEventListener('change', updateMachinesAndProducts);
         teamSelect?.addEventListener('change', updatePicSuggestion);
-        startTimeInp?.addEventListener('input', updateAutoDuration);
-        endTimeInp?.addEventListener('input', updateAutoDuration);
 
         // Initial setup
         updateMachinesAndProducts();
@@ -8414,7 +9193,6 @@ tbody.innerHTML = '';
                 }
 
                 const targetDate = data.production_date || this.selectedDailyDate || new Date().toISOString().slice(0, 10);
-                const startTimeVal = data.start_time || '08:00';
 
                 const payload = {
                     production_line_id: data.production_line_id,
@@ -8424,12 +9202,15 @@ tbody.innerHTML = '';
                     team: data.team || null,
                     problem_type: data.problem_type || 'Problem Mesin Mekanik',
                     downtime_reason_id: data.downtime_reason_id || null,
-                    start_time: `${targetDate} ${startTimeVal}:00`,
+                    start_time: data.start_time ? `${targetDate} ${data.start_time}:00` : null,
                     end_time: data.end_time ? `${targetDate} ${data.end_time}:00` : null,
                     duration_minutes: durationMins,
                     description: data.description,
                     cause: data.cause || null,
                     action_taken: data.action_taken || null,
+                    follow_up_action: data.follow_up_action || null,
+                    due_date: data.due_date || null,
+                    pic_followup: data.pic_followup || null,
                     pic: data.pic || null,
                     status: (data.status || 'CLOSED').toUpperCase(),
                     is_planned: false,
@@ -8449,8 +9230,8 @@ tbody.innerHTML = '';
         }
     }
 
-    showCreateDailyProblemModal() {
-        return this.showCreateDailyTroubleModal();
+    showCreateDailyProblemModal(presetLineId = null, presetDate = null) {
+        return this.showCreateDailyTroubleModal(presetLineId, presetDate);
     }
 
     // ==========================================
@@ -9446,8 +10227,10 @@ tbody.innerHTML = '';
                             <!-- Status Filter -->
                             <select id="modal-ng-status" class="${isLight ? 'bg-white border-slate-300 text-slate-800' : 'bg-slate-950 border-slate-800 text-slate-200'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500 font-sans cursor-pointer">
                                 <option value="all" ${modalActiveStatus === 'all' ? 'selected' : ''}>Semua Status</option>
-                                <option value="pending" ${modalActiveStatus === 'pending' ? 'selected' : ''}>🟡 Belum Diisi / Pending</option>
                                 <option value="completed" ${modalActiveStatus === 'completed' ? 'selected' : ''}>🟢 Selesai Terisi / Lengkap</option>
+                                <option value="pending" ${modalActiveStatus === 'pending' ? 'selected' : ''}>🟡 Belum Diisi / Pending</option>
+                                <option value="OVERDUE" ${modalActiveStatus === 'OVERDUE' ? 'selected' : ''}>🚨 OVER DUEDATE</option>
+                                <option value="UNSET" ${modalActiveStatus === 'UNSET' ? 'selected' : ''}>⏳ BELUM DI-SET</option>
                             </select>
 
                             <!-- Line Filter -->
@@ -9491,8 +10274,11 @@ tbody.innerHTML = '';
                                     <th class="p-3 text-center bg-inherit w-24">Komponen</th>
                                     <th class="p-3 text-right bg-inherit w-24">Jumlah Defect</th>
                                     <th class="p-3 text-center bg-inherit w-28">Mesin / OP</th>
-                                    <th class="p-3 bg-inherit min-w-[160px]">Section / Proses</th>
-                                    <th class="p-3 bg-inherit min-w-[220px]">Alasan Defect / Keterangan NG</th>
+                                    <th class="p-3 bg-inherit min-w-[150px]">Section / Proses</th>
+                                    <th class="p-3 bg-inherit min-w-[180px]">Alasan Defect / Keterangan NG</th>
+                                    <th class="p-3 bg-inherit min-w-[200px]">Tindakan Perbaikan (CAPA & Kaizen)</th>
+                                    <th class="p-3 bg-inherit min-w-[110px]">Due Date</th>
+                                    <th class="p-3 bg-inherit min-w-[130px]">PIC / Follow-up</th>
                                     <th class="p-3 text-center bg-inherit w-28">Status</th>
                                 </tr>
                             </thead>
@@ -9561,7 +10347,7 @@ tbody.innerHTML = '';
                 if (tbody) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="11" class="p-8 text-center text-slate-400 font-sans">
+                            <td colspan="14" class="p-8 text-center text-slate-400 font-sans">
                                 <div class="w-8 h-8 border-4 border-rose-500/30 border-t-rose-500 rounded-full animate-spin mx-auto mb-2"></div>
                                 <div class="text-xs font-bold">Memuat data rincian NG...</div>
                             </td>
@@ -9655,6 +10441,10 @@ tbody.innerHTML = '';
             filteredReports.forEach(item => {
                 const ng = item.ng_detail;
                 const breakdown = (ng && ((ng.items && ng.items.length > 0) ? ng.items : (ng.items_breakdown && ng.items_breakdown.length > 0 ? ng.items_breakdown : null)));
+                const dueDateVal = ng?.due_date || null;
+                const picVal = ng?.pic_followup || ng?.inspector_name || item.operator_name || 'QC Inspector';
+                const actionTakenVal = ng?.action_taken || '-';
+                const followUpVal = ng?.follow_up_action || '';
 
                 if (breakdown && breakdown.length > 0) {
                     breakdown.forEach((b, bIdx) => {
@@ -9675,6 +10465,10 @@ tbody.innerHTML = '';
                             op_machine: b.op_machine || '-',
                             section: b.section || '-',
                             reason: b.reason || '-',
+                            action_taken: actionTakenVal,
+                            follow_up_action: followUpVal,
+                            due_date: dueDateVal,
+                            pic_followup: picVal,
                             status: item.has_ng_detail ? (item.is_balanced ? 'LENGKAP' : `SELISIH (${item.variance})`) : 'PENDING',
                             isBalanced: item.is_balanced,
                             hasDetail: item.has_ng_detail,
@@ -9717,6 +10511,10 @@ tbody.innerHTML = '';
                                 op_machine: '-',
                                 section: c.section,
                                 reason: 'Rincian Defect Belum Ditentukan',
+                                action_taken: actionTakenVal,
+                                follow_up_action: followUpVal,
+                                due_date: dueDateVal,
+                                pic_followup: picVal,
                                 status: item.has_ng_detail ? (item.is_balanced ? 'LENGKAP' : `SELISIH (${item.variance})`) : 'PENDING',
                                 isBalanced: item.is_balanced,
                                 hasDetail: item.has_ng_detail,
@@ -9745,6 +10543,10 @@ tbody.innerHTML = '';
                             op_machine: '-',
                             section: '-',
                             reason: 'Belum Ada Rincian Komponen Terdata',
+                            action_taken: actionTakenVal,
+                            follow_up_action: followUpVal,
+                            due_date: dueDateVal,
+                            pic_followup: picVal,
                             status: 'PENDING',
                             isBalanced: false,
                             hasDetail: false,
@@ -9771,6 +10573,10 @@ tbody.innerHTML = '';
                         op_machine: '-',
                         section: '-',
                         reason: 'Belum Diisi / Menunggu Input Detail NG',
+                        action_taken: '-',
+                        follow_up_action: '',
+                        due_date: null,
+                        pic_followup: item.operator_name || 'QC Inspector',
                         status: 'PENDING',
                         isBalanced: false,
                         hasDetail: false,
@@ -9780,8 +10586,21 @@ tbody.innerHTML = '';
                 }
             });
 
-            // 3. Filter detail rows by Component and Search query
+            // 3. Filter detail rows by Status, Component, and Search query
             const finalRows = detailRows.filter(row => {
+                const isClosedNg = row.hasDetail && row.isBalanced;
+                const meta = this.getDueStatusMeta({
+                    status: isClosedNg ? 'CLOSED' : 'OPEN',
+                    due_date: row.due_date,
+                    is_closed: isClosedNg
+                }, isLight);
+
+                // Status Filter
+                if (modalActiveStatus === 'completed' && !isClosedNg) return false;
+                if (modalActiveStatus === 'pending' && isClosedNg) return false;
+                if (modalActiveStatus === 'OVERDUE' && !meta.isOverdue) return false;
+                if (modalActiveStatus === 'UNSET' && !meta.isUnset) return false;
+
                 // Component Filter
                 if (modalActiveComp === 'assy' && row.component !== 'ASSY') return false;
                 if (modalActiveComp === 'rod' && row.component !== 'ROD') return false;
@@ -9790,7 +10609,7 @@ tbody.innerHTML = '';
 
                 // Search Query
                 if (q) {
-                    const rowText = `${row.line} ${row.machine} ${row.product} ${row.sku} ${row.component} ${row.section} ${row.op_machine} ${row.reason} ${row.shift} ${row.date}`.toLowerCase();
+                    const rowText = `${row.line} ${row.machine} ${row.product} ${row.sku} ${row.component} ${row.section} ${row.op_machine} ${row.reason} ${row.action_taken} ${row.follow_up_action} ${row.due_date || ''} ${row.pic_followup} ${row.shift} ${row.date}`.toLowerCase();
                     if (!rowText.includes(q)) return false;
                 }
 
@@ -9803,8 +10622,11 @@ tbody.innerHTML = '';
             const totalRodPcs = finalRows.filter(r => r.component === 'ROD').reduce((s, r) => s + (r.quantity || 0), 0);
             const totalCapPcs = finalRows.filter(r => r.component === 'CAP').reduce((s, r) => s + (r.quantity || 0), 0);
             const totalNonOeePcs = finalRows.filter(r => ['BOLT', 'BUSH', 'NUT', 'PIN', 'NON_OEE'].includes(r.component)).reduce((s, r) => s + (r.quantity || 0), 0);
-            const pendingRowsCount = finalRows.filter(r => r.status === 'PENDING').length;
-            const completedRowsCount = finalRows.length - pendingRowsCount;
+            
+            const completedRowsCount = finalRows.filter(r => r.hasDetail && r.isBalanced).length;
+            const pendingRowsCount = finalRows.length - completedRowsCount;
+            const overdueNgCount = finalRows.filter(r => this.getDueStatusMeta({ status: r.hasDetail && r.isBalanced ? 'CLOSED' : 'OPEN', due_date: r.due_date, is_closed: r.hasDetail && r.isBalanced }).isOverdue).length;
+            const unsetNgCount = finalRows.filter(r => this.getDueStatusMeta({ status: r.hasDetail && r.isBalanced ? 'CLOSED' : 'OPEN', due_date: r.due_date, is_closed: r.hasDetail && r.isBalanced }).isUnset && (!r.hasDetail || !r.isBalanced)).length;
 
             if (countBadge) {
                 countBadge.textContent = `${finalRows.length} Baris Defect (${totalDefectPcs.toLocaleString()} Pcs)`;
@@ -9830,24 +10652,32 @@ tbody.innerHTML = '';
                             <span>Non-OEE: <strong class="text-purple-300 font-bold">${totalNonOeePcs.toLocaleString()} Pcs</strong></span>
                         </span>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 text-emerald-200 border border-emerald-500/80 font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
                             <span>✓ ${completedRowsCount} Lengkap</span>
                         </span>
                         ${pendingRowsCount > 0 ? `
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950 text-amber-200 border-2 border-amber-500 font-black shadow-[0_0_14px_rgba(245,158,11,0.5)] animate-pulse">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950 text-amber-200 border border-amber-500 font-bold shadow-[0_0_10px_rgba(245,158,11,0.3)]">
+                                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                <span>⚡ ${pendingRowsCount} Perlu Input</span>
+                            </span>
+                        ` : ''}
+                        ${overdueNgCount > 0 ? `
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950 text-rose-100 border-2 border-rose-500 font-black shadow-[0_0_14px_rgba(244,63,94,0.7)] animate-pulse">
                                 <span class="relative flex h-2 w-2">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-90"></span>
-                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                                 </span>
-                                <span>⚠️ ${pendingRowsCount} Perlu Input</span>
+                                <span>🚨 ${overdueNgCount} Over Duedate</span>
                             </span>
-                        ` : `
-                            <span class="px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 text-[11px]">
-                                0 Pending
+                        ` : ''}
+                        ${unsetNgCount > 0 ? `
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950 text-amber-200 border border-amber-500 font-bold shadow-[0_0_10px_rgba(245,158,11,0.4)]">
+                                <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+                                <span>⏳ ${unsetNgCount} Belum Di-set</span>
                             </span>
-                        `}
+                        ` : ''}
                     </div>
                 `;
             }
@@ -9855,7 +10685,7 @@ tbody.innerHTML = '';
             if (finalRows.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="11" class="p-12 text-center text-slate-500 font-sans">
+                        <td colspan="14" class="p-12 text-center text-slate-500 font-sans">
                             <div class="flex flex-col items-center justify-center gap-2">
                                 <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-500 opacity-70"></i>
                                 <span class="font-bold text-sm">Tidak ada rincian baris defect NG yang cocok dengan filter.</span>
@@ -9870,8 +10700,15 @@ tbody.innerHTML = '';
 
             // Render pure detailed flat table rows
             tbody.innerHTML = finalRows.map((row, idx) => {
+                const isClosedNg = row.hasDetail && row.isBalanced;
+                const meta = this.getDueStatusMeta({
+                    status: isClosedNg ? 'CLOSED' : 'OPEN',
+                    due_date: row.due_date,
+                    is_closed: isClosedNg
+                }, isLight);
+
                 return `
-                    <tr class="${isLight ? 'hover:bg-slate-50/90' : 'hover:bg-slate-800/50'} transition-colors ${row.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/15') : ''}">
+                    <tr class="${isLight ? 'hover:bg-slate-50/90' : 'hover:bg-slate-800/50'} transition-colors ${meta.isOverdue ? (isLight ? 'bg-rose-50/40' : 'bg-rose-950/20') : (row.status === 'PENDING' ? (isLight ? 'bg-amber-50/40' : 'bg-amber-950/15') : '')}">
                         <!-- 1. No -->
                         <td class="p-3 text-center font-mono ${isLight ? 'text-slate-500' : 'text-slate-500'} text-[11px]">${idx + 1}</td>
                         
@@ -9937,7 +10774,31 @@ tbody.innerHTML = '';
                             <div class="text-xs font-semibold ${isLight ? 'text-amber-800' : 'text-amber-300'}">${row.reason}</div>
                         </td>
 
-                        <!-- 11. Status -->
+                        <!-- 11. Tindakan Perbaikan (CAPA & Kaizen) -->
+                        <td class="p-3 font-sans text-xs max-w-[220px]">
+                            <div class="text-emerald-500 font-medium leading-relaxed">${row.action_taken && row.action_taken !== '-' ? row.action_taken : '<span class="text-slate-500 italic">-</span>'}</div>
+                            ${row.follow_up_action ? `
+                                <div class="mt-1 pt-1 border-t ${isLight ? 'border-slate-200 text-indigo-700' : 'border-slate-800 text-indigo-300'} text-[11px] flex items-start gap-1">
+                                    <span class="font-bold uppercase text-[9px] px-1 py-0.5 rounded ${isLight ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'} border shrink-0">Kaizen</span>
+                                    <span class="truncate" title="${row.follow_up_action}">${row.follow_up_action}</span>
+                                </div>
+                            ` : ''}
+                        </td>
+
+                        <!-- 12. Due Date -->
+                        <td class="p-3 font-sans text-xs whitespace-nowrap">
+                            ${meta.dueDateHtml}
+                        </td>
+
+                        <!-- 13. PIC / Follow-up -->
+                        <td class="p-3 font-sans text-xs whitespace-nowrap">
+                            <div class="flex items-center gap-1 text-cyan-400 font-semibold">
+                                <i data-lucide="user-check" class="w-3.5 h-3.5 text-cyan-500 flex-shrink-0"></i>
+                                <span>${row.pic_followup || '-'}</span>
+                            </div>
+                        </td>
+
+                        <!-- 14. Status -->
                         <td class="p-3 text-center font-sans">
                             ${row.hasDetail ? `
                                 ${row.isBalanced ? `
@@ -9950,9 +10811,19 @@ tbody.innerHTML = '';
                                     </span>
                                 `}
                             ` : `
-                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-amber-950/80 text-amber-300 border border-amber-800'}">
-                                    <i data-lucide="clock" class="w-3 h-3"></i> Perlu Input
-                                </span>
+                                ${meta.isUnset ? `
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950/90 text-amber-300 border border-amber-700'} animate-pulse">
+                                        <i data-lucide="clock" class="w-3 h-3 text-amber-500"></i> Belum Di-set
+                                    </span>
+                                ` : (meta.isOverdue ? `
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase text-[9px] ${isLight ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-rose-950/90 text-rose-300 border border-rose-700'} animate-pulse">
+                                        <i data-lucide="alert-triangle" class="w-3 h-3 text-rose-500"></i> Over Duedate
+                                    </span>
+                                ` : `
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isLight ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-amber-950/80 text-amber-300 border border-amber-800'}">
+                                        <i data-lucide="clock" class="w-3 h-3"></i> Perlu Input
+                                    </span>
+                                `)}
                             `}
                         </td>
                     </tr>
@@ -10295,10 +11166,15 @@ tbody.innerHTML = '';
                 label: m.name + (m.code ? ` (${m.code})` : '')
             })) || [];
 
+            // Multi-SKU products support
+            const productionSkus = item.production_skus || [];
+            const hasMultiSku = item.has_multi_sku || productionSkus.length > 1;
+
             // Initialize Dynamic NG Breakdown Items State
             let ngItemsState = [];
             if (ng.items && Array.isArray(ng.items) && ng.items.length > 0) {
                 ngItemsState = ng.items.map(it => ({
+                    product_id: parseInt(it.product_id) || (productionSkus[0]?.product_id || item.product_id),
                     component_type: it.component_type || 'ASSY',
                     quantity: parseInt(it.quantity || 1),
                     op_machine: it.op_machine || '',
@@ -10307,6 +11183,7 @@ tbody.innerHTML = '';
                 }));
             } else if (ng.items_breakdown && Array.isArray(ng.items_breakdown) && ng.items_breakdown.length > 0) {
                 ngItemsState = ng.items_breakdown.map(it => ({
+                    product_id: parseInt(it.product_id) || (productionSkus[0]?.product_id || item.product_id),
                     component_type: it.component_type || 'ASSY',
                     quantity: parseInt(it.quantity || 1),
                     op_machine: it.op_machine || '',
@@ -10316,6 +11193,7 @@ tbody.innerHTML = '';
             } else if (ng.ng_assy > 0 || ng.ng_rod > 0 || ng.ng_cap > 0) {
                 if (ng.ng_assy > 0) {
                     ngItemsState.push({
+                        product_id: productionSkus[0]?.product_id || item.product_id,
                         component_type: 'ASSY',
                         quantity: parseInt(ng.ng_assy),
                         op_machine: ng.op_machine || '',
@@ -10325,6 +11203,7 @@ tbody.innerHTML = '';
                 }
                 if (ng.ng_rod > 0) {
                     ngItemsState.push({
+                        product_id: productionSkus[0]?.product_id || item.product_id,
                         component_type: 'ROD',
                         quantity: parseInt(ng.ng_rod),
                         op_machine: ng.op_machine || '',
@@ -10334,6 +11213,7 @@ tbody.innerHTML = '';
                 }
                 if (ng.ng_cap > 0) {
                     ngItemsState.push({
+                        product_id: productionSkus[0]?.product_id || item.product_id,
                         component_type: 'CAP',
                         quantity: parseInt(ng.ng_cap),
                         op_machine: ng.op_machine || '',
@@ -10343,15 +11223,29 @@ tbody.innerHTML = '';
                 }
             }
 
-            // If completely empty, seed with 1 default row
+            // Seed initial rows based on production SKUs target NG
             if (ngItemsState.length === 0) {
-                ngItemsState.push({
-                    component_type: 'ASSY',
-                    quantity: targetNg > 0 ? targetNg : 1,
-                    op_machine: '',
-                    section: '',
-                    reason: ''
-                });
+                if (hasMultiSku && productionSkus.length > 0) {
+                    productionSkus.forEach(ps => {
+                        ngItemsState.push({
+                            product_id: ps.product_id,
+                            component_type: 'ASSY',
+                            quantity: ps.total_ng_target > 0 ? ps.total_ng_target : 1,
+                            op_machine: '',
+                            section: '',
+                            reason: ''
+                        });
+                    });
+                } else {
+                    ngItemsState.push({
+                        product_id: item.product_id,
+                        component_type: 'ASSY',
+                        quantity: targetNg > 0 ? targetNg : 1,
+                        op_machine: '',
+                        section: '',
+                        reason: ''
+                    });
+                }
             }
 
             const existingBolt = ng.ng_bolt || 0;
@@ -10373,6 +11267,7 @@ tbody.innerHTML = '';
                                     <h3 class="text-base font-bold ${isLightModal ? 'text-slate-900' : 'text-white'} flex flex-wrap items-center gap-2">
                                         <span>Input Detail Komponen NG</span>
                                         <span class="text-[10px] font-mono px-2 py-0.5 rounded ${isLightModal ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-rose-950 text-rose-300 border-rose-800'} border font-bold">Target: ${targetNg} Pcs</span>
+                                        ${hasMultiSku ? `<span class="text-[10px] px-2 py-0.5 rounded font-bold ${isLightModal ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-950 text-amber-300 border border-amber-700'}">Multi-SKU (${productionSkus.length} Produk)</span>` : ''}
                                     </h3>
                                     <p class="text-xs ${isLightModal ? 'text-slate-500' : 'text-slate-400'}">${item.formatted_date} • ${item.shift_name} • ${item.line_name} (${item.machine_name})</p>
                                 </div>
@@ -10394,6 +11289,47 @@ tbody.innerHTML = '';
 
                             <!-- SCROLLABLE BODY CONTENT -->
                             <div class="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1 custom-scrollbar">
+                                
+                                ${hasMultiSku ? `
+                                <!-- MULTI-SKU PRODUCTION BREAKDOWN CARD -->
+                                <div class="p-3.5 rounded-xl border ${isLightModal ? 'bg-amber-50/80 border-amber-200 text-amber-950 shadow-xs' : 'bg-amber-950/40 border-amber-500/40 text-amber-100'} space-y-2.5">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 border-b ${isLightModal ? 'border-amber-200' : 'border-amber-500/30'} pb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded-lg ${isLightModal ? 'bg-amber-200 text-amber-900' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'} flex items-center justify-center font-bold text-xs">
+                                                <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                                            </span>
+                                            <div>
+                                                <span class="font-bold text-xs block">Rincian Multi-SKU Produk Pada Laporan Ini</span>
+                                                <span class="text-[11px] opacity-80">Pilih nama produk di setiap baris tabel di bawah untuk mendistribusikan data NG:</span>
+                                            </div>
+                                        </div>
+                                        <span class="text-[11px] font-mono font-bold ${isLightModal ? 'bg-amber-200/80 text-amber-900' : 'bg-amber-900/60 text-amber-300 border border-amber-600'} px-2.5 py-1 rounded-md">
+                                            Total Reject: ${targetNg} Pcs
+                                        </span>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-${Math.min(productionSkus.length, 3)} gap-2.5 font-mono text-xs">
+                                        ${productionSkus.map((ps, sIdx) => `
+                                            <div class="p-2.5 rounded-xl border ${isLightModal ? 'bg-white border-amber-200 shadow-xs' : 'bg-slate-900/90 border-slate-800 shadow-xs'} space-y-1.5">
+                                                <div class="flex items-center justify-between gap-1">
+                                                    <span class="font-sans font-bold text-xs truncate ${isLightModal ? 'text-slate-900' : 'text-white'}" title="${ps.product_name}">
+                                                        ${sIdx + 1}. <span class="${isLightModal ? 'text-amber-800' : 'text-amber-400'} font-mono">${ps.product_sku}</span>
+                                                    </span>
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLightModal ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-rose-950 text-rose-300 border border-rose-800'} shrink-0">
+                                                        Target NG: ${ps.total_ng_target} Pcs
+                                                    </span>
+                                                </div>
+                                                <div class="text-[11px] ${isLightModal ? 'text-slate-600' : 'text-slate-300'} font-sans truncate font-medium">
+                                                    ${ps.product_name}
+                                                </div>
+                                                <div class="flex items-center justify-between text-[10px] pt-1.5 border-t ${isLightModal ? 'border-slate-100 text-slate-500' : 'border-slate-800 text-slate-400'} font-sans">
+                                                    <span>Measuring: <strong class="${isLightModal ? 'text-cyan-800' : 'text-cyan-400'} font-mono">${ps.total_quantity.toLocaleString()}</strong></span>
+                                                    <span>Finish Good: <strong class="${isLightModal ? 'text-emerald-800' : 'text-emerald-400'} font-mono">${ps.good_quantity.toLocaleString()}</strong></span>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                ` : `
                                 <!-- METADATA BADGE BAR -->
                                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 ${isLightModal ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} p-3 rounded-xl border text-xs font-mono">
                                     <div>
@@ -10413,13 +11349,14 @@ tbody.innerHTML = '';
                                         <strong class="${isLightModal ? 'text-rose-700 font-bold' : 'text-rose-400 font-bold'}">${targetNg.toLocaleString()} Pcs</strong>
                                     </div>
                                 </div>
+                                `}
 
                                 <!-- SEKSI 1: KOMPONEN WAJIB (DIHITUNG SEBAGAI OEE) — DYNAMIC MULTI-ROW BUILDER -->
                                 <div class="${isLightModal ? 'bg-cyan-50/30 border-cyan-200' : 'bg-slate-950/60 border-cyan-500/30'} border rounded-xl p-4 space-y-3.5">
                                     <div class="flex flex-wrap items-center justify-between gap-2 border-b ${isLightModal ? 'border-cyan-100' : 'border-slate-800/80'} pb-2">
                                         <div class="flex items-center gap-2">
                                             <span class="w-5 h-5 rounded-full ${isLightModal ? 'bg-cyan-100 text-cyan-800 border-cyan-300' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'} font-bold text-xs flex items-center justify-center border">1</span>
-                                            <h4 class="font-bold text-xs ${isLightModal ? 'text-cyan-900' : 'text-cyan-300'} uppercase tracking-wider">Komponen Utama NG</h4>
+                                            <h4 class="font-bold text-xs ${isLightModal ? 'text-cyan-900' : 'text-cyan-300'} uppercase tracking-wider">Komponen Utama NG (Wajib OEE)</h4>
                                         </div>
                                         
                                         <!-- LIVE BALANCE INDICATOR -->
@@ -10427,6 +11364,19 @@ tbody.innerHTML = '';
                                             <!-- Dynamic balance badge -->
                                         </div>
                                     </div>
+
+                                    ${hasMultiSku ? `
+                                    <!-- LIVE SKU TARGET BALANCER BADGES -->
+                                    <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl border ${isLightModal ? 'bg-white border-cyan-200' : 'bg-slate-900/90 border-slate-800'} text-xs">
+                                        <span class="text-[11px] font-bold ${isLightModal ? 'text-slate-700' : 'text-slate-300'} flex items-center gap-1.5">
+                                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-cyan-500"></i>
+                                            <span>Progress Defect Per Produk:</span>
+                                        </span>
+                                        <div id="ng-sku-balance-badges" class="flex flex-wrap items-center gap-1.5">
+                                            <!-- Dynamic SKU Chips -->
+                                        </div>
+                                    </div>
+                                    ` : ''}
 
                                     <div class="flex flex-wrap items-center justify-end gap-2">
                                         <!-- BUTTON TAMBAH BARIS DATA -->
@@ -10473,15 +11423,16 @@ tbody.innerHTML = '';
                                             <thead class="sticky top-0 z-10 ${isLightModal ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-900 text-slate-300 border-slate-700'} uppercase font-semibold text-[10px] border-b shadow-xs">
                                                 <tr>
                                                     <th class="p-2.5 text-center w-8 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">#</th>
-                                                    <th class="p-2.5 min-w-[140px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">OP Mesin (Ketik / Cari)</th>
-                                                    <th class="p-2.5 w-28 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Komponen OEE <span class="text-rose-500">*</span></th>
-                                                    <th class="p-2.5 w-24 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Jumlah (Pcs) <span class="text-rose-500">*</span></th>
-                                                    <th class="p-2.5 min-w-[140px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Bagian NG (Ketik / Cari)</th>
-                                                    <th class="p-2.5 min-w-[180px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Penyebab / Remark (Ketik / Cari)</th>
+                                                    ${hasMultiSku ? `<th class="p-2.5 min-w-[150px] ${isLightModal ? 'bg-amber-100/80 text-amber-900' : 'bg-amber-950/80 text-amber-300'}">Produk / SKU <span class="text-rose-500">*</span></th>` : ''}
+                                                    <th class="p-2.5 min-w-[130px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">OP Mesin</th>
+                                                    <th class="p-2.5 w-24 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Komponen <span class="text-rose-500">*</span></th>
+                                                    <th class="p-2.5 w-24 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Jumlah <span class="text-rose-500">*</span></th>
+                                                    <th class="p-2.5 min-w-[140px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Bagian NG <span class="text-rose-500">*</span></th>
+                                                    <th class="p-2.5 min-w-[170px] ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Penyebab / Remark <span class="text-rose-500">*</span></th>
                                                     <th class="p-2.5 text-center w-10 ${isLightModal ? 'bg-slate-100' : 'bg-slate-900'}">Aksi</th>
                                                 </tr>
                                             </thead>
-                                            <tbody id="ng-dynamic-rows-tbody" class="divide-y ${isLightModal ? 'divide-slate-200 text-slate-800' : 'divide-slate-800/60 text-slate-200'} font-mono">
+                                             <tbody id="ng-dynamic-rows-tbody" class="divide-y ${isLightModal ? 'divide-slate-200 text-slate-800' : 'divide-slate-800/60 text-slate-200'} font-mono">
                                                 <!-- Dynamically generated rows -->
                                             </tbody>
                                         </table>
@@ -10551,6 +11502,37 @@ tbody.innerHTML = '';
                                         <textarea name="notes" rows="2" placeholder="Catatan analisa akar masalah atau tindakan penanganan..." class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900 focus:border-cyan-600' : 'bg-slate-900 border-slate-800 text-slate-100 focus:border-cyan-500'} border rounded-lg px-2.5 py-2 text-xs focus:outline-none font-sans">${ng.notes || ''}</textarea>
                                     </div>
                                 </div>
+
+                                <!-- SEKSI 4: TINDAKAN PENCEGAHAN, DUE DATE & PIC (QUALITY LOSS FOLLOW-UP / KAIZEN) -->
+                                <div class="${isLightModal ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-950/60 border-emerald-500/30'} border rounded-xl p-4 space-y-3">
+                                    <div class="flex items-center justify-between border-b ${isLightModal ? 'border-emerald-100' : 'border-slate-800/80'} pb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-5 h-5 rounded-full ${isLightModal ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'} font-bold text-xs flex items-center justify-center border">4</span>
+                                            <h4 class="font-bold text-xs ${isLightModal ? 'text-emerald-900' : 'text-emerald-300'} uppercase tracking-wider">Perbaikan Selanjutnya & Target Penyelesaian (Laporan Kualitas)</h4>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${isLightModal ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'} border">
+                                            Sinkronisasi Laporan Rasio
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-xs ${isLightModal ? 'text-slate-700 font-medium' : 'text-slate-400 font-medium'} mb-1">Perbaikan Selanjutnya (Kaizen / Countermeasure Plan)</label>
+                                            <input type="text" name="follow_up_action" value="${ng.follow_up_action || ''}" placeholder="Cth: Setting ulang stopper jig & kalibrasi dial gauge" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900 focus:border-emerald-600' : 'bg-slate-900 border-slate-800 text-slate-100 focus:border-emerald-500'} border rounded-lg px-2.5 py-2 text-xs focus:outline-none font-sans" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs ${isLightModal ? 'text-slate-700 font-medium' : 'text-slate-400 font-medium'} mb-1">PIC Follow-Up</label>
+                                            <input type="text" name="pic_followup" value="${ng.pic_followup || ''}" placeholder="Cth: PE, QC, MTC, dsb" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900 focus:border-emerald-600' : 'bg-slate-900 border-slate-800 text-slate-100 focus:border-emerald-500'} border rounded-lg px-2.5 py-2 text-xs focus:outline-none font-sans" />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div>
+                                            <label class="block text-xs ${isLightModal ? 'text-slate-700 font-medium' : 'text-slate-400 font-medium'} mb-1">Target Selesai (Due Date)</label>
+                                            <input type="date" name="due_date" value="${ng.due_date || ''}" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900 focus:border-emerald-600' : 'bg-slate-900 border-slate-800 text-slate-100 focus:border-emerald-500'} border rounded-lg px-2.5 py-2 text-xs font-mono focus:outline-none" />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- MODAL FOOTER (STICKY AT BOTTOM) -->
@@ -10587,6 +11569,14 @@ tbody.innerHTML = '';
                 this.showMobileNgDetailModal(productionRecordId);
             });
 
+            // Bind Dynamic SKU / Product Selector Switcher
+            document.getElementById('select-ng-sibling-record')?.addEventListener('change', (e) => {
+                const nextRecordId = parseInt(e.target.value);
+                if (nextRecordId && nextRecordId !== productionRecordId) {
+                    this.showNgDetailModal(nextRecordId, forceDesktop);
+                }
+            });
+
             // 1. Dynamic Multi-Row Table Renderer & Calculator
             const tbody = document.getElementById('ng-dynamic-rows-tbody');
             const balanceIndicator = document.getElementById('ng-balance-indicator');
@@ -10601,6 +11591,17 @@ tbody.innerHTML = '';
                     return `
                         <tr class="${isLightModal ? 'hover:bg-slate-50' : 'hover:bg-slate-800/30'} transition-colors">
                             <td class="p-2 text-center text-slate-500 font-mono text-[11px]">${idx + 1}</td>
+                            ${hasMultiSku ? `
+                            <td class="p-2 font-sans min-w-[150px]">
+                                <select data-row-idx="${idx}" data-field="product_id" class="w-full ${isLightModal ? 'bg-amber-50/80 border-amber-300 text-slate-900 font-bold focus:bg-white' : 'bg-slate-950 border-amber-500/50 text-amber-200 font-bold focus:bg-slate-900'} border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-xs cursor-pointer">
+                                    ${productionSkus.map(ps => `
+                                        <option value="${ps.product_id}" ${String(row.product_id) === String(ps.product_id) ? 'selected' : ''}>
+                                            ${ps.product_sku} (Target: ${ps.total_ng_target} Pcs)
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </td>
+                            ` : ''}
                             <td class="p-2 font-sans">
                                 <div class="relative flex items-center">
                                     <input 
@@ -10684,6 +11685,8 @@ tbody.innerHTML = '';
                         if (ngItemsState[idx]) {
                             if (field === 'quantity') {
                                 ngItemsState[idx][field] = parseInt(e.target.value || 0);
+                            } else if (field === 'product_id') {
+                                ngItemsState[idx][field] = parseInt(e.target.value);
                             } else {
                                 ngItemsState[idx][field] = e.target.value;
                             }
@@ -10715,6 +11718,8 @@ tbody.innerHTML = '';
                 let sumAssy = 0;
                 let sumRod = 0;
                 let sumCap = 0;
+                const skuCounts = {};
+                productionSkus.forEach(ps => { skuCounts[ps.product_id] = 0; });
 
                 ngItemsState.forEach(it => {
                     const q = parseInt(it.quantity || 0);
@@ -10722,6 +11727,9 @@ tbody.innerHTML = '';
                     if (type === 'ASSY') sumAssy += q;
                     else if (type === 'ROD') sumRod += q;
                     else if (type === 'CAP') sumCap += q;
+
+                    const pid = parseInt(it.product_id) || (productionSkus[0]?.product_id || item.product_id);
+                    skuCounts[pid] = (skuCounts[pid] || 0) + q;
                 });
 
                 const totalOeeSum = sumAssy + sumRod + sumCap;
@@ -10731,24 +11739,41 @@ tbody.innerHTML = '';
                 if (badgeSubRod) badgeSubRod.textContent = `${sumRod} Pcs`;
                 if (badgeSubCap) badgeSubCap.textContent = `${sumCap} Pcs`;
 
+                // Update Sku Balance Badges
+                const skuBadgesContainer = document.getElementById('ng-sku-balance-badges');
+                if (skuBadgesContainer && hasMultiSku) {
+                    skuBadgesContainer.innerHTML = productionSkus.map(ps => {
+                        const filled = skuCounts[ps.product_id] || 0;
+                        const tgt = ps.total_ng_target;
+                        const ok = (filled === tgt);
+                        return `
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border ${ok ? (isLightModal ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-emerald-950 text-emerald-300 border-emerald-800') : (isLightModal ? 'bg-amber-50 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800')} shadow-xs">
+                                <span class="font-sans font-semibold">${ps.product_sku}:</span>
+                                <span>${filled} / ${tgt} Pcs</span>
+                                ${ok ? '<span class="text-emerald-500 font-black">✓</span>' : `<span class="text-[10px] opacity-80 ${filled < tgt ? 'text-amber-600' : 'text-rose-500'}">(${filled < tgt ? `-${tgt - filled}` : `+${filled - tgt}`})</span>`}
+                            </span>
+                        `;
+                    }).join('');
+                }
+
                 if (balanceIndicator) {
                     if (totalOeeSum === targetNg) {
                         balanceIndicator.className = 'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
                         balanceIndicator.innerHTML = `
                             <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                            <span>Total: ${totalOeeSum} / ${targetNg} Pcs (SEIMBANG ✓)</span>
+                            <span>Total OEE: ${totalOeeSum} / ${targetNg} Pcs (SEIMBANG ✓)</span>
                         `;
                     } else if (totalOeeSum < targetNg) {
                         balanceIndicator.className = 'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
                         balanceIndicator.innerHTML = `
                             <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-                            <span>Total: ${totalOeeSum} / ${targetNg} Pcs (Kurang ${Math.abs(variance)} Pcs)</span>
+                            <span>Total OEE: ${totalOeeSum} / ${targetNg} Pcs (Kurang ${Math.abs(variance)} Pcs)</span>
                         `;
                     } else {
                         balanceIndicator.className = 'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-rose-950 text-rose-400 border border-rose-800';
                         balanceIndicator.innerHTML = `
                             <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
-                            <span>Total: ${totalOeeSum} / ${targetNg} Pcs (Lebih +${variance} Pcs)</span>
+                            <span>Total OEE: ${totalOeeSum} / ${targetNg} Pcs (Lebih +${variance} Pcs)</span>
                         `;
                     }
                     if (window.lucide) window.lucide.createIcons();
@@ -10762,7 +11787,21 @@ tbody.innerHTML = '';
             const addRowBtn = document.getElementById('btn-add-ng-row');
             if (addRowBtn) {
                 addRowBtn.addEventListener('click', () => {
+                    let defaultProductId = productionSkus[0]?.product_id || item.product_id;
+                    if (hasMultiSku) {
+                        const skuCounts = {};
+                        ngItemsState.forEach(it => {
+                            const pid = parseInt(it.product_id) || defaultProductId;
+                            skuCounts[pid] = (skuCounts[pid] || 0) + parseInt(it.quantity || 0);
+                        });
+                        const lackingSku = productionSkus.find(ps => (skuCounts[ps.product_id] || 0) < ps.total_ng_target);
+                        if (lackingSku) {
+                            defaultProductId = lackingSku.product_id;
+                        }
+                    }
+
                     ngItemsState.push({
+                        product_id: defaultProductId,
                         component_type: 'ASSY',
                         quantity: 1,
                         op_machine: '',
@@ -10990,10 +12029,15 @@ tbody.innerHTML = '';
                 label: m.name + (m.code ? ` (${m.code})` : '')
             })) || [];
 
+            // Multi-SKU products support
+            const productionSkus = item.production_skus || [];
+            const hasMultiSku = item.has_multi_sku || productionSkus.length > 1;
+
             // Initialize Dynamic NG Breakdown Items State
             let ngItemsState = [];
             if (ng.items && Array.isArray(ng.items) && ng.items.length > 0) {
                 ngItemsState = ng.items.map(it => ({
+                    product_id: parseInt(it.product_id) || (productionSkus[0]?.product_id || item.product_id),
                     component_type: it.component_type || 'ASSY',
                     quantity: parseInt(it.quantity || 1),
                     op_machine: it.op_machine || '',
@@ -11002,6 +12046,7 @@ tbody.innerHTML = '';
                 }));
             } else if (ng.items_breakdown && Array.isArray(ng.items_breakdown) && ng.items_breakdown.length > 0) {
                 ngItemsState = ng.items_breakdown.map(it => ({
+                    product_id: parseInt(it.product_id) || (productionSkus[0]?.product_id || item.product_id),
                     component_type: it.component_type || 'ASSY',
                     quantity: parseInt(it.quantity || 1),
                     op_machine: it.op_machine || '',
@@ -11011,6 +12056,7 @@ tbody.innerHTML = '';
             } else if (ng.ng_assy > 0 || ng.ng_rod > 0 || ng.ng_cap > 0) {
                 if (ng.ng_assy > 0) {
                     ngItemsState.push({
+                        product_id: productionSkus[0]?.product_id || item.product_id,
                         component_type: 'ASSY',
                         quantity: parseInt(ng.ng_assy),
                         op_machine: ng.op_machine || '',
@@ -11020,6 +12066,7 @@ tbody.innerHTML = '';
                 }
                 if (ng.ng_rod > 0) {
                     ngItemsState.push({
+                        product_id: productionSkus[0]?.product_id || item.product_id,
                         component_type: 'ROD',
                         quantity: parseInt(ng.ng_rod),
                         op_machine: ng.op_machine || '',
@@ -11029,6 +12076,7 @@ tbody.innerHTML = '';
                 }
                 if (ng.ng_cap > 0) {
                     ngItemsState.push({
+                        product_id: productionSkus[0]?.product_id || item.product_id,
                         component_type: 'CAP',
                         quantity: parseInt(ng.ng_cap),
                         op_machine: ng.op_machine || '',
@@ -11038,14 +12086,29 @@ tbody.innerHTML = '';
                 }
             }
 
+            // Seed initial rows based on production SKUs target NG
             if (ngItemsState.length === 0) {
-                ngItemsState.push({
-                    component_type: 'ASSY',
-                    quantity: targetNg > 0 ? targetNg : 1,
-                    op_machine: '',
-                    section: '',
-                    reason: ''
-                });
+                if (hasMultiSku && productionSkus.length > 0) {
+                    productionSkus.forEach(ps => {
+                        ngItemsState.push({
+                            product_id: ps.product_id,
+                            component_type: 'ASSY',
+                            quantity: ps.total_ng_target > 0 ? ps.total_ng_target : 1,
+                            op_machine: '',
+                            section: '',
+                            reason: ''
+                        });
+                    });
+                } else {
+                    ngItemsState.push({
+                        product_id: item.product_id,
+                        component_type: 'ASSY',
+                        quantity: targetNg > 0 ? targetNg : 1,
+                        op_machine: '',
+                        section: '',
+                        reason: ''
+                    });
+                }
             }
 
             const existingBolt = ng.ng_bolt || 0;
@@ -11068,6 +12131,7 @@ tbody.innerHTML = '';
                                     <h3 class="text-sm font-bold truncate flex items-center gap-2">
                                         <span>Input Detail NG</span>
                                         <span class="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${isLightModal ? 'bg-rose-100 text-rose-700' : 'bg-rose-950 text-rose-300 border border-rose-800'}">${targetNg} Pcs</span>
+                                        ${hasMultiSku ? `<span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${isLightModal ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-amber-950 text-amber-300 border border-amber-700'}">Multi-SKU</span>` : ''}
                                     </h3>
                                     <p class="text-[11px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} truncate">${item.formatted_date} • ${item.shift_name}</p>
                                 </div>
@@ -11095,6 +12159,31 @@ tbody.innerHTML = '';
                                 
                                 <!-- SUMMARY STATS CARD -->
                                 <div class="rounded-2xl p-3 border ${isLightModal ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} space-y-2.5">
+                                    ${hasMultiSku ? `
+                                    <!-- MULTI-SKU INFO CARD (MOBILE) -->
+                                    <div class="p-2.5 rounded-xl border ${isLightModal ? 'bg-amber-50/90 border-amber-200 text-amber-950' : 'bg-amber-950/40 border-amber-500/40 text-amber-200'} space-y-2 text-xs">
+                                        <div class="flex items-center justify-between gap-1 border-b ${isLightModal ? 'border-amber-200' : 'border-amber-500/30'} pb-1.5">
+                                            <span class="font-bold flex items-center gap-1.5 text-xs">
+                                                <i data-lucide="layers" class="w-4 h-4 text-amber-500"></i>
+                                                <span>Multi-Model (${productionSkus.length} Produk SKU):</span>
+                                            </span>
+                                            <span class="font-mono font-bold text-[11px] ${isLightModal ? 'text-amber-900' : 'text-amber-300'}">Total Reject: ${targetNg} Pcs</span>
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            ${productionSkus.map((ps, sIdx) => `
+                                                <div class="flex items-center justify-between p-2 rounded-lg ${isLightModal ? 'bg-white border border-amber-200' : 'bg-slate-900 border border-slate-800'}">
+                                                    <div class="min-w-0 pr-2">
+                                                        <span class="font-bold block text-xs truncate ${isLightModal ? 'text-slate-900' : 'text-white'}">${sIdx + 1}. ${ps.product_sku}</span>
+                                                        <span class="text-[10px] ${isLightModal ? 'text-slate-500' : 'text-slate-400'} truncate block">${ps.product_name}</span>
+                                                    </div>
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isLightModal ? 'bg-rose-100 text-rose-800' : 'bg-rose-950 text-rose-300 border border-rose-800'} shrink-0 font-mono">
+                                                        Target NG: ${ps.total_ng_target} Pcs
+                                                    </span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    ` : `
                                     <div class="flex items-center justify-between gap-2 border-b ${isLightModal ? 'border-slate-200' : 'border-slate-800'} pb-2">
                                         <div class="min-w-0">
                                             <span class="text-[10px] ${isLightModal ? 'text-slate-500' : 'text-slate-500'} block uppercase font-bold tracking-wider">Produk & Lini</span>
@@ -11106,6 +12195,7 @@ tbody.innerHTML = '';
                                             ${item.line_name} - ${item.machine_name}
                                         </span>
                                     </div>
+                                    `}
 
                                     <div class="grid grid-cols-3 gap-2 text-center font-mono text-xs">
                                         <div class="p-2 rounded-xl border ${isLightModal ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}">
@@ -11123,6 +12213,8 @@ tbody.innerHTML = '';
                                     </div>
                                 </div>
 
+
+
                                 <!-- SEKSI 1: KOMPONEN UTAMA NG (WAJIB OEE) -->
                                 <div class="rounded-2xl p-3.5 border ${isLightModal ? 'bg-cyan-50/40 border-cyan-200' : 'bg-slate-950/70 border-cyan-500/30'} space-y-3">
                                     <div class="flex items-center justify-between gap-2 border-b ${isLightModal ? 'border-cyan-100' : 'border-slate-800'} pb-2">
@@ -11134,6 +12226,19 @@ tbody.innerHTML = '';
                                             <!-- Dynamic balance badge -->
                                         </div>
                                     </div>
+
+                                    ${hasMultiSku ? `
+                                    <!-- LIVE SKU TARGET BALANCER BADGES (MOBILE) -->
+                                    <div class="p-2 rounded-xl border ${isLightModal ? 'bg-white border-amber-200' : 'bg-slate-900/90 border-slate-800'} space-y-1 text-xs">
+                                        <div class="flex items-center gap-1 text-[10px] font-bold ${isLightModal ? 'text-amber-800' : 'text-amber-400'}">
+                                            <i data-lucide="check-circle-2" class="w-3 h-3 text-amber-500"></i>
+                                            <span>Progress Defect Per SKU:</span>
+                                        </div>
+                                        <div id="mobile-ng-sku-balance-badges" class="flex flex-wrap gap-1">
+                                            <!-- Dynamic Mobile SKU Chips -->
+                                        </div>
+                                    </div>
+                                    ` : ''}
 
                                     <!-- SUB-TOTALS 3 COLUMNS -->
                                     <div class="grid grid-cols-3 gap-1.5 text-center font-mono text-xs">
@@ -11242,6 +12347,37 @@ tbody.innerHTML = '';
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- SEKSI 4: TINDAKAN PENCEGAHAN, DUE DATE & PIC (QUALITY LOSS FOLLOW-UP / KAIZEN) -->
+                                <div class="rounded-2xl p-3.5 border ${isLightModal ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-950/70 border-emerald-500/30'} space-y-3">
+                                    <div class="flex items-center justify-between border-b ${isLightModal ? 'border-emerald-100' : 'border-slate-800'} pb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-5 h-5 rounded-full ${isLightModal ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'} font-bold text-xs flex items-center justify-center border">4</span>
+                                            <h4 class="font-bold text-xs ${isLightModal ? 'text-emerald-900' : 'text-emerald-300'} uppercase tracking-wider">Follow-Up Perbaikan Laporan</h4>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-mono font-semibold ${isLightModal ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'} border">
+                                            Quality Loss
+                                        </span>
+                                    </div>
+
+                                    <div class="space-y-2.5 text-xs">
+                                        <div>
+                                            <label class="block text-[11px] ${isLightModal ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Perbaikan Selanjutnya (Kaizen)</label>
+                                            <input type="text" name="follow_up_action" value="${ng.follow_up_action || ''}" placeholder="Cth: Setting stopper jig & kalibrasi dial gauge" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500" />
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[11px] ${isLightModal ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Target Selesai (Due Date)</label>
+                                                <input type="date" name="due_date" value="${ng.due_date || ''}" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-xl px-2.5 py-2 text-xs font-mono focus:outline-none focus:border-emerald-500" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-[11px] ${isLightModal ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">PIC Follow-Up</label>
+                                                <input type="text" name="pic_followup" value="${ng.pic_followup || ''}" placeholder="Cth: PE / QC" class="w-full ${isLightModal ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-500" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- STICKY BOTTOM ACTION BAR -->
@@ -11284,6 +12420,14 @@ tbody.innerHTML = '';
                 this.showNgDetailModal(productionRecordId, true);
             });
 
+            // Bind Dynamic SKU / Product Selector Switcher (Mobile)
+            document.getElementById('mobile-select-ng-sibling-record')?.addEventListener('change', (e) => {
+                const nextRecordId = parseInt(e.target.value);
+                if (nextRecordId && nextRecordId !== productionRecordId) {
+                    this.showMobileNgDetailModal(nextRecordId);
+                }
+            });
+
             // 1. Dynamic Touch-Friendly Cards Renderer & Calculator
             const cardsContainer = document.getElementById('mobile-ng-cards-container');
             const balanceIndicator = document.getElementById('mobile-ng-balance-indicator');
@@ -11322,6 +12466,20 @@ tbody.innerHTML = '';
 
                             <!-- CARD INPUTS -->
                             <div class="space-y-2 text-xs">
+                                ${hasMultiSku ? `
+                                <!-- MULTI-SKU PRODUCT SELECTOR (MOBILE) -->
+                                <div>
+                                    <label class="block text-[10px] ${isLightModal ? 'text-amber-800' : 'text-amber-300'} mb-1 font-bold">Produk / Model SKU <span class="text-rose-500">*</span></label>
+                                    <select data-row-idx="${idx}" data-field="product_id" class="w-full ${isLightModal ? 'bg-amber-50/80 border-amber-300 text-slate-900 font-bold focus:bg-white' : 'bg-slate-950 border-amber-500/50 text-amber-200 font-bold focus:bg-slate-900'} border rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-xs cursor-pointer">
+                                        ${productionSkus.map(ps => `
+                                            <option value="${ps.product_id}" ${String(row.product_id) === String(ps.product_id) ? 'selected' : ''}>
+                                                ${ps.product_sku} (Target: ${ps.total_ng_target} Pcs)
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                                ` : ''}
+
                                 <!-- JUMLAH QTY & OP MESIN -->
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
@@ -11387,13 +12545,15 @@ tbody.innerHTML = '';
                 }
 
                 // Bind Row Inputs Event Listeners
-                cardsContainer.querySelectorAll('input').forEach(el => {
+                cardsContainer.querySelectorAll('select, input').forEach(el => {
                     const handleUpdate = (e) => {
                         const idx = parseInt(e.target.getAttribute('data-row-idx'));
                         const field = e.target.getAttribute('data-field');
                         if (ngItemsState[idx]) {
                             if (field === 'quantity') {
                                 ngItemsState[idx][field] = parseInt(e.target.value || 0);
+                            } else if (field === 'product_id') {
+                                ngItemsState[idx][field] = parseInt(e.target.value);
                             } else {
                                 ngItemsState[idx][field] = e.target.value;
                             }
@@ -11450,6 +12610,8 @@ tbody.innerHTML = '';
                 let sumAssy = 0;
                 let sumRod = 0;
                 let sumCap = 0;
+                const skuCounts = {};
+                productionSkus.forEach(ps => { skuCounts[ps.product_id] = 0; });
 
                 ngItemsState.forEach(it => {
                     const q = parseInt(it.quantity || 0);
@@ -11457,6 +12619,9 @@ tbody.innerHTML = '';
                     if (type === 'ASSY') sumAssy += q;
                     else if (type === 'ROD') sumRod += q;
                     else if (type === 'CAP') sumCap += q;
+
+                    const pid = parseInt(it.product_id) || (productionSkus[0]?.product_id || item.product_id);
+                    skuCounts[pid] = (skuCounts[pid] || 0) + q;
                 });
 
                 const totalOeeSum = sumAssy + sumRod + sumCap;
@@ -11465,6 +12630,23 @@ tbody.innerHTML = '';
                 if (badgeSubAssy) badgeSubAssy.textContent = `${sumAssy} Pcs`;
                 if (badgeSubRod) badgeSubRod.textContent = `${sumRod} Pcs`;
                 if (badgeSubCap) badgeSubCap.textContent = `${sumCap} Pcs`;
+
+                // Update Sku Balance Badges (Mobile)
+                const mobileSkuBadgesContainer = document.getElementById('mobile-ng-sku-balance-badges');
+                if (mobileSkuBadgesContainer && hasMultiSku) {
+                    mobileSkuBadgesContainer.innerHTML = productionSkus.map(ps => {
+                        const filled = skuCounts[ps.product_id] || 0;
+                        const tgt = ps.total_ng_target;
+                        const ok = (filled === tgt);
+                        return `
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${ok ? (isLightModal ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-emerald-950 text-emerald-300 border-emerald-800') : (isLightModal ? 'bg-amber-50 text-amber-900 border-amber-300' : 'bg-amber-950 text-amber-300 border-amber-800')}">
+                                <span>${ps.product_sku}:</span>
+                                <span>${filled}/${tgt}</span>
+                                ${ok ? '<span class="text-emerald-500 font-bold">✓</span>' : `<span class="text-[9px] ${filled < tgt ? 'text-amber-600' : 'text-rose-500'}">(${filled < tgt ? `-${tgt - filled}` : `+${filled - tgt}`})</span>`}
+                            </span>
+                        `;
+                    }).join('');
+                }
 
                 if (balanceIndicator) {
                     if (totalOeeSum === targetNg) {
@@ -11497,7 +12679,21 @@ tbody.innerHTML = '';
             const addRowBtn = document.getElementById('btn-mobile-add-ng-row');
             if (addRowBtn) {
                 addRowBtn.addEventListener('click', () => {
+                    let defaultProductId = productionSkus[0]?.product_id || item.product_id;
+                    if (hasMultiSku) {
+                        const skuCounts = {};
+                        ngItemsState.forEach(it => {
+                            const pid = parseInt(it.product_id) || defaultProductId;
+                            skuCounts[pid] = (skuCounts[pid] || 0) + parseInt(it.quantity || 0);
+                        });
+                        const lackingSku = productionSkus.find(ps => (skuCounts[ps.product_id] || 0) < ps.total_ng_target);
+                        if (lackingSku) {
+                            defaultProductId = lackingSku.product_id;
+                        }
+                    }
+
                     ngItemsState.push({
+                        product_id: defaultProductId,
                         component_type: 'ASSY',
                         quantity: 1,
                         op_machine: '',
@@ -11680,83 +12876,183 @@ tbody.innerHTML = '';
     }
 
     // ==========================================
-    // 4. PRODUCTION LINES PAGE (FIT-TO-PROPER & DYNAMIC COMPACT CARDS WITH AUTHENTIC BACKGROUNDS)
+    // 4. PRODUCTION LINES PAGE (MATRIX & LINE PERFORMANCES)
     // ==========================================
     async renderLines() {
+        this.linesSubTab = this.linesSubTab || 'matrix';
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
         const isJa = this.currentLang === 'ja';
-        const res = await api.getLineRanking(this.filters);
-        const lines = res.data.data || [];
-
-        // Summary calculations
-        const totalLines = lines.length;
-        const avgOee = totalLines > 0 ? (lines.reduce((acc, l) => acc + Number(l.oee || 0), 0) / totalLines).toFixed(1) : '0.0';
-        const totalActual = lines.reduce((acc, l) => acc + (Number(l.actual_quantity) || 0), 0);
-        const totalTarget = lines.reduce((acc, l) => acc + (Number(l.target_quantity) || 0), 0);
-        const overallAchieve = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) : '0.0';
-        const activeLinesCount = lines.filter(l => (Number(l.actual_quantity) || 0) > 0 || Number(l.oee || 0) > 0).length;
-
-        // Default factory imagery fallback presets mapped to connecting rod processes
-        const defaultLinePhotos = {
-            'FX-1': '/images/slideshow/slide-2-machining.webp',
-            'FX-2': '/images/slideshow/slide-4-assembly.webp',
-            'FX-3': '/images/slideshow/slide-1-plant.webp',
-            'FX-4': '/images/slideshow/slide-2-machining.webp',
-            'FX-5': '/images/slideshow/slide-5-andon.webp',
-            'FX-6': '/images/slideshow/slide-3-measuring.webp',
-            'FX-7': '/images/slideshow/slide-4-assembly.webp',
-            'FX-8': '/images/slideshow/slide-2-machining.webp',
-            'FX-9': '/images/slideshow/slide-1-plant.webp',
-            'FX-10': '/images/slideshow/slide-3-measuring.webp',
-            'FX-11': '/images/slideshow/slide-5-andon.webp',
-        };
-
         const content = document.getElementById('content-body');
+        if (!content) return;
+
+        // Render persistent SPA page shell (Header + Subnav Pills + Dynamic Action Area)
         content.innerHTML = `
             <div class="space-y-4 sm:space-y-5 animate-fadeIn">
-                
-                <!-- HEADER & SUMMARY STRIP -->
-                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 sm:p-5 shadow-xl">
+                <!-- TOP SUB-HEADER & SUB-NAV BAR (PERSISTENT SPA HEADER) -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-4 sm:p-5 shadow-xl transition-all">
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div>
-                            <div class="flex items-center gap-3">
+                        <div class="space-y-2">
+                            <div class="flex flex-wrap items-center gap-3">
                                 <h2 class="text-lg font-black ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
                                     <i data-lucide="git-fork" class="w-5 h-5 text-cyan-400"></i>
                                     <span>${isJa ? '生産ライン管理 (Production Lines)' : 'Production Lines'}</span>
                                 </h2>
-                                <span class="px-2.5 py-0.5 rounded-full ${isLight ? 'bg-cyan-50 text-cyan-700 border-cyan-200' : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80'} border font-mono font-bold text-xs">
-                                    Total ${totalLines} Lini
-                                </span>
-                                <span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80'} border">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    ${activeLinesCount} Aktif
-                                </span>
+
+                                <!-- SUB-NAV PILLS -->
+                                <div class="flex items-center gap-1.5 ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'} p-1 rounded-lg border text-xs font-semibold">
+                                    <button data-ltab="matrix" class="btn-lines-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${this.linesSubTab === 'matrix' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                                        <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                                        <span>Production Lines Matrix</span>
+                                    </button>
+                                    <button data-ltab="performances" class="btn-lines-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${this.linesSubTab === 'performances' ? 'bg-cyan-600 text-white shadow-md font-bold' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
+                                        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+                                        <span>Line Performances (F-PROD/CR-030/R0)</span>
+                                    </button>
+                                </div>
                             </div>
-                            <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-1">
-                                ${isJa ? '実機データに基づく各ラインの総合設備効率 (OEE)、生産進捗、および設備実態ビジュアル。' : 'Ringkasan efisiensi OEE, ketersediaan mesin, kualitas produksi, dan dokumentasi visual faktual per lini produksi PT Yasunaga.'}
+                            <p id="lines-header-subtitle" class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}">
+                                ${this.linesSubTab === 'performances' 
+                                    ? `Grafik Rasio Produksi Resmi Standar Yasunaga • Form No: <strong class="text-cyan-400 font-mono">F-PROD/CR-030/R0</strong>` 
+                                    : (isJa ? '実機データに基づく各ラインの総合設備効率 (OEE)、生産進捗、および設備実態ビジュアル。' : 'Ringkasan efisiensi OEE, ketersediaan mesin, kualitas produksi, dan dokumentasi visual faktual per lini produksi PT Yasunaga.')}
                             </p>
                         </div>
 
-                        <!-- COMPACT KPI STRIP -->
-                        <div class="flex flex-wrap items-center gap-2 text-xs">
-                            <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
-                                <span class="text-slate-400">Rata-rata OEE:</span>
-                                <strong class="font-mono text-cyan-400 font-bold">${avgOee}%</strong>
-                            </div>
-                            <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
-                                <span class="text-slate-400">Total Output:</span>
-                                <strong class="font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'} font-bold">${totalActual.toLocaleString()} pcs</strong>
-                            </div>
-                            <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
-                                <span class="text-slate-400">Pencapaian:</span>
-                                <strong class="font-mono text-emerald-400 font-bold">${overallAchieve}%</strong>
-                            </div>
+                        <!-- DYNAMIC HEADER ACTIONS / SUMMARY -->
+                        <div id="lines-header-dynamic-area" class="flex flex-wrap items-center gap-2 text-xs">
+                            <!-- Populated dynamically by active sub-tab -->
                         </div>
                     </div>
                 </div>
 
-                <!-- COMPACT & HIGH-DENSITY LINES GRID (4 COLUMNS) WITH AUTHENTIC TRANSLUCENT PHOTO WATERMARK -->
+                <!-- SUB-TAB CONTENT CONTAINER (SMOOTH SPA CONTAINER) -->
+                <div id="lines-subtab-container" class="transition-opacity duration-200"></div>
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+
+        // Wire subtab buttons
+        document.querySelectorAll('.btn-lines-tab').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const subtab = e.currentTarget.getAttribute('data-ltab');
+                if (subtab && subtab !== this.linesSubTab) {
+                    this.switchLinesSubTab(subtab);
+                }
+            });
+        });
+
+        // Load active subtab
+        await this.switchLinesSubTab(this.linesSubTab);
+    }
+
+    async switchLinesSubTab(subtab) {
+        this.linesSubTab = subtab;
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        const isJa = this.currentLang === 'ja';
+
+        // Update Tab Pill UI instantly (active tab styling)
+        document.querySelectorAll('.btn-lines-tab').forEach(btn => {
+            const tabKey = btn.getAttribute('data-ltab');
+            if (tabKey === subtab) {
+                btn.className = 'btn-lines-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer bg-cyan-600 text-white shadow-md font-bold flex items-center gap-1.5';
+            } else {
+                btn.className = 'btn-lines-tab px-3.5 py-1.5 rounded-md transition-all cursor-pointer text-slate-400 hover:text-slate-200 flex items-center gap-1.5';
+            }
+        });
+
+        // Update Subtitle
+        const subtitleEl = document.getElementById('lines-header-subtitle');
+        if (subtitleEl) {
+            if (subtab === 'performances') {
+                subtitleEl.innerHTML = `Grafik Rasio Produksi Resmi Standar Yasunaga • Form No: <strong class="text-cyan-400 font-mono">F-PROD/CR-030/R0</strong>`;
+            } else {
+                subtitleEl.textContent = isJa 
+                    ? '実機データに基づく各ラインの総合設備効率 (OEE)、生産進捗、および設備実態ビジュアル。' 
+                    : 'Ringkasan efisiensi OEE, ketersediaan mesin, kualitas produksi, dan dokumentasi visual faktual per lini produksi PT Yasunaga.';
+            }
+        }
+
+        const subtabContainer = document.getElementById('lines-subtab-container');
+        if (!subtabContainer) return;
+
+        if (subtab === 'performances') {
+            await this.renderLinePerformancesSubTab();
+        } else {
+            await this.renderLinesMatrixSubTab();
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+        if (this.currentLang === 'ja') {
+            i18n.localizeDom(document.getElementById('content-body') || document.body);
+        }
+    }
+
+    // --- SUBTAB 1: PRODUCTION LINES MATRIX (PHOTOS & CARDS VIEW) ---
+    async renderLinesMatrixSubTab() {
+        const subtabContainer = document.getElementById('lines-subtab-container');
+        const dynamicArea = document.getElementById('lines-header-dynamic-area');
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        if (!subtabContainer) return;
+
+        // Show subtle skeleton while fetching if container is empty
+        if (!subtabContainer.hasChildNodes() || !subtabContainer.querySelector('.group.relative.border')) {
+            subtabContainer.innerHTML = `
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5">
+                    ${[1, 2, 3, 4, 5, 6, 7, 8].map(() => `
+                        <div class="h-64 rounded-2xl ${isLight ? 'bg-slate-100' : 'bg-slate-900/60'} animate-pulse border ${isLight ? 'border-slate-200' : 'border-slate-800'}"></div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        try {
+            const matrixFilters = { ...this.filters };
+            delete matrixFilters.line_id;
+            delete matrixFilters.production_line_id;
+            const res = await api.getLineRanking(matrixFilters);
+            const lines = res.data.data || [];
+
+            // Summary calculations
+            const totalLines = lines.length;
+            const avgOee = totalLines > 0 ? (lines.reduce((acc, l) => acc + Number(l.oee || 0), 0) / totalLines).toFixed(1) : '0.0';
+            const totalActual = lines.reduce((acc, l) => acc + (Number(l.actual_quantity) || 0), 0);
+            const totalTarget = lines.reduce((acc, l) => acc + (Number(l.target_quantity) || 0), 0);
+            const overallAchieve = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) : '0.0';
+
+            // Update Dynamic KPI Strip in persistent header
+            if (dynamicArea) {
+                dynamicArea.innerHTML = `
+                    <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                        <span class="text-slate-400">Rata-rata OEE:</span>
+                        <strong class="font-mono text-cyan-400 font-bold">${avgOee}%</strong>
+                    </div>
+                    <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                        <span class="text-slate-400">Total Output:</span>
+                        <strong class="font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'} font-bold">${totalActual.toLocaleString()} pcs</strong>
+                    </div>
+                    <div class="px-3 py-1.5 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'} flex items-center gap-2">
+                        <span class="text-slate-400">Pencapaian:</span>
+                        <strong class="font-mono text-emerald-400 font-bold">${overallAchieve}%</strong>
+                    </div>
+                `;
+            }
+
+            const defaultLinePhotos = {
+                'FX-1': '/images/slideshow/slide-2-machining.webp',
+                'FX-2': '/images/slideshow/slide-4-assembly.webp',
+                'FX-3': '/images/slideshow/slide-1-plant.webp',
+                'FX-4': '/images/slideshow/slide-2-machining.webp',
+                'FX-5': '/images/slideshow/slide-5-andon.webp',
+                'FX-6': '/images/slideshow/slide-3-measuring.webp',
+                'FX-7': '/images/slideshow/slide-4-assembly.webp',
+                'FX-8': '/images/slideshow/slide-2-machining.webp',
+                'FX-9': '/images/slideshow/slide-1-plant.webp',
+                'FX-10': '/images/slideshow/slide-3-measuring.webp',
+                'FX-11': '/images/slideshow/slide-5-andon.webp',
+            };
+
+            subtabContainer.innerHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5 animate-fadeIn">
                     ${lines.map(line => {
                         const oeeNum = Number(line.oee || 0);
                         const oeeColor = oeeNum >= 85 ? 'text-emerald-400' : (oeeNum >= 65 ? 'text-amber-400' : (oeeNum > 0 ? 'text-rose-400' : 'text-slate-500'));
@@ -11775,27 +13071,24 @@ tbody.innerHTML = '';
                         return `
                             <div class="${isLight ? 'bg-white/20 hover:bg-white/30 border-slate-300/70 hover:border-cyan-400/90 shadow-md hover:shadow-xl' : 'bg-slate-900/30 hover:bg-slate-900/45 border-slate-700/60 hover:border-cyan-500/80 shadow-lg hover:shadow-2xl'} group relative border rounded-2xl p-3.5 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
                                 
-                                <!-- 1. AUTHENTIC SHOP FLOOR BACKGROUND PHOTO (FULL FULL-BLEED VISIBILITY 55-75%) -->
+                                <!-- 1. AUTHENTIC SHOP FLOOR BACKGROUND PHOTO -->
                                 <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-2xl">
                                     <img src="${linePhoto}" 
                                          alt="Foto Lini ${line.name}" 
                                          class="w-full h-full object-cover opacity-55 group-hover:opacity-75 scale-100 group-hover:scale-105 transition-all duration-500 ease-out" 
                                          onerror="this.onerror=null; this.src='/images/slideshow/slide-2-machining.webp';" />
                                     
-                                    <!-- ULTRA-LIGHT 10-20% SHIELD (ENSURES FULL VISIBILITY OF FACTORY IMAGE) -->
                                     <div class="absolute inset-0 ${isLight ? 'bg-gradient-to-b from-white/10 via-transparent to-white/20' : 'bg-gradient-to-b from-slate-950/15 via-transparent to-slate-950/30'}"></div>
-                                    
-                                    <!-- SUBTLE INDUSTRIAL GRID OVERLAY -->
                                     <div class="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] ${isLight ? 'opacity-5' : 'opacity-10'}"></div>
                                 </div>
 
                                 <!-- TOP ACCENT COLOR BAR -->
                                 <div class="absolute top-0 left-0 right-0 h-1.5 ${statusBorderTop} opacity-90 group-hover:opacity-100 transition-opacity z-10"></div>
 
-                                <!-- 2. CARD CONTENT (SEMI-TRANSPARENT 20-30% GLASS BACKDROPS FOR FULL IMAGE VISIBILITY) -->
+                                <!-- 2. CARD CONTENT -->
                                 <div class="relative z-10 flex flex-col justify-between h-full space-y-2">
                                     <div>
-                                        <!-- LINE HEADER BAR (20-25% TRANSLUCENT) -->
+                                        <!-- LINE HEADER BAR -->
                                         <div class="flex items-center justify-between gap-2 mb-2 pt-0.5 px-2.5 py-1.5 rounded-xl ${isLight ? 'bg-white/25 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
                                             <div class="flex items-center gap-1.5 min-w-0">
                                                 <span class="px-1.5 py-0.5 rounded-lg text-[10px] font-mono font-black ${isLight ? 'bg-white/50 text-cyan-950 border-white/80' : 'bg-cyan-950/60 text-cyan-300 border-cyan-800/80'} border shrink-0 shadow-2xs">
@@ -11804,7 +13097,6 @@ tbody.innerHTML = '';
                                                 <h3 class="font-black text-sm ${isLight ? 'text-slate-900 drop-shadow-xs' : 'text-white drop-shadow-xs'} truncate group-hover:text-cyan-400 transition-colors" title="${line.name}">${line.name}</h3>
                                             </div>
                                             <div class="flex items-center gap-1 shrink-0">
-                                                <!-- DYNAMIC UPLOAD PHOTO BUTTON -->
                                                 <button type="button" 
                                                         class="btn-change-line-photo p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 bg-white/40 dark:bg-slate-800/40 hover:bg-white/70 dark:hover:bg-slate-800/80 border border-white/60 dark:border-slate-700/60 transition-all cursor-pointer shadow-2xs" 
                                                         data-line-id="${line.id}" 
@@ -11820,7 +13112,7 @@ tbody.innerHTML = '';
                                             </div>
                                         </div>
 
-                                        <!-- PRODUCT TYPE CHIPS (20-25% TRANSLUCENT) -->
+                                        <!-- PRODUCT TYPE CHIPS -->
                                         <div class="mb-2 p-2 rounded-xl ${isLight ? 'bg-white/25 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
                                             <div class="flex items-center justify-between text-[10px] ${isLight ? 'text-slate-700 font-semibold' : 'text-slate-300'} mb-1">
                                                 <span class="flex items-center gap-1 font-bold">
@@ -11845,9 +13137,8 @@ tbody.innerHTML = '';
                                             </div>
                                         </div>
 
-                                        <!-- HERO OEE SCORE & 3-PILLARS CONTAINER (20-30% TRANSLUCENT) -->
+                                        <!-- HERO OEE SCORE & 3-PILLARS CONTAINER -->
                                         <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/30 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
-                                            <!-- HERO OEE SCORE ROW -->
                                             <div class="flex items-center justify-between mb-2 pb-1.5 border-b ${isLight ? 'border-white/50' : 'border-white/10'}">
                                                 <span class="text-xs font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">Overall OEE</span>
                                                 <div class="flex items-baseline gap-1">
@@ -11855,7 +13146,6 @@ tbody.innerHTML = '';
                                                 </div>
                                             </div>
 
-                                            <!-- 3-PILLARS COMPACT MICRO GRID -->
                                             <div class="grid grid-cols-3 gap-1.5 font-mono text-center">
                                                 <div class="p-1 rounded-lg ${isLight ? 'bg-white/40 border-white/70' : 'bg-slate-900/40 border-white/10'} border shadow-2xs">
                                                     <div class="text-[8.5px] ${isLight ? 'text-slate-700' : 'text-slate-400'} font-sans uppercase font-bold tracking-tight">Avail</div>
@@ -11871,22 +13161,22 @@ tbody.innerHTML = '';
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS (20-30% TRANSLUCENT) -->
-                                    <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/30 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
-                                        <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 ${isLight ? 'text-slate-800 font-bold' : 'text-slate-300 font-semibold'}">
-                                            <span class="text-[10px] ${isLight ? 'text-slate-700' : 'text-slate-400'} font-sans font-bold">Output:</span>
-                                            <span class="font-black ${isLight ? 'text-slate-950' : 'text-slate-100'}">
-                                                ${(line.actual_quantity || 0).toLocaleString()} <span class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-normal">/ ${(line.target_quantity || 0).toLocaleString()}</span>
-                                            </span>
-                                        </div>
-                                        <div class="relative w-full ${isLight ? 'bg-white/50 border-white/70' : 'bg-slate-900/50 border-white/10'} rounded-full h-2 overflow-hidden border">
-                                            <div class="bg-gradient-to-r ${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, achieveNum)}%"></div>
-                                        </div>
-                                        <div class="flex justify-between items-center text-[10px] font-mono ${isLight ? 'text-slate-800' : 'text-slate-400'} mt-1 font-bold">
-                                            <span>Pencapaian:</span>
-                                            <span class="font-black ${achieveNum >= 95 ? 'text-emerald-600 dark:text-emerald-400' : (achieveNum >= 80 ? 'text-cyan-600 dark:text-cyan-400' : 'text-amber-600 dark:text-amber-400')}">${line.achievement}%</span>
+                                        <!-- BOTTOM OUTPUT ACHIEVEMENT PROGRESS -->
+                                        <div class="p-2.5 rounded-xl ${isLight ? 'bg-white/30 border-white/60 shadow-2xs' : 'bg-slate-950/35 border-white/10 shadow-2xs'} backdrop-blur-xs border">
+                                            <div class="flex items-center justify-between text-[11px] font-mono mb-1.5 ${isLight ? 'text-slate-800 font-bold' : 'text-slate-300 font-semibold'}">
+                                                <span class="text-[10px] ${isLight ? 'text-slate-700' : 'text-slate-400'} font-sans font-bold">Output:</span>
+                                                <span class="font-black ${isLight ? 'text-slate-950' : 'text-slate-100'}">
+                                                    ${(line.actual_quantity || 0).toLocaleString()} <span class="text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} font-normal">/ ${(line.target_quantity || 0).toLocaleString()}</span>
+                                                </span>
+                                            </div>
+                                            <div class="relative w-full ${isLight ? 'bg-white/50 border-white/70' : 'bg-slate-900/50 border-white/10'} rounded-full h-2 overflow-hidden border">
+                                                <div class="bg-gradient-to-r ${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, achieveNum)}%"></div>
+                                            </div>
+                                            <div class="flex justify-between items-center text-[10px] font-mono ${isLight ? 'text-slate-800' : 'text-slate-400'} mt-1 font-bold">
+                                                <span>Pencapaian:</span>
+                                                <span class="font-black ${achieveNum >= 95 ? 'text-emerald-600 dark:text-emerald-400' : (achieveNum >= 80 ? 'text-cyan-600 dark:text-cyan-400' : 'text-amber-600 dark:text-amber-400')}">${line.achievement}%</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -11894,32 +13184,1493 @@ tbody.innerHTML = '';
                         `;
                     }).join('')}
                 </div>
+            `;
 
+            // Wire Event Listeners for dynamic photo uploads
+            document.querySelectorAll('.btn-change-line-photo').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.getAttribute('data-line-id');
+                    const code = btn.getAttribute('data-line-code');
+                    const name = btn.getAttribute('data-line-name');
+                    const image = btn.getAttribute('data-line-image');
+                    this.showLinePhotoUploadModal({ id, code, name, image_url: image });
+                });
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+            if (this.currentLang === 'ja') {
+                i18n.localizeDom(subtabContainer);
+            }
+        } catch (err) {
+            console.error('Error fetching line ranking:', err);
+            subtabContainer.innerHTML = `
+                <div class="p-8 text-center bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-400">
+                    <p class="font-bold">Gagal memuat matrix lini produksi</p>
+                    <p class="text-xs mt-1 text-slate-400">${err.message || 'Terjadi kesalahan sistem'}</p>
+                </div>
+            `;
+        }
+    }
+
+    // ==========================================
+    // 4B. SUBTAB 2: LINE PERFORMANCES (OFFICIAL FORM: F-PROD/CR-030/R0)
+    // ==========================================
+    async renderLinePerformancesSubTab() {
+        const subtabContainer = document.getElementById('lines-subtab-container');
+        const dynamicArea = document.getElementById('lines-header-dynamic-area');
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        if (!subtabContainer) return;
+
+        const currentYear = new Date().getFullYear() || 2026;
+        const currentMonthIdx = new Date().getMonth() + 1;
+
+        // Initialize Line Performance Filters
+        this.linePerfFilters = this.linePerfFilters || {
+            line_id: this.filters?.line_id || '',
+            year: currentYear,
+            month: currentMonthIdx
+        };
+
+        const activeYear = parseInt(this.linePerfFilters.year) || currentYear;
+        const activeMonth = parseInt(this.linePerfFilters.month) || currentMonthIdx;
+
+        // Setup dynamic header button for printing
+        if (dynamicArea) {
+            dynamicArea.innerHTML = `
+                <button id="btn-print-line-report" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-2 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]">
+                    <i data-lucide="printer" class="w-4 h-4"></i>
+                    <span>Cetak Format Standar (F-PROD/CR-030/R0)</span>
+                </button>
+            `;
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        // Check if master lines need fetching for the filter dropdown
+        let masterLines = this.cachedMasterLines || [];
+        if (masterLines.length === 0) {
+            try {
+                const linesMasterRes = await api.getProductionLines().catch(() => ({ data: { data: [] } }));
+                masterLines = [...(linesMasterRes.data?.data || linesMasterRes.data || [])];
+                masterLines.sort((a, b) => {
+                    const labelA = (a.name || a.code || '').trim();
+                    const labelB = (b.name || b.code || '').trim();
+                    return labelA.localeCompare(labelB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+                this.cachedMasterLines = masterLines;
+            } catch (e) {
+                console.warn('Could not load master lines for dropdown:', e);
+            }
+        }
+
+        const monthNamesId = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+
+        const getCleanLineLabel = (l) => {
+            if (!l) return '';
+            const code = (l.code || '').trim();
+            const name = (l.name || '').trim();
+            if (!code) return name;
+            if (!name || name.toLowerCase() === code.toLowerCase()) return code;
+            if (name.toLowerCase().includes(code.toLowerCase())) return name;
+            return `${code} - ${name}`;
+        };
+
+        // Render Persistent Subtab Shell (Filter Toolbar + Data Container)
+        subtabContainer.innerHTML = `
+            <div id="lines-perf-shell" class="space-y-4 animate-fadeIn">
+                <!-- DYNAMIC FILTERING TOOLBAR -->
+                <div class="${isLight ? 'bg-white/90 border-slate-200' : 'bg-slate-900/90 border-slate-800'} backdrop-blur-md border rounded-2xl p-4 shadow-lg">
+                    <form id="form-perf-filters" class="flex flex-wrap items-end gap-3 text-xs">
+                        <!-- 1. LINE SELECTOR -->
+                        <div class="flex-1 min-w-[200px]">
+                            <label class="block font-bold text-[11px] mb-1 text-slate-400 flex items-center gap-1">
+                                <i data-lucide="git-fork" class="w-3 h-3 text-cyan-400"></i>
+                                <span>Pilih Lini Produksi:</span>
+                            </label>
+                            <select id="filter-perf-line" class="w-full px-3 py-2 rounded-xl font-semibold border ${isLight ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-slate-950 border-slate-700 text-slate-200'} focus:outline-none focus:border-cyan-500">
+                                ${masterLines.map(l => `
+                                    <option value="${l.id}" ${String(l.id) === String(this.linePerfFilters.line_id) ? 'selected' : ''}>
+                                        ${getCleanLineLabel(l)}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+
+                        <!-- 2. YEAR SELECTOR -->
+                        <div class="min-w-[130px]">
+                            <label class="block font-bold text-[11px] mb-1 text-slate-400 flex items-center gap-1">
+                                <i data-lucide="calendar" class="w-3 h-3 text-amber-400"></i>
+                                <span>Tahun Produksi:</span>
+                            </label>
+                            <select id="filter-perf-year" class="w-full px-3 py-2 rounded-xl font-semibold border ${isLight ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-slate-950 border-slate-700 text-slate-200'} focus:outline-none focus:border-amber-500">
+                                ${[activeYear + 1, activeYear, activeYear - 1, activeYear - 2].map(y => `
+                                    <option value="${y}" ${y === activeYear ? 'selected' : ''}>Tahun ${y}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+
+                        <!-- 3. MONTH SELECTOR -->
+                        <div class="min-w-[160px]">
+                            <label class="block font-bold text-[11px] mb-1 text-slate-400 flex items-center gap-1">
+                                <i data-lucide="clock" class="w-3 h-3 text-cyan-400"></i>
+                                <span>Bulan Analisis Detail:</span>
+                            </label>
+                            <select id="filter-perf-month" class="w-full px-3 py-2 rounded-xl font-semibold border ${isLight ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-slate-950 border-slate-700 text-slate-200'} focus:outline-none focus:border-cyan-500">
+                                ${monthNamesId.map((mName, i) => `
+                                    <option value="${i + 1}" ${(i + 1) === activeMonth ? 'selected' : ''}>
+                                        ${mName} (${monthNamesShort[i]})
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+
+                        <!-- FILTER ACTIONS -->
+                        <div class="flex items-center gap-2">
+                            <button type="submit" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold shadow-md flex items-center gap-1.5 cursor-pointer transition-all">
+                                <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                                <span>Terapkan</span>
+                            </button>
+                            <button type="button" id="btn-reset-perf-filters" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold cursor-pointer transition-all" title="Reset Filter">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- REPORT DATA CONTAINER -->
+                <div id="lines-perf-data-container" class="transition-opacity duration-200">
+                    <div class="h-64 flex items-center justify-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-9 h-9 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span class="text-xs text-slate-400 font-mono">Memuat Laporan Rasio Produksi & Grafik Format F-PROD/CR-030/R0...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
 
-        // Wire Event Listeners for dynamic photo uploads
-        document.querySelectorAll('.btn-change-line-photo').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = btn.getAttribute('data-line-id');
-                const code = btn.getAttribute('data-line-code');
-                const name = btn.getAttribute('data-line-name');
-                const image = btn.getAttribute('data-line-image');
-                this.showLinePhotoUploadModal({ id, code, name, image_url: image });
-            });
+        if (window.lucide) window.lucide.createIcons();
+
+        // Wire Filter Events (Smooth in-place updates)
+        document.getElementById('form-perf-filters')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const selectedLine = document.getElementById('filter-perf-line')?.value || '';
+            if (this.linePerfFilters.line_id && String(this.linePerfFilters.line_id) !== String(selectedLine)) {
+                this.linePerfSignatures = null;
+            }
+            this.linePerfFilters.line_id = selectedLine;
+            this.linePerfFilters.year = parseInt(document.getElementById('filter-perf-year')?.value) || currentYear;
+            this.linePerfFilters.month = parseInt(document.getElementById('filter-perf-month')?.value) || currentMonthIdx;
+            this.fetchAndRenderLinePerfReport();
         });
 
-        if (window.lucide) window.lucide.createIcons();
-        if (this.currentLang === 'ja') {
-            i18n.localizeDom(document.getElementById('content-body') || document.body);
+        document.getElementById('btn-reset-perf-filters')?.addEventListener('click', () => {
+            this.linePerfFilters = {
+                line_id: '',
+                year: currentYear,
+                month: currentMonthIdx
+            };
+            this.linePerfSignatures = null;
+            const lineSelect = document.getElementById('filter-perf-line');
+            const yearSelect = document.getElementById('filter-perf-year');
+            const monthSelect = document.getElementById('filter-perf-month');
+            if (lineSelect && masterLines.length > 0) lineSelect.selectedIndex = 0;
+            if (yearSelect) yearSelect.value = String(currentYear);
+            if (monthSelect) monthSelect.value = String(currentMonthIdx);
+            this.fetchAndRenderLinePerfReport();
+        });
+
+        // Initial Data Fetch
+        await this.fetchAndRenderLinePerfReport();
+    }
+
+    async fetchAndRenderLinePerfReport() {
+        const dataContainer = document.getElementById('lines-perf-data-container');
+        const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
+        if (!dataContainer) return;
+
+        const currentYear = new Date().getFullYear() || 2026;
+        const currentMonthIdx = new Date().getMonth() + 1;
+        const activeYear = parseInt(this.linePerfFilters?.year) || currentYear;
+        const activeMonth = parseInt(this.linePerfFilters?.month) || currentMonthIdx;
+
+        // Subtle loading state without wiping everything
+        dataContainer.classList.add('opacity-50', 'pointer-events-none');
+
+        try {
+            const reportRes = await api.getLineProductionRatio({
+                line_id: this.linePerfFilters.line_id || undefined,
+                year: activeYear,
+                month: activeMonth,
+                dibuat_oleh: this.linePerfSignatures?.dibuat || undefined,
+                dicheck_oleh: this.linePerfSignatures?.dicheck || undefined,
+                disetujui_oleh: this.linePerfSignatures?.disetujui || undefined,
+            });
+
+            const reportData = reportRes.data?.data || {};
+            const header = reportData.header || {};
+            const monthlyGrid = reportData.monthly_grid || { months: [], ytd_average: {} };
+            const typeBreakdown = reportData.type_breakdown || { rows: [], total: {} };
+            const problems = reportData.problems || { mesin: [], kualitas: [], tool: [] };
+            const signatures = reportData.signatures || {};
+
+            // 1. Resolve & sync current signature names
+            const defaultDisetujui = signatures.disetujui?.name || signatures.diketahui?.name || 'Arief R';
+            const defaultDicheck = signatures.dicheck?.name || signatures.group_spv?.name || 'Alim Utama';
+            const defaultDibuat = signatures.dibuat?.name || signatures.group_leader?.name || 'Budi Santoso';
+
+            const curDisetujui = this.linePerfSignatures?.disetujui || defaultDisetujui;
+            const curDicheck = this.linePerfSignatures?.dicheck || defaultDicheck;
+            const curDibuat = this.linePerfSignatures?.dibuat || defaultDibuat;
+
+            this.linePerfSignatures = {
+                disetujui: curDisetujui,
+                dicheck: curDicheck,
+                dibuat: curDibuat,
+            };
+
+            // 2. Fetch registered user list from system if not cached
+            if (!this.cachedUsers || this.cachedUsers.length === 0) {
+                try {
+                    const uRes = await api.getUsers({ per_page: 200 }).catch(() => ({ data: { data: [] } }));
+                    this.cachedUsers = uRes.data?.data || [];
+                } catch (e) {
+                    console.warn('Could not fetch user list for signatures:', e);
+                }
+            }
+
+            // Extract registered user names & role classifications
+            const registeredUserNames = (this.cachedUsers || []).map(u => (u.name || '').trim()).filter(Boolean);
+
+            const registeredManagers = (this.cachedUsers || [])
+                .filter(u => {
+                    const roles = (u.roles || []).map(r => (r.name || r.display_name || '').toLowerCase());
+                    return roles.some(rn => rn.includes('manager') || rn.includes('management') || rn.includes('admin'));
+                })
+                .map(u => (u.name || '').trim())
+                .filter(Boolean);
+
+            const registeredSupervisors = (this.cachedUsers || [])
+                .filter(u => {
+                    const roles = (u.roles || []).map(r => (r.name || r.display_name || '').toLowerCase());
+                    return roles.some(rn => rn.includes('supervisor') || rn.includes('spv'));
+                })
+                .map(u => (u.name || '').trim())
+                .filter(Boolean);
+
+            // Merge with backend available options
+            const backendManagers = signatures.options?.managers || signatures.available_managers || ['Arief R', 'Plant Manager'];
+            const backendSupervisors = signatures.options?.supervisors || signatures.available_supervisors || ['Alim Utama', 'Hendra Wijaya', 'Surya Pratama', 'Dona I'];
+            const backendCreators = signatures.options?.users || signatures.available_creators || ['Budi Santoso', 'Agus Setiawan', 'Bambang Haryanto'];
+
+            const managerOptions = Array.from(new Set([...registeredManagers, ...backendManagers, curDisetujui].filter(Boolean))).sort();
+            const supervisorOptions = Array.from(new Set([...registeredSupervisors, ...backendSupervisors, curDicheck].filter(Boolean))).sort();
+            const creatorOptions = Array.from(new Set([...registeredUserNames, ...backendCreators, curDibuat].filter(Boolean))).sort();
+
+            // If line wasn't explicitly selected, sync with response header
+            if (!this.linePerfFilters.line_id && header.line_id) {
+                this.linePerfFilters.line_id = header.line_id;
+                const lineSelect = document.getElementById('filter-perf-line');
+                if (lineSelect) lineSelect.value = header.line_id;
+            }
+
+            const monthNamesId = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+
+            // Prepare 13-Column Chart Data (12 Months + YTD Average)
+            const chartCategories = [
+                ...monthNamesShort,
+                `TH ${activeYear} (AVG)`
+            ];
+
+            const planPpicSeries = [
+                ...monthlyGrid.months.map(m => m.plan_ppic ?? 0),
+                monthlyGrid.ytd_average?.plan_ppic ?? 0
+            ];
+
+            const planProdSeries = [
+                ...monthlyGrid.months.map(m => m.plan_prod ?? 0),
+                monthlyGrid.ytd_average?.plan_prod ?? 0
+            ];
+
+            const actProdSeries = [
+                ...monthlyGrid.months.map(m => m.actual_prod ?? 0),
+                monthlyGrid.ytd_average?.actual_prod ?? 0
+            ];
+
+            const ratioSeries = [
+                ...monthlyGrid.months.map(m => m.rasio_produksi ?? null),
+                monthlyGrid.ytd_average?.rasio_produksi ?? 0
+            ];
+
+            const maxQtyVal = Math.max(
+                ...planPpicSeries,
+                ...planProdSeries,
+                ...actProdSeries,
+                10000
+            );
+            const chartYMax = Math.ceil(maxQtyVal * 1.2 / 5000) * 5000;
+            const targetRatio = Number(header.target_ratio || monthlyGrid.ytd_average?.target || 85.0);
+
+            // Generate Dynamic SVG Combo Chart
+            const svgChartHtml = this.generateInteractiveComboChartSvg({
+                categories: chartCategories,
+                planPpicSeries,
+                planProdSeries,
+                actProdSeries,
+                ratioSeries,
+                chartYMax,
+                targetRatio: targetRatio,
+                isLight
+            });
+
+            dataContainer.innerHTML = `
+                <!-- REPORT CONTAINER (STRUCTURED LIKE THE OFFICIAL DOCUMENT) -->
+                <div class="${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'} border rounded-2xl p-5 shadow-2xl space-y-6 animate-fadeIn">
+                    
+                    <!-- OFFICIAL DOCUMENT HEADER BOX -->
+                    <div class="border-b-2 ${isLight ? 'border-slate-800' : 'border-slate-700'} pb-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <img src="${this.escapeHtml(this.getCompanyLogo(header))}" class="h-10 w-auto object-contain" alt="Yasunaga" onerror="this.style.display='none'" />
+                            <div>
+                                <div class="font-black text-sm tracking-wider ${isLight ? 'text-slate-900' : 'text-slate-100'}">${header.company_name || 'PT. YASUNAGA INDONESIA'}</div>
+                                <div class="text-[11px] font-bold text-cyan-500">${header.division || 'DIV. PRODUCTION CON - ROD'}</div>
+                            </div>
+                        </div>
+
+                        <div class="text-center flex-1">
+                            <h1 class="text-base font-black uppercase tracking-wider ${isLight ? 'text-slate-900' : 'text-white'}">
+                                ${header.title || `GRAFIK RASIO PRODUKSI ${header.line_full_label}`}
+                            </h1>
+                            <div class="text-xs font-bold text-slate-400">${header.year_title || `TH. ${activeYear}`}</div>
+                        </div>
+
+                        <div class="text-right flex items-center gap-3">
+                            <div class="border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 rounded-lg text-center">
+                                <div class="text-[9px] font-bold text-rose-400">TARGET RASIO</div>
+                                <div class="text-base font-black text-rose-500 font-mono">${targetRatio}%</div>
+                            </div>
+                            <div class="text-[10px] font-mono font-bold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded border ${isLight ? 'border-slate-300' : 'border-slate-700'}">
+                                ${header.form_number || 'F-PROD/CR-030/R0'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 1: DYNAMIC COMBO CHART + 13-COL DATA GRID -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between pb-1">
+                            <h3 class="font-extrabold text-xs sm:text-sm tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                <span class="p-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400"><i data-lucide="bar-chart-3" class="w-4 h-4"></i></span>
+                                <span class="uppercase">Grafik & Ringkasan Rasio Produksi Tahunan (Tahun ${activeYear})</span>
+                            </h3>
+                            <div class="flex items-center gap-4 text-[11px] font-semibold">
+                                <span class="flex items-center gap-1.5 text-slate-400"><span class="w-3 h-3 rounded-sm bg-sky-400 inline-block"></span> Plan PPIC</span>
+                                <span class="flex items-center gap-1.5 text-slate-400"><span class="w-3 h-3 rounded-sm bg-indigo-500 inline-block"></span> Plan Prod</span>
+                                <span class="flex items-center gap-1.5 text-slate-400"><span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span> Actual Prod</span>
+                                <span class="flex items-center gap-1.5 text-amber-400"><span class="w-3 h-0.5 bg-amber-400 inline-block"></span> Rasio (%)</span>
+                                <span class="flex items-center gap-1.5 text-rose-500"><span class="w-3 border-t-2 border-dashed border-rose-500 inline-block"></span> Target (${targetRatio}%)</span>
+                            </div>
+                        </div>
+
+                        <!-- CHART CANVAS/SVG -->
+                        <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} border rounded-xl p-3 overflow-x-auto shadow-inner">
+                            ${svgChartHtml}
+                        </div>
+
+                        <!-- 13-COLUMN DATA GRID (JAN..DES + YTD RATA-RATA) -->
+                        <div class="overflow-x-auto rounded-xl border ${isLight ? 'border-slate-300 bg-white' : 'border-slate-700/80 bg-slate-950/40'} shadow-sm">
+                            <table class="min-w-full text-center border-collapse text-[11px] font-sans ${isLight ? 'border-slate-300' : 'border-slate-700'} border">
+                                <thead>
+                                    <tr class="${isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-950 text-slate-100'} font-black text-xs tracking-wider uppercase">
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-left font-black tracking-wider uppercase whitespace-nowrap">KATEGORI METRIK</th>
+                                        ${monthNamesShort.map((mShort, idx) => `
+                                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3 min-w-[58px] font-black uppercase whitespace-nowrap ${idx + 1 === activeMonth ? 'bg-cyan-500/20 text-cyan-400 font-black' : ''}">${mShort}</th>
+                                        `).join('')}
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 min-w-[110px] bg-slate-200/70 dark:bg-slate-800/80 font-black tracking-wider uppercase whitespace-nowrap text-[10.5px] leading-tight">TH ${activeYear}<br/>(RATA-RATA)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800'} font-mono">
+                                    <!-- ROW 1: PLAN PPIC -->
+                                    <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-left font-bold font-sans text-sky-500 whitespace-nowrap">Plan PPIC</td>
+                                        ${monthlyGrid.months.map(m => `
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3 whitespace-nowrap ${m.month_num === activeMonth ? 'bg-cyan-500/10 font-bold' : ''}">${m.plan_ppic !== null ? m.plan_ppic.toLocaleString() : '-'}</td>
+                                        `).join('')}
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 font-bold whitespace-nowrap bg-slate-50 dark:bg-slate-900/60">${(monthlyGrid.ytd_average?.plan_ppic || 0).toLocaleString()}</td>
+                                    </tr>
+
+                                    <!-- ROW 2: PLAN PROD -->
+                                    <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-left font-bold font-sans text-indigo-400 whitespace-nowrap">Plan Prod</td>
+                                        ${monthlyGrid.months.map(m => `
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3 whitespace-nowrap ${m.month_num === activeMonth ? 'bg-cyan-500/10 font-bold' : ''}">${m.plan_prod !== null ? m.plan_prod.toLocaleString() : '-'}</td>
+                                        `).join('')}
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 font-bold whitespace-nowrap bg-slate-50 dark:bg-slate-900/60">${(monthlyGrid.ytd_average?.plan_prod || 0).toLocaleString()}</td>
+                                    </tr>
+
+                                    <!-- ROW 3: ACTUAL PROD -->
+                                    <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-left font-bold font-sans text-emerald-400 whitespace-nowrap">Actual Prod</td>
+                                        ${monthlyGrid.months.map(m => `
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3 font-bold whitespace-nowrap ${m.month_num === activeMonth ? 'bg-cyan-500/10 text-emerald-400' : ''}">${m.actual_prod !== null ? m.actual_prod.toLocaleString() : '-'}</td>
+                                        `).join('')}
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 font-bold whitespace-nowrap bg-slate-50 dark:bg-slate-900/60 text-emerald-500">${(monthlyGrid.ytd_average?.actual_prod || 0).toLocaleString()}</td>
+                                    </tr>
+
+                                    <!-- ROW 4: RASIO PRODUKSI (%) -->
+                                    <tr class="${isLight ? 'bg-amber-50/50 hover:bg-amber-100/60' : 'bg-amber-950/20 hover:bg-amber-900/30'} font-bold transition-colors">
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-left font-bold font-sans text-amber-500 whitespace-nowrap">Rasio Produksi</td>
+                                        ${monthlyGrid.months.map(m => `
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3 whitespace-nowrap ${m.rasio_produksi !== null ? (m.rasio_produksi >= targetRatio ? 'text-emerald-500' : 'text-amber-500') : 'text-slate-500'} ${m.month_num === activeMonth ? 'bg-cyan-500/20 font-black' : ''}">
+                                                ${m.rasio_produksi !== null ? `${m.rasio_produksi.toFixed(2)}%` : '-'}
+                                            </td>
+                                        `).join('')}
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 whitespace-nowrap text-amber-500 font-black">${(monthlyGrid.ytd_average?.rasio_produksi || 0).toFixed(2)}%</td>
+                                    </tr>
+
+                                    <!-- ROW 5: TARGET (%) -->
+                                    <tr class="${isLight ? 'bg-rose-50/40 text-rose-600' : 'bg-rose-950/20 text-rose-400'} font-bold transition-colors">
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-left font-sans text-rose-500 whitespace-nowrap">TARGET</td>
+                                        ${monthlyGrid.months.map(m => `
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3 whitespace-nowrap">${targetRatio.toFixed(1)}%</td>
+                                        `).join('')}
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 whitespace-nowrap">${targetRatio.toFixed(1)}%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: PRODUCT TYPE BREAKDOWN TABLE -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between pb-1">
+                            <h3 class="font-extrabold text-xs sm:text-sm tracking-wide ${isLight ? 'text-slate-900' : 'text-slate-100'} flex items-center gap-2">
+                                <span class="p-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"><i data-lucide="boxes" class="w-4 h-4"></i></span>
+                                <span class="uppercase">Rincian Produksi Berdasarkan Tipe Produk (${monthNamesId[activeMonth - 1]} ${activeYear})</span>
+                            </h3>
+                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm">
+                                ${typeBreakdown.rows.length} Tipe Produk Aktif
+                            </span>
+                        </div>
+
+                        <div class="overflow-x-auto rounded-xl border ${isLight ? 'border-slate-300 bg-white' : 'border-slate-700/80 bg-slate-950/40'} shadow-sm">
+                            <table class="min-w-full text-center border-collapse text-[11px] font-sans ${isLight ? 'border-slate-300' : 'border-slate-700'} border">
+                                <thead>
+                                    <tr class="${isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-950 text-slate-100'} font-black text-xs tracking-wider uppercase select-none">
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-4 text-left whitespace-nowrap font-black tracking-wider">TIPE PRODUK</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-center whitespace-nowrap font-black tracking-wider">TANGGAL PRODUKSI</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-center whitespace-nowrap font-black tracking-wider">CYCLE TIME (DTK)</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-right whitespace-nowrap font-black tracking-wider">PLAN PPIC</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-right whitespace-nowrap font-black tracking-wider">PLAN PRODUKSI</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-right whitespace-nowrap font-black tracking-wider">AKTUAL PRODUKSI</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-right whitespace-nowrap font-black tracking-wider">PLAN JAM KERJA</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-right whitespace-nowrap font-black tracking-wider">AKTUAL JAM KERJA</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-right whitespace-nowrap font-black tracking-wider">TARGET RASIO</th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-right whitespace-nowrap font-black tracking-wider">AKTUAL RASIO</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800'} font-mono">
+                                    ${typeBreakdown.rows.length === 0 ? `
+                                        <tr><td colspan="10" class="py-4 px-3 text-slate-500 text-center font-sans">Tidak ada catatan data produksi aktif untuk bulan ${monthNamesId[activeMonth - 1]}.</td></tr>
+                                    ` : typeBreakdown.rows.map(r => `
+                                        <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-4 text-left font-bold font-sans ${isLight ? 'text-slate-900' : 'text-slate-100'} whitespace-nowrap">
+                                                <div class="inline-flex items-center gap-2 whitespace-nowrap">
+                                                    <span>${r.type}</span>
+                                                    ${r.sku ? `<span class="text-[10px] ${isLight ? 'text-amber-800 bg-amber-100/90 border-amber-300' : 'text-amber-300 bg-amber-950/70 border-amber-700/80'} border px-1.5 py-0.5 rounded-md font-mono font-semibold whitespace-nowrap shadow-xs">${r.sku}</span>` : ''}
+                                                </div>
+                                            </td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center text-slate-400 font-sans whitespace-nowrap font-medium">${r.tgl_produksi}</td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center font-bold text-cyan-400 whitespace-nowrap">${r.cycle_time}</td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right text-sky-400 font-semibold whitespace-nowrap">${(r.plan_ppic || 0).toLocaleString()}</td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right text-indigo-400 font-semibold whitespace-nowrap">${(r.plan_prod || 0).toLocaleString()}</td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right font-bold text-emerald-400 whitespace-nowrap">${(r.act_prod || 0).toLocaleString()}</td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right font-medium whitespace-nowrap">${r.plan_jk}</td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right font-medium whitespace-nowrap">${r.act_jk}</td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right text-rose-400 font-bold whitespace-nowrap">${r.plan_rasio || targetRatio}%</td>
+                                            <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right font-bold ${r.act_rasio >= targetRatio ? 'text-emerald-500' : 'text-amber-500'} whitespace-nowrap">${(r.act_rasio || 0).toFixed(2)}%</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="${isLight ? 'bg-slate-100 font-bold text-slate-900' : 'bg-slate-950 font-bold text-slate-100'} border-t-2 ${isLight ? 'border-slate-400' : 'border-slate-600'} font-mono">
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-4 text-left font-black font-sans whitespace-nowrap">TOTAL</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center font-sans whitespace-nowrap">-</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center font-bold text-cyan-400 whitespace-nowrap">${typeBreakdown.total?.cycle_time || 77}</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right text-sky-400 font-extrabold whitespace-nowrap">${(typeBreakdown.total?.plan_ppic || 0).toLocaleString()}</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right text-indigo-400 font-extrabold whitespace-nowrap">${(typeBreakdown.total?.plan_prod || 0).toLocaleString()}</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right font-black text-emerald-400 whitespace-nowrap">${(typeBreakdown.total?.act_prod || 0).toLocaleString()}</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right font-bold whitespace-nowrap">${typeBreakdown.total?.plan_jk || 0}</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right font-bold whitespace-nowrap">${typeBreakdown.total?.act_jk || 0}</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right text-rose-400 font-black whitespace-nowrap">${typeBreakdown.total?.plan_rasio || targetRatio}%</td>
+                                        <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-right font-black ${typeBreakdown.total?.act_rasio >= targetRatio ? 'text-emerald-500' : 'text-amber-500'} whitespace-nowrap">${(typeBreakdown.total?.act_rasio || 0).toFixed(2)}%</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: 3 CATEGORIZED PROBLEM TABLES (MESIN, KUALITAS, TOOL) -->
+                    <div class="space-y-4">
+                        
+                        <!-- 3A. TABEL MESIN -->
+                        <div class="space-y-2">
+                            <div class="bg-gradient-to-r ${isLight ? 'from-amber-100 via-amber-50 to-transparent border-amber-300 text-amber-900' : 'from-amber-950/60 via-amber-950/30 to-transparent border-amber-700/60 text-amber-300'} border px-3.5 py-2 rounded-xl font-black text-xs tracking-wider uppercase flex items-center justify-between shadow-sm">
+                                <span class="flex items-center gap-2">
+                                    <span class="p-1 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30"><i data-lucide="wrench" class="w-3.5 h-3.5"></i></span>
+                                    <span>PERMASALAHAN LOSS TIME MESIN (MACHINE LOSS)</span>
+                                </span>
+                                <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full ${isLight ? 'bg-amber-200 text-amber-900 border-amber-300' : 'bg-amber-900/40 text-amber-200 border-amber-600/40'} border font-bold">${problems.mesin.length} Kejadian</span>
+                            </div>
+                            ${this.renderProblemSubTableHtml(problems.mesin, isLight)}
+                        </div>
+
+                        <!-- 3B. TABEL KUALITAS -->
+                        <div class="space-y-2">
+                            <div class="bg-gradient-to-r ${isLight ? 'from-rose-100 via-rose-50 to-transparent border-rose-300 text-rose-900' : 'from-rose-950/60 via-rose-950/30 to-transparent border-rose-700/60 text-rose-300'} border px-3.5 py-2 rounded-xl font-black text-xs tracking-wider uppercase flex items-center justify-between shadow-sm">
+                                <span class="flex items-center gap-2">
+                                    <span class="p-1 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30"><i data-lucide="shield-alert" class="w-3.5 h-3.5"></i></span>
+                                    <span>PERMASALAHAN KUALITAS & DEFECT (QUALITY LOSS)</span>
+                                </span>
+                                <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full ${isLight ? 'bg-rose-200 text-rose-900 border-rose-300' : 'bg-rose-900/40 text-rose-200 border-rose-600/40'} border font-bold">${problems.kualitas.length} Kejadian</span>
+                            </div>
+                            ${this.renderProblemSubTableHtml(problems.kualitas, isLight)}
+                        </div>
+
+                        <!-- 3C. TABEL TOOL -->
+                        <div class="space-y-2">
+                            <div class="bg-gradient-to-r ${isLight ? 'from-indigo-100 via-indigo-50 to-transparent border-indigo-300 text-indigo-900' : 'from-indigo-950/60 via-indigo-950/30 to-transparent border-indigo-700/60 text-indigo-300'} border px-3.5 py-2 rounded-xl font-black text-xs tracking-wider uppercase flex items-center justify-between shadow-sm">
+                                <span class="flex items-center gap-2">
+                                    <span class="p-1 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"><i data-lucide="disc" class="w-3.5 h-3.5"></i></span>
+                                    <span>PERMASALAHAN TOOLING & DIES (TOOL LOSS)</span>
+                                </span>
+                                <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full ${isLight ? 'bg-indigo-200 text-indigo-900 border-indigo-300' : 'bg-indigo-900/40 text-indigo-200 border-indigo-600/40'} border font-bold">${problems.tool.length} Kejadian</span>
+                            </div>
+                            ${this.renderProblemSubTableHtml(problems.tool, isLight)}
+                        </div>
+
+                    </div>
+
+                    <!-- SECTION 4: FOOTER, NOTES LEGEND & 3-COLUMN SIGNATURE BOX -->
+                    <div class="pt-4 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'} grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        
+                        <!-- NOTES LEGEND BOX -->
+                        <div class="${isLight ? 'bg-slate-50 border-slate-300' : 'bg-slate-950 border-slate-800'} border rounded-xl p-3 text-[11px] font-sans">
+                            <div class="font-bold text-slate-400 mb-1">Catatan Keterangan :</div>
+                            <div class="space-y-1 text-slate-300">
+                                <div class="flex items-center gap-2"><strong class="text-emerald-400 font-mono text-xs">○</strong> : Sudah perbaikan permanen</div>
+                                <div class="flex items-center gap-2"><strong class="text-rose-400 font-mono text-xs">x</strong> : Belum perbaikan secara permanen</div>
+                                <div class="flex items-center gap-2"><strong class="text-amber-400 font-mono text-xs">△</strong> : Hasil perbaikan masih dalam pemantauan</div>
+                            </div>
+                        </div>
+
+                        <!-- SIGNATURE BOX -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between text-[11px] font-sans">
+                                <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                                    <i data-lucide="pen-tool" class="w-3.5 h-3.5 text-cyan-400"></i>
+                                    <span>Tanda Tangan Pengesahan (Dapat Diubah):</span>
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="btn-reset-perf-sig" class="text-[10px] text-cyan-400 hover:text-cyan-300 underline cursor-pointer flex items-center gap-1 transition-all" title="Kembalikan nama penandatangan ke default">
+                                        <i data-lucide="rotate-ccw" class="w-2.5 h-2.5"></i>
+                                        <span>Reset Default</span>
+                                    </button>
+                                    <span class="text-slate-400 font-semibold">${signatures.date_label || `Tanggal : ${header.date_formatted}`}</span>
+                                </div>
+                            </div>
+                            <table class="w-full text-center border-collapse text-[10px] ${isLight ? 'border-slate-300' : 'border-slate-700'} border font-sans shadow-sm rounded-xl overflow-hidden">
+                                <thead>
+                                    <tr class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-300'} font-bold">
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} p-2 w-1/3">
+                                            <div class="text-[11px] font-bold text-cyan-500 dark:text-cyan-400">Disetujui oleh:</div>
+                                            <div class="text-[9px] font-normal text-slate-500 dark:text-slate-400">(Diketahui / Manager)</div>
+                                        </th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} p-2 w-1/3">
+                                            <div class="text-[11px] font-bold text-amber-500 dark:text-amber-400">Dicheck oleh:</div>
+                                            <div class="text-[9px] font-normal text-slate-500 dark:text-slate-400">(Group SPV)</div>
+                                        </th>
+                                        <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} p-2 w-1/3">
+                                            <div class="text-[11px] font-bold text-emerald-500 dark:text-emerald-400">Dibuat oleh:</div>
+                                            <div class="text-[9px] font-normal text-slate-500 dark:text-slate-400">(Group Leader / User)</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <!-- 1. DISETUJUI OLEH (MANAGER) -->
+                                        <td class="border ${isLight ? 'border-slate-300 bg-white/70' : 'border-slate-700 bg-slate-900/40'} p-2 align-bottom">
+                                            <div class="h-9 flex items-center justify-center text-slate-400/30 text-[9px] italic pointer-events-none select-none">
+                                                (Tanda Tangan)
+                                            </div>
+                                            <div class="mt-1">
+                                                <select id="select-perf-disetujui" class="w-full text-center font-bold text-xs py-1.5 px-2 rounded-lg border transition-all cursor-pointer ${isLight ? 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500 focus:bg-white' : 'bg-slate-950 border-slate-700 text-slate-200 focus:border-cyan-400 focus:bg-slate-900'}">
+                                                    ${managerOptions.map(m => `
+                                                        <option value="${this.escapeHtml(m)}" ${m === curDisetujui ? 'selected' : ''}>${this.escapeHtml(m)}</option>
+                                                    `).join('')}
+                                                    <option value="__custom__">✏️ + Ketik Nama Pengganti...</option>
+                                                </select>
+                                                <div class="text-[8px] text-slate-400 mt-1 flex items-center justify-center gap-1">
+                                                    <i data-lucide="user-check" class="w-2.5 h-2.5 text-cyan-400"></i>
+                                                    <span>Akun Manager Terdaftar</span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <!-- 2. DICHECK OLEH (SUPERVISOR) -->
+                                        <td class="border ${isLight ? 'border-slate-300 bg-white/70' : 'border-slate-700 bg-slate-900/40'} p-2 align-bottom">
+                                            <div class="h-9 flex items-center justify-center text-slate-400/30 text-[9px] italic pointer-events-none select-none">
+                                                (Tanda Tangan)
+                                            </div>
+                                            <div class="mt-1">
+                                                <select id="select-perf-dicheck" class="w-full text-center font-bold text-xs py-1.5 px-2 rounded-lg border transition-all cursor-pointer ${isLight ? 'bg-slate-50 border-slate-300 text-slate-800 focus:border-amber-500 focus:bg-white' : 'bg-slate-950 border-slate-700 text-slate-200 focus:border-amber-400 focus:bg-slate-900'}">
+                                                    ${supervisorOptions.map(s => `
+                                                        <option value="${this.escapeHtml(s)}" ${s === curDicheck ? 'selected' : ''}>${this.escapeHtml(s)}</option>
+                                                    `).join('')}
+                                                    <option value="__custom__">✏️ + Ketik Nama Pengganti...</option>
+                                                </select>
+                                                <div class="text-[8px] text-slate-400 mt-1 flex items-center justify-center gap-1">
+                                                    <i data-lucide="shield-check" class="w-2.5 h-2.5 text-amber-400"></i>
+                                                    <span>Akun SPV Terdaftar</span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <!-- 3. DIBUAT OLEH (USER / GROUP LEADER) -->
+                                        <td class="border ${isLight ? 'border-slate-300 bg-white/70' : 'border-slate-700 bg-slate-900/40'} p-2 align-bottom">
+                                            <div class="h-9 flex items-center justify-center text-slate-400/30 text-[9px] italic pointer-events-none select-none">
+                                                (Tanda Tangan)
+                                            </div>
+                                            <div class="mt-1">
+                                                <select id="select-perf-dibuat" class="w-full text-center font-bold text-xs py-1.5 px-2 rounded-lg border transition-all cursor-pointer ${isLight ? 'bg-slate-50 border-slate-300 text-slate-800 focus:border-emerald-500 focus:bg-white' : 'bg-slate-950 border-slate-700 text-slate-200 focus:border-emerald-400 focus:bg-slate-900'}">
+                                                    ${creatorOptions.map(c => `
+                                                        <option value="${this.escapeHtml(c)}" ${c === curDibuat ? 'selected' : ''}>${this.escapeHtml(c)}</option>
+                                                    `).join('')}
+                                                    <option value="__custom__">✏️ + Ketik Nama Pengganti...</option>
+                                                </select>
+                                                <div class="text-[8px] text-slate-400 mt-1 flex items-center justify-center gap-1">
+                                                    <i data-lucide="user" class="w-2.5 h-2.5 text-emerald-400"></i>
+                                                    <span>Akun User Pembuat</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+
+                </div>
+            `;
+
+            // Wire dynamic signature select handlers
+            const wireSigSelect = (selectId, sigKey, roleTitle, altKeys = []) => {
+                const el = document.getElementById(selectId);
+                if (!el) return;
+                el.addEventListener('change', (e) => {
+                    let chosenVal = e.target.value;
+                    if (chosenVal === '__custom__') {
+                        const customName = prompt(`Masukkan nama pengganti ${roleTitle}:`, '');
+                        if (customName && customName.trim()) {
+                            const trimmed = customName.trim();
+                            let opt = Array.from(el.options).find(o => o.value.toLowerCase() === trimmed.toLowerCase());
+                            if (!opt) {
+                                opt = document.createElement('option');
+                                opt.value = trimmed;
+                                opt.textContent = `${trimmed} (Pengganti)`;
+                                el.insertBefore(opt, el.lastElementChild);
+                            }
+                            el.value = trimmed;
+                            chosenVal = trimmed;
+                        } else {
+                            el.value = this.linePerfSignatures[sigKey];
+                            return;
+                        }
+                    }
+
+                    this.linePerfSignatures[sigKey] = chosenVal;
+                    if (reportData.signatures[sigKey]) {
+                        reportData.signatures[sigKey].name = chosenVal;
+                    }
+                    altKeys.forEach(k => {
+                        if (reportData.signatures[k]) {
+                            reportData.signatures[k].name = chosenVal;
+                        }
+                    });
+                });
+            };
+
+            wireSigSelect('select-perf-disetujui', 'disetujui', 'Manager (Disetujui oleh)', ['diketahui']);
+            wireSigSelect('select-perf-dicheck', 'dicheck', 'Supervisor (Dicheck oleh)', ['group_spv']);
+            wireSigSelect('select-perf-dibuat', 'dibuat', 'Pembuat (Dibuat oleh)', ['group_leader']);
+
+            // Wire reset signatures button
+            document.getElementById('btn-reset-perf-sig')?.addEventListener('click', () => {
+                this.linePerfSignatures = null;
+                this.fetchAndRenderLinePerfReport();
+            });
+
+            // Wire print button with newly fetched data & updated signatures
+            const printBtn = document.getElementById('btn-print-line-report');
+            if (printBtn) {
+                // Remove old event listeners by replacing with clone
+                const newPrintBtn = printBtn.cloneNode(true);
+                printBtn.parentNode.replaceChild(newPrintBtn, printBtn);
+                newPrintBtn.addEventListener('click', () => {
+                    const selDisetujui = document.getElementById('select-perf-disetujui')?.value || this.linePerfSignatures?.disetujui;
+                    const selDicheck = document.getElementById('select-perf-dicheck')?.value || this.linePerfSignatures?.dicheck;
+                    const selDibuat = document.getElementById('select-perf-dibuat')?.value || this.linePerfSignatures?.dibuat;
+
+                    reportData.signatures = {
+                        ...reportData.signatures,
+                        disetujui: { ...reportData.signatures?.disetujui, name: selDisetujui },
+                        dicheck: { ...reportData.signatures?.dicheck, name: selDicheck },
+                        dibuat: { ...reportData.signatures?.dibuat, name: selDibuat },
+                        diketahui: { ...reportData.signatures?.diketahui, name: selDisetujui },
+                        group_spv: { ...reportData.signatures?.group_spv, name: selDicheck },
+                        group_leader: { ...reportData.signatures?.group_leader, name: selDibuat },
+                    };
+                    this.printLinePerformancesReport(reportData);
+                });
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+            if (this.currentLang === 'ja') {
+                i18n.localizeDom(dataContainer);
+            }
+
+        } catch (err) {
+            console.error('Error rendering line performances:', err);
+            dataContainer.innerHTML = `
+                <div class="p-8 text-center bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-400">
+                    <p class="font-bold">Gagal memuat data Line Performances</p>
+                    <p class="text-xs mt-1 text-slate-400">${err.message || 'Terjadi kesalahan sistem'}</p>
+                    <button id="btn-retry-perf" class="mt-4 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all">
+                        Coba Lagi
+                    </button>
+                </div>
+            `;
+            document.getElementById('btn-retry-perf')?.addEventListener('click', () => this.fetchAndRenderLinePerfReport());
+        } finally {
+            dataContainer.classList.remove('opacity-50', 'pointer-events-none');
         }
     }
 
     /**
-     * High-Performance Client-Side Image Compressor
-     * Uses HTML5 Canvas to scale & compress camera/phone uploads (from 5MB down to ~60KB-120KB)
+     * Helper to render problem sub-table HTML in in-app UI
      */
+    renderProblemSubTableHtml(items, isLight) {
+        if (!items || items.length === 0) {
+            return `
+                <div class="p-3 text-center text-slate-500 text-[11px] border rounded-lg ${isLight ? 'border-slate-200 bg-slate-50' : 'border-slate-800/80 bg-slate-950/40'} font-sans">
+                    - Tidak ada catatan permasalahan pada kategori ini -
+                </div>
+            `;
+        }
+
+        return `
+            <div class="overflow-x-auto rounded-xl border ${isLight ? 'border-slate-300 bg-white' : 'border-slate-700/80 bg-slate-950/40'} shadow-sm">
+                <table class="min-w-full text-left border-collapse text-[11px] font-sans ${isLight ? 'border-slate-300' : 'border-slate-700'} border">
+                    <thead>
+                        <tr class="${isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-950 text-slate-100'} font-black text-xs tracking-wider uppercase select-none">
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3 text-center whitespace-nowrap font-black tracking-wider">OP</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 whitespace-nowrap font-black tracking-wider">TIPE</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-4 whitespace-nowrap font-black tracking-wider">DESKRIPSI MASALAH</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-4 whitespace-nowrap font-black tracking-wider">AKAR PENYEBAB</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-4 whitespace-nowrap font-black tracking-wider">TINDAKAN PERBAIKAN</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-center whitespace-nowrap font-black tracking-wider">PIC</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-center font-mono whitespace-nowrap font-black tracking-wider">DOWNTIME</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-center whitespace-nowrap font-black tracking-wider">STATUS</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-4 whitespace-nowrap font-black tracking-wider">PERBAIKAN SELANJUTNYA</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-center whitespace-nowrap font-black tracking-wider">DUE DATE</th>
+                            <th class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-3 px-3.5 text-center whitespace-nowrap font-black tracking-wider">PIC</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800'}">
+                        ${items.map(item => `
+                            <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3 text-center whitespace-nowrap">
+                                    <span class="px-2.5 py-0.5 rounded-md font-mono font-bold text-xs ${isLight ? 'bg-cyan-100 text-cyan-900 border border-cyan-300' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800'}">${item.op || '-'}</span>
+                                </td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'} whitespace-nowrap">${item.type || '-'}</td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-4 whitespace-nowrap font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${item.masalah || '-'}</td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-4 whitespace-nowrap font-medium text-slate-400">${item.penyebab || '-'}</td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-4 whitespace-nowrap font-medium ${isLight ? 'text-slate-700' : 'text-slate-300'}">${item.perbaikan || '-'}</td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center whitespace-nowrap">
+                                    <span class="px-2.5 py-0.5 rounded-md font-bold text-xs whitespace-nowrap ${isLight ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-amber-950/70 text-amber-300 border border-amber-800'}">${item.pic || '-'}</span>
+                                </td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center font-mono font-bold whitespace-nowrap">
+                                    <span class="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap ${isLight ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-rose-950/70 text-rose-300 border border-rose-800'}">${item.lama_stop || '-'}</span>
+                                </td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center whitespace-nowrap">
+                                    ${item.hasil === '○' ? `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold text-xs" title="Sudah perbaikan permanen">○</span>` : (item.hasil === '△' ? `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/50 font-bold text-xs" title="Dalam pemantauan">△</span>` : `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/50 font-bold text-xs" title="Belum perbaikan permanen">x</span>`)}
+                                </td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-4 whitespace-nowrap text-slate-400 font-medium">${item.perbaikan_selanjutnya || '-'}</td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center font-mono text-slate-400 whitespace-nowrap font-medium">${item.due_date || '-'}</td>
+                                <td class="border ${isLight ? 'border-slate-300' : 'border-slate-700'} py-2.5 px-3.5 text-center text-slate-400 whitespace-nowrap font-medium">${item.pic_followup || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Interactive Dynamic SVG Combo Chart Generator (Dual Y-Axis, 13 Bars Groups & Percentage Lines, No overlapping)
+     */
+    generateInteractiveComboChartSvg(opts) {
+        const { categories, planPpicSeries, planProdSeries, actProdSeries, ratioSeries, chartYMax, targetRatio, isLight } = opts;
+        const width = 1000;
+        const height = 135;
+        const paddingLeft = 105;
+        const paddingRight = 40;
+        const paddingTop = 14;
+        const paddingBottom = 16;
+
+        const plotWidth = width - paddingLeft - paddingRight;
+        const plotHeight = height - paddingTop - paddingBottom;
+
+        const numCols = categories.length; // 13 columns
+        const colWidth = plotWidth / numCols;
+        const barWidth = Math.max(colWidth * 0.22, 6);
+
+        // Y Coordinate Mappers
+        const getYQty = (val) => paddingTop + plotHeight - (Math.min(val, chartYMax) / chartYMax) * plotHeight;
+        const getYRatio = (val) => paddingTop + plotHeight - (Math.min(val, 100) / 100) * plotHeight;
+
+        // Grid lines (every 20% on right / corresponding left)
+        let gridLines = '';
+        for (let pct = 0; pct <= 100; pct += 20) {
+            const yPos = getYRatio(pct);
+            const qtyVal = Math.round((pct / 100) * chartYMax);
+            gridLines += `
+                <line x1="${paddingLeft}" y1="${yPos}" x2="${width - paddingRight}" y2="${yPos}" stroke="${isLight ? '#e2e8f0' : '#1e293b'}" stroke-width="1" />
+                <text x="${paddingLeft - 8}" y="${yPos + 3}" text-anchor="end" font-size="8" fill="${isLight ? '#64748b' : '#94a3b8'}" font-family="sans-serif">${qtyVal.toLocaleString()}</text>
+                <text x="${width - paddingRight + 6}" y="${yPos + 3}" text-anchor="start" font-size="8" fill="${isLight ? '#64748b' : '#94a3b8'}" font-family="sans-serif">${pct}%</text>
+            `;
+        }
+
+        // Target Line (83.0%)
+        const targetY = getYRatio(targetRatio);
+        const targetLine = `
+            <line x1="${paddingLeft}" y1="${targetY}" x2="${width - paddingRight}" y2="${targetY}" stroke="#e11d48" stroke-width="1.5" stroke-dasharray="4,4" />
+            <text x="${width - paddingRight - 6}" y="${targetY - 4}" text-anchor="end" font-size="7.5" font-weight="bold" fill="#e11d48" font-family="sans-serif">TARGET ${targetRatio}%</text>
+        `;
+
+        // Bars
+        let barsHtml = '';
+        const ratioPoints = [];
+
+        categories.forEach((cat, i) => {
+            const colCenterX = paddingLeft + i * colWidth + colWidth / 2;
+
+            const ppic = planPpicSeries[i] || 0;
+            const prod = planProdSeries[i] || 0;
+            const act = actProdSeries[i] || 0;
+            const ratio = ratioSeries[i];
+
+            const xPpic = colCenterX - barWidth * 1.4;
+            const xProd = colCenterX - barWidth * 0.1;
+            const xAct = colCenterX + barWidth * 1.2;
+
+            const yPpic = getYQty(ppic);
+            const yProd = getYQty(prod);
+            const yAct = getYQty(act);
+
+            const hPpic = Math.max(0, paddingTop + plotHeight - yPpic);
+            const hProd = Math.max(0, paddingTop + plotHeight - yProd);
+            const hAct = Math.max(0, paddingTop + plotHeight - yAct);
+
+            if (ppic > 0) {
+                barsHtml += `<rect x="${xPpic}" y="${yPpic}" width="${barWidth}" height="${hPpic}" fill="#38bdf8" rx="1" opacity="0.85"><title>${cat} - Plan PPIC: ${ppic.toLocaleString()}</title></rect>`;
+            }
+            if (prod > 0) {
+                barsHtml += `<rect x="${xProd}" y="${yProd}" width="${barWidth}" height="${hProd}" fill="#6366f1" rx="1" opacity="0.85"><title>${cat} - Plan Prod: ${prod.toLocaleString()}</title></rect>`;
+            }
+            if (act > 0) {
+                barsHtml += `<rect x="${xAct}" y="${yAct}" width="${barWidth}" height="${hAct}" fill="#10b981" rx="1"><title>${cat} - Actual Prod: ${act.toLocaleString()}</title></rect>`;
+            }
+
+            if (ratio !== null && ratio !== undefined) {
+                const yR = getYRatio(ratio);
+                ratioPoints.push({ x: colCenterX, y: yR, ratio, cat });
+            }
+        });
+
+        // Ratio Line & Markers
+        let ratioPathD = '';
+        let ratioMarkers = '';
+        ratioPoints.forEach((pt, idx) => {
+            if (idx === 0) {
+                ratioPathD += `M ${pt.x} ${pt.y}`;
+            } else {
+                ratioPathD += ` L ${pt.x} ${pt.y}`;
+            }
+            ratioMarkers += `
+                <circle cx="${pt.x}" cy="${pt.y}" r="3" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5">
+                    <title>${pt.cat}: ${pt.ratio.toFixed(2)}%</title>
+                </circle>
+                <text x="${pt.x}" y="${pt.y - 5}" text-anchor="middle" font-size="7.5" font-weight="bold" fill="${pt.ratio >= 83 ? '#10b981' : '#f59e0b'}" font-family="sans-serif">${pt.ratio.toFixed(1)}%</text>
+            `;
+        });
+
+        const ratioLine = `
+            <path d="${ratioPathD}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linejoin="round" />
+            ${ratioMarkers}
+        `;
+
+        return `
+            <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto select-none" preserveAspectRatio="xMidYMid meet">
+                ${gridLines}
+                ${targetLine}
+                ${barsHtml}
+                ${ratioLine}
+                <!-- Y-Axis Unit Labels -->
+                <text x="14" y="${height / 2}" text-anchor="middle" transform="rotate(-90 14 ${height / 2})" font-size="7.5" font-weight="bold" fill="${isLight ? '#475569' : '#94a3b8'}" font-family="sans-serif">Unit Produksi</text>
+                <text x="${width - 12}" y="${height / 2}" text-anchor="middle" transform="rotate(90 ${width - 12} ${height / 2})" font-size="7.5" font-weight="bold" fill="${isLight ? '#475569' : '#94a3b8'}" font-family="sans-serif">Rasio (%)</text>
+            </svg>
+        `;
+    }
+
+    // ==========================================
+    // 4C. OFFICIAL PRINT ENGINE: F-PROD/CR-030/R0 STANDARD PDF-MATCHING REPORT
+    // ==========================================
+    printLinePerformancesReport(reportData) {
+        const printWindow = window.open('', '_blank', 'width=1150,height=850');
+        if (!printWindow) {
+            alert('Popup terblokir oleh browser. Harap izinkan pop-up untuk mencetak dokumen laporan.');
+            return;
+        }
+
+        const header = reportData?.header || {};
+        const monthlyGrid = reportData?.monthly_grid || { months: [], ytd_average: {} };
+        const typeBreakdown = reportData?.type_breakdown || { rows: [], total: {} };
+        const problems = reportData?.problems || { mesin: [], kualitas: [], tool: [] };
+        const signatures = reportData?.signatures || {};
+
+        const activeYear = header.selected_year || new Date().getFullYear();
+        const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+
+        // Prepare Printable Chart SVG (13 columns: Jan..Des + YTD)
+        const chartCategories = [
+            ...monthNamesShort,
+            `TH ${activeYear} (AVG)`
+        ];
+
+        const planPpicSeries = [
+            ...monthlyGrid.months.map(m => m.plan_ppic ?? 0),
+            monthlyGrid.ytd_average?.plan_ppic ?? 0
+        ];
+
+        const planProdSeries = [
+            ...monthlyGrid.months.map(m => m.plan_prod ?? 0),
+            monthlyGrid.ytd_average?.plan_prod ?? 0
+        ];
+
+        const actProdSeries = [
+            ...monthlyGrid.months.map(m => m.actual_prod ?? 0),
+            monthlyGrid.ytd_average?.actual_prod ?? 0
+        ];
+
+        const ratioSeries = [
+            ...monthlyGrid.months.map(m => m.rasio_produksi ?? null),
+            monthlyGrid.ytd_average?.rasio_produksi ?? 0
+        ];
+
+        const maxQtyVal = Math.max(...planPpicSeries, ...planProdSeries, ...actProdSeries, 10000);
+        const chartYMax = Math.ceil(maxQtyVal * 1.2 / 5000) * 5000;
+        const targetRatio = Number(header.target_ratio || monthlyGrid.ytd_average?.target || 85.0);
+
+        const printChartSvg = this.generateInteractiveComboChartSvg({
+            categories: chartCategories,
+            planPpicSeries,
+            planProdSeries,
+            actProdSeries,
+            ratioSeries,
+            chartYMax,
+            targetRatio: targetRatio,
+            isLight: true
+        });
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>${header.title || 'GRAFIK RASIO PRODUKSI'} - ${header.form_number || 'F-PROD/CR-030/R0'}</title>
+                <style>
+                    @page {
+                        size: A4 landscape;
+                        margin: 6mm 8mm;
+                    }
+                    * {
+                        box-sizing: border-box;
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                        font-size: 8.5px;
+                        line-height: 1.2;
+                        color: #111827;
+                        margin: 0;
+                        padding: 0;
+                        background: #FFFFFF;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .report-wrapper {
+                        border: 1.5px solid #1e293b;
+                        padding: 6px 8px;
+                        background: #FFFFFF;
+                    }
+                    .header-tbl {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 4px;
+                    }
+                    .header-tbl td {
+                        vertical-align: middle;
+                        border: none;
+                    }
+                    .company-name {
+                        font-size: 11px;
+                        font-weight: 900;
+                        letter-spacing: 0.3px;
+                        color: #0f172a;
+                    }
+                    .div-name {
+                        font-size: 8.5px;
+                        font-weight: bold;
+                        color: #475569;
+                    }
+                    .doc-title {
+                        font-size: 12.5px;
+                        font-weight: 900;
+                        text-align: center;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        color: #0f172a;
+                    }
+                    .doc-year {
+                        font-size: 9.5px;
+                        font-weight: bold;
+                        text-align: center;
+                        color: #475569;
+                    }
+                    .form-badge {
+                        font-size: 8px;
+                        font-weight: bold;
+                        text-align: right;
+                        color: #334155;
+                    }
+                    .target-badge-box {
+                        border: 1.5px solid #0f172a;
+                        padding: 2px 6px;
+                        text-align: center;
+                        font-size: 7.5px;
+                        font-weight: bold;
+                        display: inline-block;
+                        background: #f8fafc;
+                    }
+                    .chart-container {
+                        width: 100%;
+                        height: auto;
+                        margin-top: 2px;
+                        margin-bottom: 6px;
+                        clear: both;
+                        display: block;
+                    }
+                    .chart-container svg {
+                        width: 100%;
+                        height: 135px;
+                        display: block;
+                    }
+                    table.grid-tbl {
+                        width: 100%;
+                        border-collapse: collapse;
+                        font-size: 8px;
+                        margin-bottom: 5px;
+                        white-space: nowrap;
+                    }
+                    table.grid-tbl th, table.grid-tbl td {
+                        border: 1px solid #334155;
+                        padding: 3px 4px;
+                        text-align: center;
+                        white-space: nowrap;
+                    }
+                    table.grid-tbl th {
+                        background-color: #f1f5f9;
+                        font-weight: 900;
+                        letter-spacing: 0.3px;
+                        text-transform: uppercase;
+                        color: #0f172a;
+                    }
+                    .text-left { text-align: left !important; }
+                    .text-right { text-align: right !important; }
+                    .text-center { text-align: center !important; }
+                    .font-bold { font-weight: bold; }
+                    
+                    /* Problem Section Title */
+                    .prob-header {
+                        font-size: 8px;
+                        font-weight: 900;
+                        text-align: left;
+                        background-color: #f1f5f9;
+                        border: 1px solid #334155;
+                        border-bottom: none;
+                        padding: 3px 6px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.3px;
+                        margin-top: 5px;
+                        color: #0f172a;
+                    }
+                    table.prob-tbl {
+                        width: 100%;
+                        border-collapse: collapse;
+                        font-size: 7.5px;
+                        margin-bottom: 4px;
+                    }
+                    table.prob-tbl th, table.prob-tbl td {
+                        border: 1px solid #334155;
+                        padding: 2.5px 4px;
+                        white-space: nowrap;
+                    }
+                    table.prob-tbl th {
+                        background-color: #f8fafc;
+                        font-weight: 900;
+                        letter-spacing: 0.3px;
+                        text-transform: uppercase;
+                        text-align: center;
+                        color: #0f172a;
+                    }
+                    
+                    /* Footer Table */
+                    .footer-tbl {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 6px;
+                        page-break-inside: avoid;
+                    }
+                    .footer-tbl td {
+                        vertical-align: top;
+                        border: none;
+                    }
+                    .note-box {
+                        border: 1px solid #334155;
+                        padding: 4px 6px;
+                        font-size: 7.5px;
+                        width: 220px;
+                        background: #f8fafc;
+                    }
+                    .sig-tbl {
+                        width: 310px;
+                        border-collapse: collapse;
+                        font-size: 8px;
+                        margin-left: auto;
+                    }
+                    .sig-tbl th, .sig-tbl td {
+                        border: 1px solid #334155;
+                        text-align: center;
+                    }
+                    .sig-tbl th {
+                        padding: 2.5px;
+                        background-color: #f1f5f9;
+                        font-weight: bold;
+                    }
+                    .sig-tbl td {
+                        height: 40px;
+                        vertical-align: bottom;
+                        padding-bottom: 3px;
+                        font-weight: bold;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="report-wrapper">
+                    
+                    <!-- HEADER -->
+                    <table class="header-tbl">
+                        <tr>
+                            <td style="width: 25%;">
+                                <div class="company-name">${header.company_name || 'PT. YASUNAGA INDONESIA'}</div>
+                                <div class="div-name">${header.division || 'DIV. PRODUCTION CON - ROD'}</div>
+                            </td>
+                            <td style="width: 50%; text-align: center;">
+                                <div class="doc-title">${header.title || `GRAFIK RASIO PRODUKSI ${header.line_full_label}`}</div>
+                                <div class="doc-year">${header.year_title || `TH. ${activeYear}`}</div>
+                            </td>
+                            <td style="width: 25%; text-align: right;">
+                                <div class="form-badge">${header.form_number || 'F-PROD/CR-030/R0'}</div>
+                                <div style="margin-top: 2px;">
+                                    <div class="target-badge-box">
+                                        TARGET RASIO<br/><span style="font-size: 10px; font-weight: 900;">${targetRatio}%</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- CHART -->
+                    <div class="chart-container">
+                        ${printChartSvg}
+                    </div>
+
+                    <!-- 13-COL MONTHLY DATA GRID (JAN..DES + TH AVG) -->
+                    <table class="grid-tbl">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;" class="text-left">KATEGORI</th>
+                                ${monthNamesShort.map(m => `<th>${m}</th>`).join('')}
+                                <th style="width: 90px;">TH ${activeYear}<br/>(RATA-RATA)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-left font-bold">Plan PPIC</td>
+                                ${monthlyGrid.months.map(m => `<td>${m.plan_ppic !== null ? m.plan_ppic.toLocaleString() : ''}</td>`).join('')}
+                                <td class="font-bold">${(monthlyGrid.ytd_average?.plan_ppic || 0).toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-left font-bold">Plan Prod</td>
+                                ${monthlyGrid.months.map(m => `<td>${m.plan_prod !== null ? m.plan_prod.toLocaleString() : ''}</td>`).join('')}
+                                <td class="font-bold">${(monthlyGrid.ytd_average?.plan_prod || 0).toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-left font-bold">Actual Prod</td>
+                                ${monthlyGrid.months.map(m => `<td>${m.actual_prod !== null ? m.actual_prod.toLocaleString() : ''}</td>`).join('')}
+                                <td class="font-bold">${(monthlyGrid.ytd_average?.actual_prod || 0).toLocaleString()}</td>
+                            </tr>
+                            <tr style="font-weight: bold; background-color: #fafaf9;">
+                                <td class="text-left">Rasio Produksi</td>
+                                ${monthlyGrid.months.map(m => `<td>${m.rasio_produksi !== null ? `${m.rasio_produksi.toFixed(2)}%` : ''}</td>`).join('')}
+                                <td>${(monthlyGrid.ytd_average?.rasio_produksi || 0).toFixed(2)}%</td>
+                            </tr>
+                            <tr style="font-weight: bold;">
+                                <td class="text-left">TARGET</td>
+                                ${monthlyGrid.months.map(m => `<td>${targetRatio.toFixed(1)}%</td>`).join('')}
+                                <td>${targetRatio.toFixed(1)}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- PRODUCT TYPE BREAKDOWN TABLE -->
+                    <table class="grid-tbl">
+                        <thead>
+                            <tr>
+                                <th class="text-left" style="width: 80px;">TIPE PRODUK</th>
+                                <th style="width: 90px;">TANGGAL PRODUKSI</th>
+                                <th style="width: 50px;">CYCLE TIME</th>
+                                <th class="text-right" style="width: 65px;">PLAN PPIC</th>
+                                <th class="text-right" style="width: 65px;">PLAN PRODUKSI</th>
+                                <th class="text-right" style="width: 65px;">AKTUAL PRODUKSI</th>
+                                <th class="text-right" style="width: 55px;">PLAN JAM KERJA</th>
+                                <th class="text-right" style="width: 55px;">AKTUAL JAM KERJA</th>
+                                <th class="text-right" style="width: 55px;">TARGET RASIO</th>
+                                <th class="text-right" style="width: 55px;">AKTUAL RASIO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${typeBreakdown.rows.length === 0 ? `
+                                <tr><td colspan="10" class="text-center" style="padding: 4px;">- Tidak ada catatan data produksi aktif untuk periode ini -</td></tr>
+                            ` : typeBreakdown.rows.map(r => `
+                                <tr>
+                                    <td class="text-left font-bold">${r.type}</td>
+                                    <td>${r.tgl_produksi}</td>
+                                    <td>${r.cycle_time}</td>
+                                    <td class="text-right">${(r.plan_ppic || 0).toLocaleString()}</td>
+                                    <td class="text-right">${(r.plan_prod || 0).toLocaleString()}</td>
+                                    <td class="text-right font-bold">${(r.act_prod || 0).toLocaleString()}</td>
+                                    <td class="text-right">${r.plan_jk}</td>
+                                    <td class="text-right">${r.act_jk}</td>
+                                    <td class="text-right">${r.plan_rasio || targetRatio}%</td>
+                                    <td class="text-right font-bold">${(r.act_rasio || 0).toFixed(2)}%</td>
+                                </tr>
+                            `).join('')}
+                            <tr style="font-weight: bold; background-color: #f1f5f9;">
+                                <td class="text-left font-bold">TOTAL</td>
+                                <td>-</td>
+                                <td>${typeBreakdown.total?.cycle_time || 77}</td>
+                                <td class="text-right">${(typeBreakdown.total?.plan_ppic || 0).toLocaleString()}</td>
+                                <td class="text-right">${(typeBreakdown.total?.plan_prod || 0).toLocaleString()}</td>
+                                <td class="text-right font-bold">${(typeBreakdown.total?.act_prod || 0).toLocaleString()}</td>
+                                <td class="text-right">${typeBreakdown.total?.plan_jk || 0}</td>
+                                <td class="text-right">${typeBreakdown.total?.act_jk || 0}</td>
+                                <td class="text-right">${typeBreakdown.total?.plan_rasio || targetRatio}%</td>
+                                <td class="text-right font-bold">${(typeBreakdown.total?.act_rasio || 0).toFixed(2)}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- 3 PROBLEM TABLES -->
+                    <!-- 1. MESIN -->
+                    <div class="prob-header">PERMASALAHAN LOSS TIME MESIN (MACHINE LOSS)</div>
+                    <table class="prob-tbl">
+                        <thead>
+                            <tr>
+                                <th>OP</th>
+                                <th>TIPE</th>
+                                <th>DESKRIPSI MASALAH</th>
+                                <th>AKAR PENYEBAB</th>
+                                <th>TINDAKAN PERBAIKAN</th>
+                                <th>PIC</th>
+                                <th>DOWNTIME</th>
+                                <th>STATUS</th>
+                                <th>PERBAIKAN SELANJUTNYA</th>
+                                <th>DUE DATE</th>
+                                <th>PIC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${problems.mesin.length === 0 ? `
+                                <tr><td colspan="11" class="text-center" style="padding: 4px;">- Tidak ada catatan permasalahan mesin -</td></tr>
+                            ` : problems.mesin.map(p => `
+                                <tr>
+                                    <td class="text-center font-bold">${p.op || '-'}</td>
+                                    <td>${p.type || '-'}</td>
+                                    <td>${p.masalah || '-'}</td>
+                                    <td>${p.penyebab || '-'}</td>
+                                    <td>${p.perbaikan || '-'}</td>
+                                    <td class="text-center font-bold">${p.pic || '-'}</td>
+                                    <td class="text-center font-bold">${p.lama_stop || '-'}</td>
+                                    <td class="text-center font-bold">${p.hasil || '○'}</td>
+                                    <td>${p.perbaikan_selanjutnya || '-'}</td>
+                                    <td class="text-center">${p.due_date || '-'}</td>
+                                    <td class="text-center">${p.pic_followup || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <!-- 2. KUALITAS -->
+                    <div class="prob-header">PERMASALAHAN KUALITAS & DEFECT (QUALITY LOSS)</div>
+                    <table class="prob-tbl">
+                        <thead>
+                            <tr>
+                                <th>OP</th>
+                                <th>TIPE</th>
+                                <th>DESKRIPSI MASALAH</th>
+                                <th>AKAR PENYEBAB</th>
+                                <th>TINDAKAN PERBAIKAN</th>
+                                <th>PIC</th>
+                                <th>DOWNTIME</th>
+                                <th>STATUS</th>
+                                <th>PERBAIKAN SELANJUTNYA</th>
+                                <th>DUE DATE</th>
+                                <th>PIC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${problems.kualitas.length === 0 ? `
+                                <tr><td colspan="11" class="text-center" style="padding: 4px;">- Tidak ada catatan permasalahan kualitas -</td></tr>
+                            ` : problems.kualitas.map(p => `
+                                <tr>
+                                    <td class="text-center font-bold">${p.op || '-'}</td>
+                                    <td>${p.type || '-'}</td>
+                                    <td>${p.masalah || '-'}</td>
+                                    <td>${p.penyebab || '-'}</td>
+                                    <td>${p.perbaikan || '-'}</td>
+                                    <td class="text-center font-bold">${p.pic || '-'}</td>
+                                    <td class="text-center font-bold">${p.lama_stop || '-'}</td>
+                                    <td class="text-center font-bold">${p.hasil || '○'}</td>
+                                    <td>${p.perbaikan_selanjutnya || '-'}</td>
+                                    <td class="text-center">${p.due_date || '-'}</td>
+                                    <td class="text-center">${p.pic_followup || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <!-- 3. TOOL -->
+                    <div class="prob-header">PERMASALAHAN TOOLING & DIES (TOOL LOSS)</div>
+                    <table class="prob-tbl">
+                        <thead>
+                            <tr>
+                                <th>OP</th>
+                                <th>TIPE</th>
+                                <th>DESKRIPSI MASALAH</th>
+                                <th>AKAR PENYEBAB</th>
+                                <th>TINDAKAN PERBAIKAN</th>
+                                <th>PIC</th>
+                                <th>DOWNTIME</th>
+                                <th>STATUS</th>
+                                <th>PERBAIKAN SELANJUTNYA</th>
+                                <th>DUE DATE</th>
+                                <th>PIC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${problems.tool.length === 0 ? `
+                                <tr><td colspan="11" class="text-center" style="padding: 4px;">- Tidak ada catatan permasalahan tooling -</td></tr>
+                            ` : problems.tool.map(p => `
+                                <tr>
+                                    <td class="text-center font-bold">${p.op || '-'}</td>
+                                    <td>${p.type || '-'}</td>
+                                    <td>${p.masalah || '-'}</td>
+                                    <td>${p.penyebab || '-'}</td>
+                                    <td>${p.perbaikan || '-'}</td>
+                                    <td class="text-center font-bold">${p.pic || '-'}</td>
+                                    <td class="text-center font-bold">${p.lama_stop || '-'}</td>
+                                    <td class="text-center font-bold">${p.hasil || '○'}</td>
+                                    <td>${p.perbaikan_selanjutnya || '-'}</td>
+                                    <td class="text-center">${p.due_date || '-'}</td>
+                                    <td class="text-center">${p.pic_followup || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <!-- FOOTER NOTES & SIGNATURE BLOCK -->
+                    <table class="footer-tbl">
+                        <tr>
+                            <td style="width: 45%;">
+                                <div class="note-box">
+                                    <strong>Catatan Keterangan :</strong><br/>
+                                    ○ : Sudah perbaikan permanen<br/>
+                                    x : Belum perbaikan secara permanen<br/>
+                                    △ : Hasil perbaikan masih dalam pemantauan
+                                </div>
+                            </td>
+                            <td style="width: 55%; text-align: right;">
+                                <div style="font-size: 8px; font-weight: bold; margin-bottom: 2px;">
+                                    ${signatures.date_label || `Tanggal : ${header.date_formatted}`}
+                                </div>
+                                <table class="sig-tbl">
+                                    <thead>
+                                        <tr>
+                                            <th>Disetujui oleh:<br/><span style="font-size: 7.5px; font-weight: normal; color: #475569;">(Diketahui)</span></th>
+                                            <th>Dicheck oleh:<br/><span style="font-size: 7.5px; font-weight: normal; color: #475569;">(Group SPV)</span></th>
+                                            <th>Dibuat oleh:<br/><span style="font-size: 7.5px; font-weight: normal; color: #475569;">(Group Leader)</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>${signatures.disetujui?.name || signatures.diketahui?.name || 'Arief R'}</td>
+                                            <td>${signatures.dicheck?.name || signatures.group_spv?.name || 'Alim Utama'}</td>
+                                            <td>${signatures.dibuat?.name || signatures.group_leader?.name || 'Budi Santoso'}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                </div>
+
+                <script>
+                    window.onload = function() {
+                        setTimeout(() => {
+                            window.print();
+                        }, 400);
+                    };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+
     compressImageFile(file, maxWidth = 1000, maxHeight = 650, quality = 0.82) {
         return new Promise((resolve, reject) => {
             if (!file || !file.type.startsWith('image/')) {
@@ -13302,7 +16053,7 @@ tbody.innerHTML = '';
                         <thead class="${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-950 text-slate-400'} uppercase font-semibold text-[10px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
                             <tr>
                                 <th class="p-3 text-center w-12">No</th>
-                                <th class="p-3">Waktu Trouble</th>
+                                <th class="p-3 min-w-[130px]">Tanggal Trouble</th>
                                 <th class="p-3">Line & Mesin</th>
                                 <th class="p-3">Shift & Team</th>
                                 <th class="p-3">Product / Part</th>
@@ -13400,21 +16151,10 @@ tbody.innerHTML = '';
 
             tbody.innerHTML = filtered.map((dt, idx) => {
                 const catMeta = getCategoryMeta(dt.problem_type);
-                const isOngoing = !dt.end_time || dt.status === 'OPEN';
                 const isClosed = dt.status === 'CLOSED' || (dt.end_time && dt.status !== 'OPEN');
                 
                 let statusBadge = '';
-                if (isOngoing) {
-                    statusBadge = `
-                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 text-rose-200 border border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse select-none">
-                            <span class="relative flex h-2.5 w-2.5">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
-                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white/70"></span>
-                            </span>
-                            <span class="tracking-wide text-rose-100 font-extrabold drop-shadow">OPEN / ONGOING</span>
-                        </div>
-                    `;
-                } else if (isClosed) {
+                if (isClosed) {
                     statusBadge = `
                         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-emerald-200 border border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.35)] select-none hover:scale-105 transition-all">
                             <span class="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500 text-slate-950 font-black">
@@ -13425,12 +16165,12 @@ tbody.innerHTML = '';
                     `;
                 } else {
                     statusBadge = `
-                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider bg-amber-950 text-amber-200 border border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)] animate-pulse select-none">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 text-rose-200 border border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse select-none">
                             <span class="relative flex h-2 w-2">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                             </span>
-                            <span>${dt.status || 'PENDING'}</span>
+                            <span class="tracking-wide text-rose-100 font-extrabold drop-shadow">OPEN</span>
                         </div>
                     `;
                 }
@@ -13440,10 +16180,10 @@ tbody.innerHTML = '';
                 return `
                     <tr class="${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'} transition-colors">
                         <td class="p-3 text-center font-bold text-slate-500 font-mono">${idx + 1}</td>
-                        <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} text-[11px]">
-                            <div class="font-bold">${dt.start_time ? dt.start_time.slice(0,10) : '-'}</div>
-                            <div class="text-slate-400 text-[10px] font-mono">
-                                ${dt.start_time ? dt.start_time.slice(11,16) : '00:00'} s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-500 font-bold">ONGOING</span>'}
+                        <td class="p-3 ${isLight ? 'text-slate-700' : 'text-slate-300'} text-[11px] whitespace-nowrap">
+                            <div class="font-bold flex items-center gap-1.5 font-mono text-slate-800 dark:text-slate-200">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500 flex-shrink-0"></i>
+                                <span>${(dt.start_time ? dt.start_time.slice(0,10) : (dt.production_record?.production_date ? dt.production_record.production_date.slice(0,10) : (dt.created_at ? dt.created_at.slice(0,10) : '-')))}</span>
                             </div>
                         </td>
                         <td class="p-3 font-sans">
@@ -13850,8 +16590,8 @@ tbody.innerHTML = '';
         let modalEndDate = this.filters.end_date || '';
         let modalActiveStatus = 'all';
         let modalActiveType = 'all';
-        let modalActiveLine = '';
-        let modalActiveShift = '';
+        let modalActiveLine = this.filters.line_id || '';
+        let modalActiveShift = this.filters.shift_id || '';
         let modalSearchQuery = '';
 
         const getCategoryMeta = (catName) => {
@@ -13877,8 +16617,8 @@ tbody.innerHTML = '';
             return { icon: 'alert-circle', badgeColor: isLight ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80' };
         };
 
-        const linesOptions = (this.masterData.productionLines || []).map(l => `<option value="${l.id}">${l.name}</option>`).join('');
-        const shiftsOptions = (this.masterData.shifts || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        const linesOptions = (this.masterData.lines || []).map(l => `<option value="${l.id}" ${modalActiveLine == l.id ? 'selected' : ''}>${l.name}</option>`).join('');
+        const shiftsOptions = (this.masterData.shifts || []).map(s => `<option value="${s.id}" ${modalActiveShift == s.id ? 'selected' : ''}>${s.name}</option>`).join('');
 
         modalContainer.innerHTML = `
             <div id="dt-fullscreen-modal-wrapper" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col p-2 sm:p-3 md:p-4 animate-fadeIn">
@@ -13954,8 +16694,8 @@ tbody.innerHTML = '';
                             <!-- Status Filter -->
                             <select id="modal-dt-status" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-sans cursor-pointer">
                                 <option value="all">Semua Status</option>
-                                <option value="CLOSED">CLOSED (Selesai)</option>
-                                <option value="OPEN">OPEN (Ongoing)</option>
+                                <option value="OPEN">🔴 OPEN</option>
+                                <option value="CLOSED">🟢 CLOSED</option>
                             </select>
 
                             <!-- Problem Type Filter -->
@@ -13994,7 +16734,7 @@ tbody.innerHTML = '';
                             <thead class="sticky top-0 z-10 ${isLight ? 'bg-slate-100 text-slate-700 shadow-xs' : 'bg-slate-950 text-slate-300 shadow-sm'} uppercase font-bold text-[11px] border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} tracking-wider">
                                 <tr>
                                     <th class="p-3.5 text-center w-12 bg-inherit">No</th>
-                                    <th class="p-3.5 bg-inherit">Waktu Trouble</th>
+                                    <th class="p-3.5 bg-inherit min-w-[130px]">Tanggal Trouble</th>
                                     <th class="p-3.5 bg-inherit">Line & Mesin</th>
                                     <th class="p-3.5 bg-inherit">Shift & Team</th>
                                     <th class="p-3.5 bg-inherit">Product / Part</th>
@@ -14002,8 +16742,9 @@ tbody.innerHTML = '';
                                     <th class="p-3.5 bg-inherit">Masalah / Kendala</th>
                                     <th class="p-3.5 bg-inherit">Penyebab (Root Cause)</th>
                                     <th class="p-3.5 bg-inherit">Durasi</th>
-                                    <th class="p-3.5 bg-inherit">Tindakan Perbaikan (CAPA)</th>
-                                    <th class="p-3.5 bg-inherit">PIC / Leader</th>
+                                    <th class="p-3.5 bg-inherit min-w-[200px]">Tindakan Perbaikan (CAPA & Kaizen)</th>
+                                    <th class="p-3.5 bg-inherit min-w-[125px]">Due Date</th>
+                                    <th class="p-3.5 bg-inherit min-w-[130px]">PIC / Follow-up</th>
                                     <th class="p-3.5 text-center bg-inherit">Status</th>
                                 </tr>
                             </thead>
@@ -14041,11 +16782,12 @@ tbody.innerHTML = '';
 
             const q = modalSearchQuery.toLowerCase().trim();
             const filtered = modalDowntimes.filter(dt => {
+                const meta = this.getDueStatusMeta(dt, isLight);
+
                 // Status Filter
                 if (modalActiveStatus !== 'all') {
-                    const st = (dt.status || (dt.end_time ? 'CLOSED' : 'OPEN')).toUpperCase();
-                    if (modalActiveStatus === 'OPEN' && st !== 'OPEN' && dt.end_time) return false;
-                    if (modalActiveStatus === 'CLOSED' && (st !== 'CLOSED' || !dt.end_time)) return false;
+                    if (modalActiveStatus === 'CLOSED' && meta.statusCode !== 'CLOSED') return false;
+                    if (modalActiveStatus === 'OPEN' && meta.statusCode !== 'OPEN') return false;
                 }
 
                 // Problem Type Filter
@@ -14073,12 +16815,16 @@ tbody.innerHTML = '';
                     const desc = (dt.description || dt.downtime_reason?.name || '').toLowerCase();
                     const cause = (dt.cause || '').toLowerCase();
                     const capa = (dt.action_taken || '').toLowerCase();
+                    const followUp = (dt.follow_up_action || '').toLowerCase();
+                    const dueDateStr = (dt.due_date || '').toLowerCase();
                     const pic = (dt.pic || '').toLowerCase();
+                    const picFollowup = (dt.pic_followup || '').toLowerCase();
                     const team = (dt.team || '').toLowerCase();
 
                     const match = lineName.includes(q) || mcName.includes(q) || prodName.includes(q) ||
                                   probType.includes(q) || desc.includes(q) || cause.includes(q) ||
-                                  capa.includes(q) || pic.includes(q) || team.includes(q);
+                                  capa.includes(q) || followUp.includes(q) || dueDateStr.includes(q) ||
+                                  pic.includes(q) || picFollowup.includes(q) || team.includes(q);
                     if (!match) return false;
                 }
 
@@ -14087,8 +16833,10 @@ tbody.innerHTML = '';
 
             const totalFilteredMinutes = filtered.reduce((sum, d) => sum + Number(d.calculated_duration_minutes || d.duration_minutes || 0), 0);
             const totalHours = (totalFilteredMinutes / 60).toFixed(1);
-            const openCount = filtered.filter(d => d.status === 'OPEN' || !d.end_time).length;
-            const closedCount = filtered.filter(d => d.status === 'CLOSED' || d.end_time).length;
+            
+            const closedCount = filtered.filter(d => this.getDueStatusMeta(d, isLight).statusCode === 'CLOSED').length;
+            const openCount = filtered.filter(d => this.getDueStatusMeta(d, isLight).statusCode === 'OPEN').length;
+            const overdueCount = filtered.filter(d => this.getDueStatusMeta(d, isLight).isOverdue).length;
 
             if (countBadge) {
                 countBadge.textContent = `${filtered.length} dari ${modalDowntimes.length} Records`;
@@ -14110,24 +16858,26 @@ tbody.innerHTML = '';
                             <span>Total Durasi: <strong class="text-rose-400 font-bold">${totalFilteredMinutes.toFixed(1)} Mins (${totalHours} Jam)</strong></span>
                         </span>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 text-emerald-200 border border-emerald-500/80 font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
                             <span>✓ ${closedCount} Closed</span>
                         </span>
                         ${openCount > 0 ? `
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950 text-rose-200 border-2 border-rose-500 font-black shadow-[0_0_14px_rgba(244,63,94,0.6)] animate-pulse">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950 text-rose-200 border border-rose-500 font-bold shadow-[0_0_10px_rgba(244,63,94,0.4)]">
+                                <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                                <span>⚡ ${openCount} Open</span>
+                            </span>
+                        ` : ''}
+                        ${overdueCount > 0 ? `
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950 text-rose-100 border-2 border-rose-500 font-black shadow-[0_0_14px_rgba(244,63,94,0.7)] animate-pulse">
                                 <span class="relative flex h-2 w-2">
                                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
                                     <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                                 </span>
-                                <span>⚠️ ${openCount} Ongoing Trouble</span>
+                                <span>🚨 ${overdueCount} Over Duedate</span>
                             </span>
-                        ` : `
-                            <span class="px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 text-[11px]">
-                                0 Ongoing
-                            </span>
-                        `}
+                        ` : ''}
                     </div>
                 `;
             }
@@ -14135,7 +16885,7 @@ tbody.innerHTML = '';
             if (filtered.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="12" class="p-12 text-center text-slate-500 font-sans">
+                        <td colspan="13" class="p-12 text-center text-slate-500 font-sans">
                             <div class="flex flex-col items-center justify-center gap-2">
                                 <i data-lucide="inbox" class="w-10 h-10 text-slate-400 opacity-60"></i>
                                 <span class="font-bold text-sm">Tidak ada data trouble yang cocok dengan kriteria filter saat ini.</span>
@@ -14149,50 +16899,16 @@ tbody.innerHTML = '';
 
             tbody.innerHTML = filtered.map((dt, idx) => {
                 const catMeta = getCategoryMeta(dt.problem_type);
-                const isOngoing = !dt.end_time || dt.status === 'OPEN';
-                const isClosed = dt.status === 'CLOSED' || (dt.end_time && dt.status !== 'OPEN');
-                
-                let statusBadge = '';
-                if (isOngoing) {
-                    statusBadge = `
-                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black tracking-wider bg-gradient-to-r from-rose-950 via-rose-900 to-rose-950 text-rose-200 border border-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.65)] animate-pulse select-none">
-                            <span class="relative flex h-2.5 w-2.5">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-90"></span>
-                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white/70"></span>
-                            </span>
-                            <span class="tracking-wide text-rose-100 font-extrabold drop-shadow">OPEN / ONGOING</span>
-                        </div>
-                    `;
-                } else if (isClosed) {
-                    statusBadge = `
-                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black tracking-wider bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-emerald-200 border border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.35)] select-none hover:scale-105 transition-all">
-                            <span class="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500 text-slate-950 font-black">
-                                <i data-lucide="check" class="w-2.5 h-2.5 stroke-[4]"></i>
-                            </span>
-                            <span class="tracking-wide text-emerald-100 font-extrabold drop-shadow">CLOSED</span>
-                        </div>
-                    `;
-                } else {
-                    statusBadge = `
-                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-black tracking-wider bg-amber-950 text-amber-200 border border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)] animate-pulse select-none">
-                            <span class="relative flex h-2 w-2">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                            </span>
-                            <span>${dt.status || 'PENDING'}</span>
-                        </div>
-                    `;
-                }
-
+                const meta = this.getDueStatusMeta(dt, isLight);
                 const durationMins = Number(dt.calculated_duration_minutes || dt.duration_minutes || 0);
 
                 return `
-                    <tr class="${isLight ? 'hover:bg-indigo-50/40' : 'hover:bg-slate-800/60'} transition-colors">
+                    <tr class="${isLight ? 'hover:bg-indigo-50/40' : 'hover:bg-slate-800/60'} transition-colors ${meta.isOverdue ? (isLight ? 'bg-rose-50/40' : 'bg-rose-950/20') : ''}">
                         <td class="p-3 text-center font-bold text-slate-500 font-mono text-xs">${idx + 1}</td>
-                        <td class="p-3 ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs">
-                            <div class="font-bold">${dt.start_time ? dt.start_time.slice(0,10) : '-'}</div>
-                            <div class="text-slate-400 text-[11px] font-mono mt-0.5">
-                                ${dt.start_time ? dt.start_time.slice(11,16) : '00:00'} s/d ${dt.end_time ? dt.end_time.slice(11,16) : '<span class="text-rose-500 font-bold">ONGOING</span>'}
+                        <td class="p-3 ${isLight ? 'text-slate-800' : 'text-slate-200'} text-xs whitespace-nowrap">
+                            <div class="font-bold flex items-center gap-1.5 font-mono text-slate-800 dark:text-slate-200">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500 flex-shrink-0"></i>
+                                <span>${(dt.start_time ? dt.start_time.slice(0,10) : (dt.production_record?.production_date ? dt.production_record.production_date.slice(0,10) : (dt.created_at ? dt.created_at.slice(0,10) : '-')))}</span>
                             </div>
                         </td>
                         <td class="p-3 font-sans">
@@ -14226,17 +16942,29 @@ tbody.innerHTML = '';
                             <div>${durationMins.toFixed(1)} mins</div>
                             <div class="text-[11px] text-slate-400 font-normal">(${(durationMins / 60).toFixed(1)} jam)</div>
                         </td>
-                        <td class="p-3 font-sans text-xs max-w-[200px]">
+                        <td class="p-3 font-sans text-xs max-w-[220px]">
                             <div class="text-emerald-500 font-medium leading-relaxed">${dt.action_taken || '<span class="text-slate-500 italic">-</span>'}</div>
+                            ${dt.follow_up_action ? `
+                                <div class="mt-1 pt-1 border-t ${isLight ? 'border-slate-200 text-indigo-700' : 'border-slate-800 text-indigo-300'} text-[11px] flex items-start gap-1">
+                                    <span class="font-bold uppercase text-[9px] px-1 py-0.5 rounded ${isLight ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'} border shrink-0">Kaizen</span>
+                                    <span class="truncate" title="${dt.follow_up_action}">${dt.follow_up_action}</span>
+                                </div>
+                            ` : ''}
+                        </td>
+                        <td class="p-3 font-sans text-xs whitespace-nowrap">
+                            ${meta.dueDateHtml}
                         </td>
                         <td class="p-3 font-sans text-xs whitespace-nowrap">
                             <div class="flex items-center gap-1 text-cyan-400 font-semibold">
                                 <i data-lucide="user-check" class="w-3.5 h-3.5 text-cyan-500 flex-shrink-0"></i>
-                                <span>${dt.pic || (dt.team ? `${dt.team} Leader` : (dt.creator ? dt.creator.name : 'Leader Shift'))}</span>
+                                <span>${dt.pic_followup || dt.pic || (dt.team ? `${dt.team} Leader` : (dt.creator ? dt.creator.name : 'Leader Shift'))}</span>
                             </div>
+                            ${dt.pic_followup && dt.pic && dt.pic_followup !== dt.pic ? `
+                                <div class="text-[10px] text-slate-400 font-mono mt-0.5">PIC Awal: ${dt.pic}</div>
+                            ` : ''}
                         </td>
                         <td class="p-3 text-center whitespace-nowrap">
-                            ${statusBadge}
+                            ${meta.statusBadge}
                         </td>
                     </tr>
                 `;
@@ -14251,7 +16979,7 @@ tbody.innerHTML = '';
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="12" class="p-12 text-center text-cyan-400 font-sans">
+                        <td colspan="13" class="p-12 text-center text-cyan-400 font-sans">
                             <div class="flex flex-col items-center justify-center gap-2">
                                 <div class="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
                                 <span class="font-bold text-xs font-mono">Memuat data log trouble...</span>
@@ -14263,9 +16991,19 @@ tbody.innerHTML = '';
 
             try {
                 const queryParams = { ...this.filters, all: true };
+                // Downtimes occur on any operational machine (OP-10, OP-20, OP-40, Measuring, etc.) in the line.
+                // Never restrict trouble logs to only measuring machines, and let modal filter line/shift client-side dynamically.
+                delete queryParams.machine_id;
+                delete queryParams.line_id;
+                delete queryParams.shift_id;
+                delete queryParams.production_line_id;
+
                 if (modalStartDate && modalEndDate) {
                     queryParams.start_date = modalStartDate;
                     queryParams.end_date = modalEndDate;
+                    delete queryParams.period;
+                } else if (modalStartDate) {
+                    queryParams.start_date = modalStartDate;
                     delete queryParams.period;
                 } else {
                     queryParams.period = modalActivePeriod;
@@ -15024,7 +17762,7 @@ tbody.innerHTML = '';
                     <div class="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 shadow-inner gap-1">
                         <button id="tab-btn-report-prod" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${this.activeReportTab === 'production' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}">
                             <i data-lucide="activity" class="w-3.5 h-3.5"></i>
-                            <span>${this.t('reports.tab_prod', '1. Laporan Produksi & OEE')}</span>
+                            <span>${this.t('reports.tab_prod', '1. Laporan Kinerja Produksi & OEE')}</span>
                             <span class="px-1.5 py-0.2 rounded-full text-[10px] ${this.activeReportTab === 'production' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'} font-mono">${rows.length}</span>
                         </button>
                         <button id="tab-btn-report-ng" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${this.activeReportTab === 'ng' ? 'bg-gradient-to-r from-amber-600 to-rose-600 text-white shadow-md shadow-amber-600/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}">
@@ -15142,7 +17880,7 @@ tbody.innerHTML = '';
                             </div>
                             <div class="min-w-0">
                                 <div class="text-xs font-bold text-cyan-400 uppercase tracking-wider">${header.company_name || 'PT. YASUNAGA INDONESIA'}</div>
-                                <div class="text-sm font-black tracking-wide text-white uppercase truncate">${header.plant_name || 'ENGINE PARTS & AIR PUMP MFG'}</div>
+                                <div class="text-sm font-black tracking-wide text-white uppercase truncate">LAPORAN KINERJA PRODUKSI & OEE</div>
                                 <div class="text-[10px] text-slate-400 font-medium truncate">${header.address || header.plant_location || ''} • <strong class="text-slate-200 font-mono">${header.plant_id || 'PLT-01'}</strong></div>
                             </div>
                         </div>
@@ -16920,7 +19658,7 @@ tbody.innerHTML = '';
         const dateStr = header.formatted_date || header.production_date || new Date().toISOString().slice(0, 10);
         const lineStr = (header.line_name && header.line_name !== 'All Production Lines' && header.line_name !== 'All Lines') ? ` - ${header.line_name}` : '';
         const shiftStr = (header.shift_name && !header.shift_name.toLowerCase().includes('all')) ? ` - ${header.shift_name}` : '';
-        let excelFilename = this.sanitizeReportFilename(`Laporan Produksi dan OEE Tgl ${dateStr}${lineStr}${shiftStr}`);
+        let excelFilename = this.sanitizeReportFilename(`Laporan Kinerja Produksi dan OEE Tgl ${dateStr}${lineStr}${shiftStr}`);
         if (isJa) excelFilename = i18n.translateText(excelFilename);
         link.href = url;
         link.download = excelFilename + '.xls';
@@ -16945,7 +19683,7 @@ tbody.innerHTML = '';
         const dateStr = header.formatted_date || header.production_date || new Date().toISOString().slice(0, 10);
         const lineStr = (header.line_name && header.line_name !== 'All Production Lines' && header.line_name !== 'All Lines') ? ` - ${header.line_name}` : '';
         const shiftStr = (header.shift_name && !header.shift_name.toLowerCase().includes('all')) ? ` - ${header.shift_name}` : '';
-        let reportFilename = this.sanitizeReportFilename(`Laporan Produksi dan OEE Tgl ${dateStr}${lineStr}${shiftStr}`);
+        let reportFilename = this.sanitizeReportFilename(`Laporan Kinerja Produksi dan OEE Tgl ${dateStr}${lineStr}${shiftStr}`);
         if (isJa) reportFilename = i18n.translateText(reportFilename);
 
         // Group rows by production_date
@@ -18603,7 +21341,8 @@ tbody.innerHTML = '';
                     <th class="p-3">Code</th>
                     <th class="p-3">Line Name</th>
                     <th class="p-3">Plant / Location</th>
-                    <th class="p-3">Target OEE</th>
+                    <th class="p-3">Target OEE (%)</th>
+                    <th class="p-3">Target Rasio (%)</th>
                     <th class="p-3 text-right">Actions</th>
                 </tr>
             `;
@@ -18635,17 +21374,21 @@ tbody.innerHTML = '';
             tableHeaderHtml = `
                 <tr>
                     <th class="p-3 text-center w-12">No</th>
-                    <th class="p-3">Shift Name</th>
-                    <th class="p-3">Jam Kerja (Working Hours)</th>
-                    <th class="p-3">Waktu Total (Menit)</th>
-                    <th class="p-3">Jam Istirahat (Break)</th>
-                    <th class="p-3">Planned Production Time (Waktu Efektif)</th>
+                    <th class="p-3">Shift Code & Name</th>
+                    <th class="p-3">Jam Kerja (In - Out)</th>
+                    <th class="p-3 text-right">Durasi Kotor (Gross)</th>
+                    <th class="p-3 text-right">Total Break / Loss</th>
+                    <th class="p-3 text-right">Waktu Efektif (Planned)</th>
+                    <th class="p-3 text-center text-emerald-400 font-bold">Work Hours (Jam)</th>
                     <th class="p-3 text-right">Actions</th>
                 </tr>
             `;
             filteredItems = (this.masterData.shifts || []).filter(s => {
                 if (!searchQuery) return true;
-                return (s.name || '').toLowerCase().includes(searchQuery) || (s.start_time || '').toLowerCase().includes(searchQuery) || (s.end_time || '').toLowerCase().includes(searchQuery);
+                return (s.code || '').toLowerCase().includes(searchQuery) ||
+                       (s.name || '').toLowerCase().includes(searchQuery) ||
+                       (s.start_time || '').toLowerCase().includes(searchQuery) ||
+                       (s.end_time || '').toLowerCase().includes(searchQuery);
             });
         } else if (this.activeMasterTab === 'groups') {
             tableHeaderHtml = `
@@ -18777,6 +21520,7 @@ tbody.innerHTML = '';
                     <td class="p-3 text-slate-200 font-sans font-semibold">${l.name}</td>
                     <td class="p-3 text-slate-400 font-sans">${l.plant?.name || l.area?.plant?.name || 'N/A'}</td>
                     <td class="p-3 text-emerald-400 font-sans font-bold">${l.target_oee || 85}%</td>
+                    <td class="p-3 text-rose-400 font-sans font-bold">${l.target_ratio || 83}%</td>
                     <td class="p-3 text-right font-sans">
                         ${actionButtons('lines', l.id, l.name || l.code)}
                     </td>
@@ -18833,22 +21577,35 @@ tbody.innerHTML = '';
                     endMins += 24 * 60; // Overnight shift
                 }
 
-                const totalMins = endMins - startMins;
-                const totalHours = (totalMins / 60).toFixed(1);
-                const breakMins = parseInt(s.break_duration_minutes || 60);
-                const plannedMins = Math.max(0, totalMins - breakMins);
-                const plannedHours = (plannedMins / 60).toFixed(1);
+                const grossMins = s.gross_duration_minutes || (endMins - startMins);
+                const grossHours = (grossMins / 60).toFixed(1);
+                const breakMins = parseInt(s.break_duration_minutes || 75);
+                const totalLossSec = s.total_loss_seconds || (breakMins * 60);
+                const plannedMins = s.planned_production_minutes || Math.max(0, grossMins - breakMins);
+                const effectiveSec = plannedMins * 60;
+                const workHours = s.work_hours ? Number(s.work_hours).toFixed(2) : (plannedMins / 60).toFixed(2);
+                const codeBadge = s.code ? `<span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-700/80 shadow-2xs">${s.code}</span>` : '';
 
                 return `
                     <tr class="hover:bg-slate-800/40 transition-colors">
                         <td class="p-3 text-center font-bold text-slate-500 font-mono text-[11px]">${startIndex + idx + 1}</td>
-                        <td class="p-3 text-cyan-400 font-bold font-sans">${s.name}</td>
+                        <td class="p-3 font-sans">
+                            <div class="flex items-center gap-2">
+                                ${codeBadge}
+                                <span class="text-cyan-400 font-bold">${s.name}</span>
+                            </div>
+                        </td>
                         <td class="p-3 text-slate-200 font-mono font-semibold">${startStr} - ${endStr}</td>
-                        <td class="p-3 text-amber-400 font-mono font-bold">${totalMins} mins (${totalHours} hrs)</td>
-                        <td class="p-3 text-rose-400 font-mono font-bold">${breakMins} mins (${(breakMins/60).toFixed(1)} hrs)</td>
-                        <td class="p-3 text-emerald-400 font-mono font-bold">${plannedMins} mins (${plannedHours} hrs)</td>
+                        <td class="p-3 text-right text-amber-400 font-mono font-bold">${grossMins} mins <span class="text-xs text-slate-400 font-normal">(${grossHours}h)</span></td>
+                        <td class="p-3 text-right text-rose-400 font-mono font-bold">${breakMins} mins <span class="text-xs text-slate-400 font-normal">(${totalLossSec.toLocaleString()}s)</span></td>
+                        <td class="p-3 text-right text-emerald-400 font-mono font-bold">${plannedMins} mins <span class="text-xs text-slate-400 font-normal">(${effectiveSec.toLocaleString()}s)</span></td>
+                        <td class="p-3 text-center font-mono font-bold">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-emerald-950/90 text-emerald-300 border border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+                                ⏱️ ${workHours} Jam
+                            </span>
+                        </td>
                         <td class="p-3 text-right font-sans">
-                            ${actionButtons('shifts', s.id, s.name)}
+                            ${actionButtons('shifts', s.id, `${s.code ? '['+s.code+'] ' : ''}${s.name}`)}
                         </td>
                     </tr>
                 `;
@@ -19753,9 +22510,15 @@ tbody.innerHTML = '';
                         ${plantOptions}
                     </select>
                 </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Target OEE (%)</label>
-                    <input type="number" name="target_oee" value="85" min="0" max="100" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Target OEE (%)</label>
+                        <input type="number" step="0.1" name="target_oee" value="85" min="0" max="100" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Target Rasio Produksi (%)</label>
+                        <input type="number" step="0.1" name="target_ratio" value="83" min="0" max="100" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                    </div>
                 </div>
             `;
         } else if (type === 'products') {
@@ -19820,24 +22583,103 @@ tbody.innerHTML = '';
                 </div>
             `;
         } else if (type === 'shifts') {
+            title = 'Tambah Master Shift & Jam Kerja';
             fieldsHtml = `
-                <div>
-                    <label class="block text-slate-400 mb-1">Shift Name</label>
-                    <input type="text" name="name" placeholder="e.g. Shift 1 (Pagi)" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Kode Shift <span class="text-rose-400">*</span></label>
+                        <input type="text" name="code" placeholder="e.g. S-1, S-2, S-1LS" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono font-bold uppercase" />
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Nama Shift <span class="text-rose-400">*</span></label>
+                        <input type="text" name="name" placeholder="e.g. SHIFT 1" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-semibold" />
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-400 mb-1">Start Time (Jam Masuk)</label>
-                        <input type="text" name="start_time" placeholder="07:30" value="07:30:00" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                        <input type="text" id="shift-inp-start" name="start_time" placeholder="07:30" value="07:30:00" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono font-bold" />
                     </div>
                     <div>
                         <label class="block text-slate-400 mb-1">End Time (Jam Pulang)</label>
-                        <input type="text" name="end_time" placeholder="16:30" value="16:30:00" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                        <input type="text" id="shift-inp-end" name="end_time" placeholder="16:30" value="16:30:00" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono font-bold" />
                     </div>
                 </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Break Duration / Istirahat (Menit)</label>
-                    <input type="number" name="break_duration_minutes" value="60" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                <div class="border-t border-slate-800 pt-3">
+                    <div class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5 text-cyan-400">
+                            <i data-lucide="coffee" class="w-3.5 h-3.5"></i>
+                            Rincian Waktu Rest & Non-Produksi (Menit)
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-normal">Sesuai Format Analisa Excel</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Meeting M1</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_meeting" value="10" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Cek N1 (1)</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_cek_n1_1" value="10" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Rest-1</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_1" value="10" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-amber-400 mb-0.5 font-sans font-semibold">Rest-2 (Utama)</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-amber-700/60 rounded px-2 py-1 text-amber-300 font-mono font-bold" name="rest_2" value="35" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Cek N1 (2)</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_cek_n1_2" value="5" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Rest-3</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_3" value="10" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Rest-4 (LS)</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_4" value="0" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Cek N1 (3)</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_cek_n1_3" value="0" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Rest-5 (LS)</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_5" value="0" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">2S Akhir</label>
+                            <input type="number" class="shift-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_dua_s" value="10" min="0" />
+                        </div>
+                    </div>
+                </div>
+                <!-- LIVE SYSTEMATIC CALCULATOR PREVIEW -->
+                <div class="bg-slate-950/90 border border-cyan-800/60 rounded-xl p-3 shadow-inner">
+                    <div class="text-[10px] uppercase font-mono font-bold text-cyan-400 mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i data-lucide="calculator" class="w-3.5 h-3.5"></i> Live Systematic Work Hours Calculator</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 font-semibold">Auto-Calculated</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2">
+                            <div class="text-[10px] text-slate-400 font-sans">Durasi Kotor</div>
+                            <div id="shift-calc-gross" class="text-xs font-bold text-amber-400 font-mono">540 mins (9.0h)</div>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2">
+                            <div class="text-[10px] text-slate-400 font-sans">Total Loss/Rest</div>
+                            <div id="shift-calc-loss" class="text-xs font-bold text-rose-400 font-mono">75 mins (4,500s)</div>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2">
+                            <div class="text-[10px] text-slate-400 font-sans">Waktu Efektif</div>
+                            <div id="shift-calc-planned" class="text-xs font-bold text-cyan-400 font-mono">445 mins (26,700s)</div>
+                        </div>
+                        <div class="bg-emerald-950/90 border border-emerald-500/80 rounded-lg p-2 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                            <div class="text-[10px] text-emerald-400 font-sans font-bold uppercase tracking-wider">Work Hours</div>
+                            <div id="shift-calc-workhours" class="text-base font-black text-emerald-300 font-mono">7.42 Jam</div>
+                        </div>
+                    </div>
                 </div>
             `;
         } else if (type === 'groups') {
@@ -19912,9 +22754,11 @@ tbody.innerHTML = '';
             `;
         }
 
+        const modalMaxWidth = (type === 'shifts') ? 'max-w-2xl' : 'max-w-md';
+
         modalContainer.innerHTML = `
             <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 ${modalMaxWidth} w-full shadow-2xl max-h-[90vh] overflow-y-auto">
                     <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
                         <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2">
                             <i data-lucide="plus" class="w-4 h-4 text-cyan-400"></i>
@@ -19941,6 +22785,46 @@ tbody.innerHTML = '';
             i18n.localizeDom(modalContainer);
         }
 
+        // Setup shift live calculator if adding shift
+        if (type === 'shifts') {
+            const startInp = modalContainer.querySelector('#shift-inp-start');
+            const endInp = modalContainer.querySelector('#shift-inp-end');
+            const restInps = modalContainer.querySelectorAll('.shift-rest-inp');
+            const grossEl = modalContainer.querySelector('#shift-calc-gross');
+            const lossEl = modalContainer.querySelector('#shift-calc-loss');
+            const plannedEl = modalContainer.querySelector('#shift-calc-planned');
+            const workHoursEl = modalContainer.querySelector('#shift-calc-workhours');
+
+            const calcShift = () => {
+                const startStr = (startInp?.value || '07:30').trim();
+                const endStr = (endInp?.value || '16:30').trim();
+                const startParts = startStr.split(':');
+                const endParts = endStr.split(':');
+                let startMins = parseInt(startParts[0] || 0) * 60 + parseInt(startParts[1] || 0);
+                let endMins = parseInt(endParts[0] || 0) * 60 + parseInt(endParts[1] || 0);
+                if (endMins <= startMins) endMins += 24 * 60;
+                const grossMins = endMins - startMins;
+                const grossHours = (grossMins / 60).toFixed(1);
+
+                let totalLossMins = 0;
+                restInps.forEach(inp => totalLossMins += parseInt(inp.value || 0));
+                const totalLossSec = totalLossMins * 60;
+                const plannedMins = Math.max(0, grossMins - totalLossMins);
+                const plannedSec = plannedMins * 60;
+                const workHours = (plannedMins / 60).toFixed(2);
+
+                if (grossEl) grossEl.innerText = `${grossMins} mins (${grossHours}h)`;
+                if (lossEl) lossEl.innerText = `${totalLossMins} mins (${totalLossSec.toLocaleString()}s)`;
+                if (plannedEl) plannedEl.innerText = `${plannedMins} mins (${plannedSec.toLocaleString()}s)`;
+                if (workHoursEl) workHoursEl.innerText = `${workHours} Jam`;
+            };
+
+            startInp?.addEventListener('input', calcShift);
+            endInp?.addEventListener('input', calcShift);
+            restInps.forEach(inp => inp.addEventListener('input', calcShift));
+            calcShift();
+        }
+
         document.getElementById('btn-close-add-modal').addEventListener('click', () => modalContainer.innerHTML = '');
         document.getElementById('btn-cancel-add-modal').addEventListener('click', () => modalContainer.innerHTML = '');
 
@@ -19948,6 +22832,21 @@ tbody.innerHTML = '';
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
+
+            if (type === 'shifts') {
+                data.break_breakdown = {
+                    meeting: parseInt(data.rest_meeting || 0),
+                    cek_n1_1: parseInt(data.rest_cek_n1_1 || 0),
+                    rest_1: parseInt(data.rest_1 || 0),
+                    rest_2: parseInt(data.rest_2 || 0),
+                    cek_n1_2: parseInt(data.rest_cek_n1_2 || 0),
+                    rest_3: parseInt(data.rest_3 || 0),
+                    rest_4: parseInt(data.rest_4 || 0),
+                    cek_n1_3: parseInt(data.rest_cek_n1_3 || 0),
+                    rest_5: parseInt(data.rest_5 || 0),
+                    dua_s: parseInt(data.rest_dua_s || 0)
+                };
+            }
 
             try {
                 if (type === 'machines') await api.createMachine(data);
@@ -20041,9 +22940,15 @@ tbody.innerHTML = '';
                         ${plantOptions}
                     </select>
                 </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Target OEE (%)</label>
-                    <input type="number" name="target_oee" value="${item.target_oee || 85}" min="0" max="100" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Target OEE (%)</label>
+                        <input type="number" step="0.1" name="target_oee" value="${item.target_oee || 85}" min="0" max="100" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Target Rasio Produksi (%)</label>
+                        <input type="number" step="0.1" name="target_ratio" value="${item.target_ratio || 83}" min="0" max="100" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                    </div>
                 </div>
             `;
         } else if (type === 'products') {
@@ -20111,24 +23016,115 @@ tbody.innerHTML = '';
                 </div>
             `;
         } else if (type === 'shifts') {
+            title = 'Edit Master Shift & Jam Kerja';
+            const bb = (item.break_breakdown && typeof item.break_breakdown === 'object') ? item.break_breakdown : {};
+            const valM1 = bb.meeting ?? 10;
+            const valCek1 = bb.cek_n1_1 ?? 10;
+            const valR1 = bb.rest_1 ?? 10;
+            const valR2 = bb.rest_2 ?? (item.break_duration_minutes ? Math.max(0, item.break_duration_minutes - 40) : 35);
+            const valCek2 = bb.cek_n1_2 ?? 5;
+            const valR3 = bb.rest_3 ?? 10;
+            const valR4 = bb.rest_4 ?? 0;
+            const valCek3 = bb.cek_n1_3 ?? 0;
+            const valR5 = bb.rest_5 ?? 0;
+            const val2S = bb.dua_s ?? 10;
+
             fieldsHtml = `
-                <div>
-                    <label class="block text-slate-400 mb-1">Shift Name</label>
-                    <input type="text" name="name" value="${item.name || ''}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200" />
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Kode Shift <span class="text-rose-400">*</span></label>
+                        <input type="text" name="code" value="${item.code || ''}" placeholder="e.g. S-1, S-2, S-1LS" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono font-bold uppercase" />
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Nama Shift <span class="text-rose-400">*</span></label>
+                        <input type="text" name="name" value="${item.name || ''}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-semibold" />
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-400 mb-1">Start Time (Jam Masuk)</label>
-                        <input type="text" name="start_time" value="${(item.start_time || '07:30').slice(0,5)}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                        <input type="text" id="shift-edit-inp-start" name="start_time" value="${(item.start_time || '07:30').slice(0,8)}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono font-bold" />
                     </div>
                     <div>
                         <label class="block text-slate-400 mb-1">End Time (Jam Pulang)</label>
-                        <input type="text" name="end_time" value="${(item.end_time || '16:30').slice(0,5)}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                        <input type="text" id="shift-edit-inp-end" name="end_time" value="${(item.end_time || '16:30').slice(0,8)}" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono font-bold" />
                     </div>
                 </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Break Duration / Istirahat (Menit)</label>
-                    <input type="number" name="break_duration_minutes" value="${item.break_duration_minutes || 60}" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-slate-200 font-mono" />
+                <div class="border-t border-slate-800 pt-3">
+                    <div class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5 text-cyan-400">
+                            <i data-lucide="coffee" class="w-3.5 h-3.5"></i>
+                            Rincian Waktu Rest & Non-Produksi (Menit)
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-normal">Sesuai Format Analisa Excel</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Meeting M1</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_meeting" value="${valM1}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Cek N1 (1)</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_cek_n1_1" value="${valCek1}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Rest-1</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_1" value="${valR1}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-amber-400 mb-0.5 font-sans font-semibold">Rest-2 (Utama)</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-amber-700/60 rounded px-2 py-1 text-amber-300 font-mono font-bold" name="rest_2" value="${valR2}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Cek N1 (2)</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_cek_n1_2" value="${valCek2}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Rest-3</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_3" value="${valR3}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Rest-4 (LS)</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_4" value="${valR4}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Cek N1 (3)</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_cek_n1_3" value="${valCek3}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">Rest-5 (LS)</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_5" value="${valR5}" min="0" />
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <label class="block text-slate-400 mb-0.5 font-sans">2S Akhir</label>
+                            <input type="number" class="shift-edit-rest-inp w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono font-bold" name="rest_dua_s" value="${val2S}" min="0" />
+                        </div>
+                    </div>
+                </div>
+                <!-- LIVE SYSTEMATIC CALCULATOR PREVIEW -->
+                <div class="bg-slate-950/90 border border-cyan-800/60 rounded-xl p-3 shadow-inner">
+                    <div class="text-[10px] uppercase font-mono font-bold text-cyan-400 mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i data-lucide="calculator" class="w-3.5 h-3.5"></i> Live Systematic Work Hours Calculator</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 font-semibold">Auto-Calculated</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2">
+                            <div class="text-[10px] text-slate-400 font-sans">Durasi Kotor</div>
+                            <div id="shift-edit-calc-gross" class="text-xs font-bold text-amber-400 font-mono">540 mins (9.0h)</div>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2">
+                            <div class="text-[10px] text-slate-400 font-sans">Total Loss/Rest</div>
+                            <div id="shift-edit-calc-loss" class="text-xs font-bold text-rose-400 font-mono">75 mins (4,500s)</div>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2">
+                            <div class="text-[10px] text-slate-400 font-sans">Waktu Efektif</div>
+                            <div id="shift-edit-calc-planned" class="text-xs font-bold text-cyan-400 font-mono">445 mins (26,700s)</div>
+                        </div>
+                        <div class="bg-emerald-950/90 border border-emerald-500/80 rounded-lg p-2 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                            <div class="text-[10px] text-emerald-400 font-sans font-bold uppercase tracking-wider">Work Hours</div>
+                            <div id="shift-edit-calc-workhours" class="text-base font-black text-emerald-300 font-mono">7.42 Jam</div>
+                        </div>
+                    </div>
                 </div>
             `;
         } else if (type === 'groups') {
@@ -20207,9 +23203,11 @@ tbody.innerHTML = '';
             `;
         }
 
+        const editModalMaxWidth = (type === 'shifts') ? 'max-w-2xl' : 'max-w-md';
+
         modalContainer.innerHTML = `
             <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 ${editModalMaxWidth} w-full shadow-2xl max-h-[90vh] overflow-y-auto">
                     <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
                         <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2">
                             <i data-lucide="pencil" class="w-4 h-4 text-cyan-400"></i>
@@ -20236,6 +23234,46 @@ tbody.innerHTML = '';
             i18n.localizeDom(modalContainer);
         }
 
+        // Setup shift live calculator if editing shift
+        if (type === 'shifts') {
+            const startInp = modalContainer.querySelector('#shift-edit-inp-start');
+            const endInp = modalContainer.querySelector('#shift-edit-inp-end');
+            const restInps = modalContainer.querySelectorAll('.shift-edit-rest-inp');
+            const grossEl = modalContainer.querySelector('#shift-edit-calc-gross');
+            const lossEl = modalContainer.querySelector('#shift-edit-calc-loss');
+            const plannedEl = modalContainer.querySelector('#shift-edit-calc-planned');
+            const workHoursEl = modalContainer.querySelector('#shift-edit-calc-workhours');
+
+            const calcShift = () => {
+                const startStr = (startInp?.value || '07:30').trim();
+                const endStr = (endInp?.value || '16:30').trim();
+                const startParts = startStr.split(':');
+                const endParts = endStr.split(':');
+                let startMins = parseInt(startParts[0] || 0) * 60 + parseInt(startParts[1] || 0);
+                let endMins = parseInt(endParts[0] || 0) * 60 + parseInt(endParts[1] || 0);
+                if (endMins <= startMins) endMins += 24 * 60;
+                const grossMins = endMins - startMins;
+                const grossHours = (grossMins / 60).toFixed(1);
+
+                let totalLossMins = 0;
+                restInps.forEach(inp => totalLossMins += parseInt(inp.value || 0));
+                const totalLossSec = totalLossMins * 60;
+                const plannedMins = Math.max(0, grossMins - totalLossMins);
+                const plannedSec = plannedMins * 60;
+                const workHours = (plannedMins / 60).toFixed(2);
+
+                if (grossEl) grossEl.innerText = `${grossMins} mins (${grossHours}h)`;
+                if (lossEl) lossEl.innerText = `${totalLossMins} mins (${totalLossSec.toLocaleString()}s)`;
+                if (plannedEl) plannedEl.innerText = `${plannedMins} mins (${plannedSec.toLocaleString()}s)`;
+                if (workHoursEl) workHoursEl.innerText = `${workHours} Jam`;
+            };
+
+            startInp?.addEventListener('input', calcShift);
+            endInp?.addEventListener('input', calcShift);
+            restInps.forEach(inp => inp.addEventListener('input', calcShift));
+            calcShift();
+        }
+
         document.getElementById('btn-close-edit-modal').addEventListener('click', () => modalContainer.innerHTML = '');
         document.getElementById('btn-cancel-edit-modal').addEventListener('click', () => modalContainer.innerHTML = '');
 
@@ -20243,6 +23281,21 @@ tbody.innerHTML = '';
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
+
+            if (type === 'shifts') {
+                data.break_breakdown = {
+                    meeting: parseInt(data.rest_meeting || 0),
+                    cek_n1_1: parseInt(data.rest_cek_n1_1 || 0),
+                    rest_1: parseInt(data.rest_1 || 0),
+                    rest_2: parseInt(data.rest_2 || 0),
+                    cek_n1_2: parseInt(data.rest_cek_n1_2 || 0),
+                    rest_3: parseInt(data.rest_3 || 0),
+                    rest_4: parseInt(data.rest_4 || 0),
+                    cek_n1_3: parseInt(data.rest_cek_n1_3 || 0),
+                    rest_5: parseInt(data.rest_5 || 0),
+                    dua_s: parseInt(data.rest_dua_s || 0)
+                };
+            }
 
             try {
                 if (type === 'machines') await api.updateMachine(id, data);
@@ -20832,6 +23885,48 @@ tbody.innerHTML = '';
                             </div>
                         </div>
 
+                        ${item.items && item.items.length > 0 ? `
+                        <!-- MULTI-PRODUCT / MULTI-SKU BREAKDOWN TABLE -->
+                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-2.5">
+                            <div class="font-bold text-[11px] ${isLight ? 'text-indigo-800' : 'text-indigo-400'} uppercase tracking-wider flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
+                                <span class="flex items-center gap-1.5">
+                                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                                    Rincian Produksi Multi-Model / Multi-SKU (${item.items.length} Item)
+                                </span>
+                                <span class="text-[10px] font-mono text-slate-400">Total Measuring: ${totalQty.toLocaleString()} pcs</span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="${isLight ? 'bg-slate-200/50 text-slate-600' : 'bg-slate-900 text-slate-400'} text-[10px] uppercase font-bold border-b ${isLight ? 'border-slate-200' : 'border-slate-800'}">
+                                            <th class="p-2">Produk / Part SKU</th>
+                                            <th class="p-2 text-center">Cycle Time</th>
+                                            <th class="p-2 text-center text-emerald-400">Finish Good (OK)</th>
+                                            <th class="p-2 text-center text-rose-400">NG</th>
+                                            <th class="p-2 text-center text-amber-400">Scrap</th>
+                                            <th class="p-2 text-center text-cyan-400">Total Output</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800'} font-mono">
+                                        ${item.items.map((it, idx) => `
+                                            <tr class="${isLight ? 'hover:bg-slate-100/50' : 'hover:bg-slate-800/40'}">
+                                                <td class="p-2 font-sans font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}">
+                                                    <div>${it.product?.name || `Product #${it.product_id}`}</div>
+                                                    <div class="text-[10px] text-slate-400 font-mono">${it.product?.sku || '-'}</div>
+                                                </td>
+                                                <td class="p-2 text-center text-slate-400">${it.ideal_cycle_time}s</td>
+                                                <td class="p-2 text-center font-bold text-emerald-400">${(it.good_quantity || 0).toLocaleString()}</td>
+                                                <td class="p-2 text-center font-bold text-rose-400">${(it.reject_quantity || 0).toLocaleString()}</td>
+                                                <td class="p-2 text-center font-bold text-amber-400">${(it.scrap_quantity || 0).toLocaleString()}</td>
+                                                <td class="p-2 text-center font-bold text-cyan-400">${(it.total_quantity || 0).toLocaleString()}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        ` : ''}
+
                         <!-- ANALISIS WAKTU & LOSS BREAKDOWN -->
                         <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-3">
                             <div class="font-bold text-[11px] ${isLight ? 'text-amber-800' : 'text-amber-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
@@ -20923,19 +24018,33 @@ tbody.innerHTML = '';
         const causeVal = item.cause || '-';
         const actionVal = item.action_taken || '-';
 
+        const toProperCase = (str) => {
+            if (!str || typeof str !== 'string' || str === '-') return str || '-';
+            return str.replace(/\b\w+/g, (word) => {
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            });
+        };
+
+        const descriptionProper = item.description ? toProperCase(item.description) : 'Tidak Ada Deskripsi Rinci Yang Dicatat.';
+        const causeProper = causeVal !== '-' ? toProperCase(causeVal) : '-';
+        const actionProper = actionVal !== '-' ? toProperCase(actionVal) : '-';
+        const followUpProper = item.follow_up_action ? toProperCase(item.follow_up_action) : null;
+        const dueDateVal = item.due_date ? String(item.due_date).slice(0, 10) : null;
+        const picFollowUpVal = item.pic_followup || null;
+
         modalContainer.innerHTML = `
             <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto font-sans">
-                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-2xl w-full my-auto overflow-hidden">
+                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-xl w-full my-auto overflow-hidden">
                     <!-- MODAL HEADER -->
-                    <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} px-6 py-4 border-b flex items-center justify-between">
+                    <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} px-5 py-3.5 border-b flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl ${isLight ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-amber-950 text-amber-400 border-amber-800'} border flex items-center justify-center shadow-inner">
-                                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            <div class="w-9 h-9 rounded-xl ${isLight ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-amber-950 text-amber-400 border-amber-800'} border flex items-center justify-center shadow-inner flex-shrink-0">
+                                <i data-lucide="alert-triangle" class="w-4.5 h-4.5"></i>
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h3 class="font-bold text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Detail Log Problem #${item.id}</h3>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    <h3 class="font-bold text-sm sm:text-base ${isLight ? 'text-slate-900' : 'text-slate-100'}">Detail Log Problem #${item.id}</h3>
+                                    <span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold ${
                                         problemType === 'Problem Mesin Mekanik' ? 'bg-rose-950 text-rose-300 border border-rose-800' :
                                         problemType === 'Problem Mesin Elektrik' ? 'bg-amber-950 text-amber-300 border border-amber-800' :
                                         problemType === 'Problem Tool' ? 'bg-orange-950 text-orange-300 border border-orange-800' :
@@ -20943,113 +24052,127 @@ tbody.innerHTML = '';
                                         problemType === 'Inventory' ? 'bg-purple-950 text-purple-300 border border-purple-800' :
                                         'bg-slate-800 text-slate-300 border border-slate-700'
                                     }">${problemType}</span>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusVal === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${statusVal}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold ${statusVal === 'OPEN' ? 'bg-rose-950 text-rose-300 border border-rose-800 animate-pulse' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">${statusVal}</span>
                                 </div>
-                                <p class="text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5 font-mono">
+                                <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'} mt-0.5 font-mono">
                                     📅 ${troubleDateVal} &bull; 🏭 ${lineName} &bull; ⏰ ${shiftName}
                                 </p>
                             </div>
                         </div>
                         <button id="btn-close-view-dt-modal" class="p-1.5 rounded-lg ${isLight ? 'text-slate-400 hover:text-slate-800 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} cursor-pointer transition-colors">
-                            <i data-lucide="x" class="w-5 h-5"></i>
+                            <i data-lucide="x" class="w-4.5 h-4.5"></i>
                         </button>
                     </div>
 
-                    <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+                    <div class="p-5 space-y-3.5 max-h-[75vh] overflow-y-auto text-xs">
                         <!-- TIME, DURATION & STATUS TILES -->
-                        <div class="grid grid-cols-4 gap-2.5 font-mono text-center">
-                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
+                        <div class="grid grid-cols-4 gap-2 font-mono text-center">
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2">
                                 <div class="text-[10px] font-bold text-slate-400 font-sans">Waktu Mulai</div>
-                                <div class="text-lg font-bold text-cyan-400 mt-1">${startTimeVal}</div>
+                                <div class="text-base font-bold text-cyan-400 mt-0.5">${startTimeVal}</div>
                             </div>
-                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2">
                                 <div class="text-[10px] font-bold text-slate-400 font-sans">Waktu Selesai</div>
-                                <div class="text-lg font-bold ${item.end_time ? 'text-cyan-400' : 'text-rose-400 animate-pulse'} mt-1">${endTimeVal}</div>
+                                <div class="text-base font-bold ${item.end_time ? 'text-cyan-400' : 'text-rose-400 animate-pulse'} mt-0.5">${endTimeVal}</div>
                             </div>
-                            <div class="${isLight ? 'bg-rose-50/50 border-rose-200' : 'bg-slate-950/70 border-rose-900/40'} border rounded-xl p-2.5">
+                            <div class="${isLight ? 'bg-rose-50/50 border-rose-200' : 'bg-slate-950/70 border-rose-900/40'} border rounded-xl p-2">
                                 <div class="text-[10px] font-bold text-rose-400 font-sans">Losstime</div>
-                                <div class="text-lg font-extrabold text-rose-400 mt-1">${durationMins} mins</div>
+                                <div class="text-base font-extrabold text-rose-400 mt-0.5">${durationMins} mins</div>
                             </div>
-                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2.5">
+                            <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/70 border-slate-800'} border rounded-xl p-2">
                                 <div class="text-[10px] font-bold text-slate-400 font-sans">Status</div>
-                                <div class="text-sm font-bold ${statusVal === 'OPEN' ? 'text-rose-400' : 'text-emerald-400'} mt-1.5">${statusVal}</div>
+                                <div class="text-xs font-bold ${statusVal === 'OPEN' ? 'text-rose-400' : 'text-emerald-400'} mt-1">${statusVal}</div>
                             </div>
                         </div>
 
                         <!-- PARAMETER LOKASI, MESIN & PIC -->
-                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-2">
-                            <div class="font-bold text-[11px] ${isLight ? 'text-amber-800' : 'text-amber-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2">
+                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-1.5">
+                            <div class="font-bold text-[10.5px] ${isLight ? 'text-amber-800' : 'text-amber-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
                                 <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
                                 Konteks Operasional & Lokasi Problem
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                                <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Tanggal:</span>
-                                    <span class="font-mono font-bold text-cyan-400">${troubleDateVal}</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                <div class="flex items-center gap-2 py-0.5 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400 w-28 flex-shrink-0">Tanggal:</span>
+                                    <span class="font-mono font-bold text-cyan-400 truncate">${troubleDateVal}</span>
                                 </div>
-                                <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Line:</span>
-                                    <span class="font-bold text-cyan-400">${lineName}</span>
+                                <div class="flex items-center gap-2 py-0.5 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400 w-28 flex-shrink-0">Line:</span>
+                                    <span class="font-bold text-cyan-400 truncate">${lineName}</span>
                                 </div>
-                                <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">OP Mesin:</span>
-                                    <span class="font-mono font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${machineName}</span>
+                                <div class="flex items-center gap-2 py-0.5 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400 w-28 flex-shrink-0">OP Mesin:</span>
+                                    <span class="font-mono font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate">${machineName}</span>
                                 </div>
-                                <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Shift Kerja:</span>
-                                    <span class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'}">${shiftName}</span>
+                                <div class="flex items-center gap-2 py-0.5 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400 w-28 flex-shrink-0">Shift Kerja:</span>
+                                    <span class="font-bold ${isLight ? 'text-slate-800' : 'text-slate-200'} truncate">${shiftName}</span>
                                 </div>
-                                <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Team:</span>
-                                    <span class="font-bold text-amber-400 font-mono">${item.team || 'Team A'}</span>
+                                <div class="flex items-center gap-2 py-0.5 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400 w-28 flex-shrink-0">Team:</span>
+                                    <span class="font-bold text-amber-400 font-mono truncate">${item.team || 'Team A'}</span>
                                 </div>
-                                <div class="flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">PIC Departemen:</span>
-                                    <span class="font-bold text-cyan-300">${picVal}</span>
+                                <div class="flex items-center gap-2 py-0.5 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400 w-28 flex-shrink-0">PIC:</span>
+                                    <span class="font-bold text-cyan-300 truncate">${picVal}</span>
                                 </div>
-                                <div class="col-span-1 sm:col-span-2 flex justify-between py-1 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
-                                    <span class="text-slate-400">Type Produk / SKU:</span>
-                                    <span class="font-bold text-emerald-400">${productName}</span>
+                                <div class="col-span-1 sm:col-span-2 flex items-center gap-2 py-0.5 border-b ${isLight ? 'border-slate-200/60' : 'border-slate-800/40'}">
+                                    <span class="text-slate-400 w-28 flex-shrink-0">Type Produk:</span>
+                                    <span class="font-bold text-emerald-400 truncate">${productName}</span>
                                 </div>
-                                <div class="col-span-1 sm:col-span-2 flex justify-between py-1">
-                                    <span class="text-slate-400">Kategori Problem:</span>
-                                    <span class="font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'}">${problemType}</span>
+                                <div class="col-span-1 sm:col-span-2 flex items-center gap-2 py-0.5">
+                                    <span class="text-slate-400 w-28 flex-shrink-0">Kategori:</span>
+                                    <span class="font-semibold ${isLight ? 'text-slate-900' : 'text-slate-100'} truncate">${problemType}</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- MASALAH / GEJALA PROBLEM -->
-                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-2">
-                            <div class="font-bold text-[11px] ${isLight ? 'text-rose-800' : 'text-rose-400'} uppercase tracking-wider flex items-center gap-1.5">
+                        <div class="rounded-xl border ${isLight ? 'bg-white border-rose-200/90 shadow-xs' : 'bg-slate-900 border-rose-900/50'} overflow-hidden">
+                            <div class="px-3.5 py-1.5 ${isLight ? 'bg-rose-50/80 border-rose-200/80 text-rose-800' : 'bg-rose-950/40 border-rose-900/60 text-rose-300'} border-b font-bold text-[10.5px] uppercase tracking-wider flex items-center gap-1.5">
                                 <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
-                                Problem / Deskripsi Masalah
+                                <span>Problem / Deskripsi Masalah</span>
                             </div>
-                            <div class="p-3 rounded-lg ${isLight ? 'bg-white text-slate-800 border-slate-200' : 'bg-slate-900 text-slate-200 border-slate-800'} border font-sans text-xs leading-relaxed whitespace-pre-wrap">
-                                ${item.description || 'Tidak ada deskripsi rinci yang dicatat.'}
-                            </div>
+                            <div class="px-3.5 py-2.5 font-sans text-xs sm:text-[13px] text-left leading-relaxed ${isLight ? 'text-slate-800' : 'text-slate-100'} font-medium break-words">${descriptionProper.trim()}</div>
                         </div>
 
                         <!-- PENYEBAB (AKAR MASALAH) -->
-                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-4 space-y-2">
-                            <div class="font-bold text-[11px] ${isLight ? 'text-amber-800' : 'text-amber-400'} uppercase tracking-wider flex items-center gap-1.5">
+                        <div class="rounded-xl border ${isLight ? 'bg-white border-amber-200/90 shadow-xs' : 'bg-slate-900 border-amber-900/50'} overflow-hidden">
+                            <div class="px-3.5 py-1.5 ${isLight ? 'bg-amber-50/80 border-amber-200/80 text-amber-800' : 'bg-amber-950/40 border-amber-900/60 text-amber-300'} border-b font-bold text-[10.5px] uppercase tracking-wider flex items-center gap-1.5">
                                 <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
-                                Penyebab / Akar Masalah (Root Cause)
+                                <span>Penyebab / Akar Masalah (Root Cause)</span>
                             </div>
-                            <div class="p-3 rounded-lg ${isLight ? 'bg-white text-slate-800 border-slate-200' : 'bg-slate-900 text-slate-200 border-slate-800'} border font-sans text-xs leading-relaxed whitespace-pre-wrap">
-                                ${causeVal}
-                            </div>
+                            <div class="px-3.5 py-2.5 font-sans text-xs sm:text-[13px] text-left leading-relaxed ${isLight ? 'text-slate-800' : 'text-slate-100'} font-medium break-words">${causeProper.trim()}</div>
                         </div>
 
                         <!-- TINDAKAN PERBAIKAN (CAPA) -->
-                        <div class="${isLight ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-950/60 border-emerald-900/40'} border rounded-xl p-4 space-y-2">
-                            <div class="font-bold text-[11px] ${isLight ? 'text-emerald-800' : 'text-emerald-400'} uppercase tracking-wider flex items-center gap-1.5">
+                        <div class="rounded-xl border ${isLight ? 'bg-white border-emerald-200/90 shadow-xs' : 'bg-slate-900 border-emerald-900/50'} overflow-hidden">
+                            <div class="px-3.5 py-1.5 ${isLight ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-800' : 'bg-emerald-950/40 border-emerald-900/60 text-emerald-300'} border-b font-bold text-[10.5px] uppercase tracking-wider flex items-center gap-1.5">
                                 <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
-                                Tindakan Perbaikan & Countermeasure (CAPA)
+                                <span>Tindakan Perbaikan & Countermeasure (CAPA)</span>
                             </div>
-                            <div class="p-3 rounded-lg ${isLight ? 'bg-white text-slate-800 border-slate-200' : 'bg-slate-900 text-emerald-300 border-slate-800'} border font-sans text-xs leading-relaxed whitespace-pre-wrap">
-                                ${actionVal}
-                            </div>
+                            <div class="px-3.5 py-2.5 font-sans text-xs sm:text-[13px] text-left leading-relaxed ${isLight ? 'text-emerald-800' : 'text-emerald-300'} font-medium break-words">${actionProper.trim()}</div>
                         </div>
+
+                        ${followUpProper && followUpProper !== '-' ? `
+                        <!-- KAIZEN / FOLLOW-UP (JIKA ADA) -->
+                        <div class="rounded-xl border ${isLight ? 'bg-white border-indigo-200/90 shadow-xs' : 'bg-slate-900 border-indigo-900/50'} overflow-hidden">
+                            <div class="px-3.5 py-1.5 ${isLight ? 'bg-indigo-50/80 border-indigo-200/80 text-indigo-800' : 'bg-indigo-950/40 border-indigo-900/60 text-indigo-300'} border-b font-bold text-[10.5px] uppercase tracking-wider flex items-center justify-between">
+                                <span class="flex items-center gap-1.5">
+                                    <i data-lucide="calendar-check-2" class="w-3.5 h-3.5"></i>
+                                    <span>Tindakan Pencegahan / Kaizen (Follow-Up)</span>
+                                </span>
+                                ${dueDateVal ? `<span class="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">Target: ${dueDateVal}</span>` : ''}
+                            </div>
+                            <div class="px-3.5 py-2.5 space-y-1.5">
+                                <div class="font-sans text-xs sm:text-[13px] text-left leading-relaxed ${isLight ? 'text-indigo-950' : 'text-indigo-200'} font-medium break-words">${followUpProper.trim()}</div>
+                                ${picFollowUpVal ? `
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 font-sans flex items-center gap-1.5 pt-1 border-t ${isLight ? 'border-indigo-100' : 'border-indigo-900/40'}">
+                                    <span class="font-semibold text-indigo-700 dark:text-indigo-400">PIC Follow-Up:</span>
+                                    <span>${picFollowUpVal}</span>
+                                </div>` : ''}
+                            </div>
+                        </div>` : ''}
                     </div>
 
                     <!-- MODAL FOOTER -->
@@ -21459,6 +24582,29 @@ tbody.innerHTML = '';
         const prodDate = item.production_date ? String(item.production_date).slice(0, 10) : (this.selectedDailyDate || new Date().toISOString().slice(0, 10));
         const isLight = this.theme === 'light' || document.documentElement.classList.contains('light');
 
+        let editProductsState = [];
+        if (item.items && Array.isArray(item.items) && item.items.length > 0) {
+            editProductsState = item.items.map(itm => ({
+                id: itm.id || null,
+                product_id: itm.product_id,
+                ideal_cycle_time: parseFloat(itm.ideal_cycle_time || 9.5),
+                good_quantity: parseInt(itm.good_quantity || 0),
+                reject_quantity: parseInt(itm.reject_quantity || 0),
+                scrap_quantity: parseInt(itm.scrap_quantity || 0),
+                total_quantity: parseInt(itm.total_quantity || 0),
+            }));
+        } else {
+            editProductsState = [{
+                id: null,
+                product_id: item.product_id,
+                ideal_cycle_time: parseFloat(item.ideal_cycle_time || item.product?.ideal_cycle_time || 9.5),
+                good_quantity: parseInt(item.good_quantity || 0),
+                reject_quantity: parseInt(item.reject_quantity || 0),
+                scrap_quantity: parseInt(item.scrap_quantity || 0),
+                total_quantity: parseInt(item.total_quantity || 0),
+            }];
+        }
+
         const linesOptions = (this.masterData.lines || []).map(l => 
             `<option value="${l.id}" ${item.production_line_id == l.id ? 'selected' : ''}>${l.code} - ${l.name}</option>`
         ).join('');
@@ -21473,7 +24619,7 @@ tbody.innerHTML = '';
 
         modalContainer.innerHTML = `
             <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
-                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-2xl w-full my-auto overflow-hidden font-sans">
+                <div class="${isLight ? 'bg-white border-slate-200 text-slate-900 shadow-2xl' : 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl'} border rounded-2xl max-w-3xl w-full my-auto overflow-hidden font-sans">
                     <!-- MODAL HEADER -->
                     <div class="${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'} px-5 py-4 border-b flex items-center justify-between">
                         <div class="flex items-center gap-2.5">
@@ -21482,7 +24628,7 @@ tbody.innerHTML = '';
                             </div>
                             <div>
                                 <h3 class="font-bold text-sm ${isLight ? 'text-slate-900' : 'text-slate-100'}">Edit Record Produksi #${item.id}</h3>
-                                <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Ubah rincian parameter, lini, shift, produk, atau kuantitas output</p>
+                                <p class="text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}">Ubah rincian parameter, lini, shift, produk multi-item, atau kuantitas output</p>
                             </div>
                         </div>
                         <button type="button" id="btn-close-edit-prod-modal" class="p-1 rounded-lg ${isLight ? 'text-slate-400 hover:text-slate-800 hover:bg-slate-200' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'} cursor-pointer transition-colors">
@@ -21491,96 +24637,110 @@ tbody.innerHTML = '';
                     </div>
 
                     <form id="form-edit-prod-record" class="p-5 space-y-4 text-xs">
-                        <input type="hidden" name="ideal_cycle_time" value="${item.ideal_cycle_time || 9.5}" />
+                        <input type="hidden" name="ideal_cycle_time" id="edit-prod-ideal-cycle" value="${item.ideal_cycle_time || 9.5}" />
                         <input type="hidden" name="downtime" value="${item.downtime || 0}" />
+                        <input type="hidden" name="product_id" id="edit-prod-main-product-id" value="${item.product_id || ''}" />
 
                         <!-- SEKSI 1: PARAMETER OPERASIONAL DASAR -->
                         <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-3">
-                            <div class="font-bold text-[11px] ${isLight ? 'text-cyan-800' : 'text-cyan-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
-                                <i data-lucide="settings-2" class="w-3.5 h-3.5"></i>
-                                Parameter Lini, Shift & Produk
+                            <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
+                                <div class="font-bold text-[11px] ${isLight ? 'text-cyan-800' : 'text-cyan-400'} uppercase tracking-wider flex items-center gap-1.5">
+                                    <i data-lucide="settings-2" class="w-3.5 h-3.5"></i>
+                                    Parameter Lini, Shift & Mesin
+                                </div>
+                                <span id="edit-cycle-time-badge" class="text-[10px] font-mono text-cyan-400 font-bold px-2 py-0.5 rounded ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-950 border border-cyan-800'}">
+                                    Cycle Time: ${item.ideal_cycle_time || 9.5}s
+                                </span>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                                 <div>
                                     <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">📅 Tanggal Produksi</label>
                                     <input type="date" name="production_date" value="${prodDate}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-medium" />
                                 </div>
                                 <div>
                                     <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">🏭 Production Line</label>
-                                    <select name="production_line_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-bold text-cyan-600 dark:text-cyan-400">
+                                    <select name="production_line_id" id="edit-prod-select-line" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-bold text-cyan-600 dark:text-cyan-400">
                                         ${linesOptions}
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">⏰ Shift Kerja</label>
-                                    <select name="shift_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-semibold">
-                                        ${shiftsOptions}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
                                     <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">⚙️ Mesin</label>
-                                    <select name="machine_id" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-mono">
+                                    <select name="machine_id" id="edit-prod-select-machine" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-mono">
                                         ${machinesOptions}
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">📦 Nama Produk</label>
-                                    <select name="product_id" id="edit-prod-select-product" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-semibold">
-                                        <!-- Will be populated dynamically based on line -->
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-medium">⏰ Shift Kerja</label>
+                                    <select name="shift_id" id="edit-prod-select-shift" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-sans font-semibold">
+                                        ${shiftsOptions}
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- SEKSI 2: KUANTITAS PRODUKSI -->
+                        <!-- SEKSI 2: KUANTITAS PRODUKSI PER PRODUK (MULTI-SKU) -->
                         <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-3">
-                            <div class="flex items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
+                            <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5 gap-2">
                                 <div class="font-bold text-[11px] ${isLight ? 'text-emerald-800' : 'text-emerald-400'} uppercase tracking-wider flex items-center gap-1.5">
-                                    <i data-lucide="bar-chart" class="w-3.5 h-3.5"></i>
-                                    Kuantitas Output Produksi (Pcs)
+                                    <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
+                                    Kuantitas Output per Produk (Multi-SKU)
                                 </div>
-                                <span class="text-[10px] text-emerald-500 font-mono">Target = Planned Time × 60 ÷ Cycle Time</span>
-                            </div>
-
-                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Target Qty</label>
-                                    <input type="number" name="target_quantity" value="${item.target_quantity || 0}" min="0" required class="w-full ${isLight ? 'bg-white border-slate-200 text-cyan-700' : 'bg-slate-900 border-slate-800 text-cyan-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Measuring</label>
-                                    <input type="number" name="total_quantity" value="${item.total_quantity || 0}" min="0" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2 py-2 font-mono font-bold" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Finish Good</label>
-                                    <input type="number" name="good_quantity" value="${item.good_quantity || 0}" min="0" required class="w-full ${isLight ? 'bg-white border-slate-200 text-emerald-700' : 'bg-slate-900 border-slate-800 text-emerald-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">NG Qty</label>
-                                    <input type="number" name="reject_quantity" value="${item.reject_quantity || 0}" min="0" required class="w-full ${isLight ? 'bg-white border-slate-200 text-rose-700' : 'bg-slate-900 border-slate-800 text-rose-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Scrap / Afkir</label>
-                                    <input type="number" name="scrap_quantity" value="${item.scrap_quantity || 0}" min="0" class="w-full ${isLight ? 'bg-white border-slate-200 text-amber-700' : 'bg-slate-900 border-slate-800 text-amber-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="btn-edit-add-product" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow flex items-center gap-1 cursor-pointer transition-all">
+                                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                        <span>+ Tambah Produk</span>
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-3 gap-3 pt-1">
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Planned Time (min)</label>
-                                    <input type="number" name="planned_production_time" value="${item.planned_production_time || 480}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'} border rounded-lg px-2.5 py-1.5 font-mono" />
+                            <div id="edit-products-container" class="space-y-3 pt-1">
+                                <!-- Populated dynamically by renderEditProductRows() -->
+                            </div>
+
+                            <!-- RINGKASAN TOTAL SHIFT & JAM KERJA EDIT -->
+                            <div class="p-3 rounded-xl ${isLight ? 'bg-white border-slate-300' : 'bg-slate-900/90 border-slate-800'} border space-y-3 mt-2 shadow-inner">
+                                <div class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800'} pb-1.5">
+                                    <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                                    Total Akumulasi Output & Waktu Kerja
                                 </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Break / Istirahat (min)</label>
-                                    <input type="number" name="planned_downtime" value="${item.planned_downtime || 60}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'} border rounded-lg px-2.5 py-1.5 font-mono" />
+
+                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Target Total (Auto)</label>
+                                        <input type="number" name="target_quantity" id="edit-summary-target" value="${item.target_quantity || 0}" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-200 text-cyan-700' : 'bg-slate-950 border-slate-800 text-cyan-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Total Measuring</label>
+                                        <input type="number" name="total_quantity" id="edit-summary-total" value="${item.total_quantity || 0}" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-200 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2 py-2 font-mono font-bold" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Total Finish Good</label>
+                                        <input type="number" name="good_quantity" id="edit-summary-good" value="${item.good_quantity || 0}" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-200 text-emerald-700' : 'bg-slate-950 border-slate-800 text-emerald-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Total NG</label>
+                                        <input type="number" name="reject_quantity" id="edit-summary-reject" value="${item.reject_quantity || 0}" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-200 text-rose-700' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Total Scrap</label>
+                                        <input type="number" name="scrap_quantity" id="edit-summary-scrap" value="${item.scrap_quantity || 0}" min="0" readonly class="w-full ${isLight ? 'bg-slate-100 border-slate-200 text-amber-700' : 'bg-slate-950 border-slate-800 text-amber-400'} border rounded-lg px-2 py-2 font-mono font-bold" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Run Time (min)</label>
-                                    <input type="number" name="run_time" value="${item.run_time || 420}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-emerald-700' : 'bg-slate-900 border-slate-800 text-emerald-400'} border rounded-lg px-2.5 py-1.5 font-mono font-bold" />
+
+                                <div class="grid grid-cols-3 gap-3 pt-1 border-t ${isLight ? 'border-slate-200' : 'border-slate-800/80'}">
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Planned Time (min)</label>
+                                        <input type="number" name="planned_production_time" id="edit-planned-time" value="${item.planned_production_time || 480}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'} border rounded-lg px-2.5 py-1.5 font-mono" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Break / Istirahat (min)</label>
+                                        <input type="number" name="planned_downtime" id="edit-planned-dt" value="${item.planned_downtime || 60}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'} border rounded-lg px-2.5 py-1.5 font-mono" />
+                                    </div>
+                                    <div>
+                                        <label class="block ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1 font-medium">Run Time (min)</label>
+                                        <input type="number" name="run_time" id="edit-run-time" value="${item.run_time || 420}" required class="w-full ${isLight ? 'bg-white border-slate-200 text-emerald-700' : 'bg-slate-900 border-slate-800 text-emerald-400'} border rounded-lg px-2.5 py-1.5 font-mono font-bold" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -21603,17 +24763,204 @@ tbody.innerHTML = '';
             i18n.localizeDom(modalContainer);
         }
 
-        // Dynamic Product Selector in Edit Modal
-        const editLineSelect = modalContainer.querySelector('select[name="production_line_id"]');
-        const editProductSelect = document.getElementById('edit-prod-select-product');
-        const editPlannedTime = modalContainer.querySelector('input[name="planned_production_time"]');
-        const editPlannedDt = modalContainer.querySelector('input[name="planned_downtime"]');
-        const editRunTime = modalContainer.querySelector('input[name="run_time"]');
-        const editTargetQty = modalContainer.querySelector('input[name="target_quantity"]');
-        const editIdealCycle = modalContainer.querySelector('input[name="ideal_cycle_time"]');
-        const editShiftSelect = modalContainer.querySelector('select[name="shift_id"]');
+        const editLineSelect = document.getElementById('edit-prod-select-line');
+        const editMachineSelect = document.getElementById('edit-prod-select-machine');
+        const editShiftSelect = document.getElementById('edit-prod-select-shift');
+        const editProductsContainer = document.getElementById('edit-products-container');
+        const editAddProductBtn = document.getElementById('btn-edit-add-product');
+        const editCycleBadge = document.getElementById('edit-cycle-time-badge');
+        const editIdealCycleInp = document.getElementById('edit-prod-ideal-cycle');
+        const editMainProductInp = document.getElementById('edit-prod-main-product-id');
 
-        const editMachineSelect = modalContainer.querySelector('select[name="machine_id"]');
+        const editPlannedTime = document.getElementById('edit-planned-time');
+        const editPlannedDt = document.getElementById('edit-planned-dt');
+        const editRunTime = document.getElementById('edit-run-time');
+
+        const editSummaryTarget = document.getElementById('edit-summary-target');
+        const editSummaryTotal = document.getElementById('edit-summary-total');
+        const editSummaryGood = document.getElementById('edit-summary-good');
+        const editSummaryReject = document.getElementById('edit-summary-reject');
+        const editSummaryScrap = document.getElementById('edit-summary-scrap');
+
+        const updateEditCalculations = () => {
+            let totalGood = 0;
+            let totalReject = 0;
+            let totalScrap = 0;
+            let totalMeasuring = 0;
+            let totalNetSeconds = 0;
+
+            editProductsState.forEach(row => {
+                const g = parseInt(row.good_quantity || 0);
+                const r = parseInt(row.reject_quantity || 0);
+                const s = parseInt(row.scrap_quantity || 0);
+                const tot = parseInt(row.total_quantity || (g + r + s));
+                const ct = parseFloat(row.ideal_cycle_time || 9.5);
+
+                totalGood += g;
+                totalReject += r;
+                totalScrap += s;
+                totalMeasuring += tot;
+                totalNetSeconds += (tot * ct);
+            });
+
+            if (editSummaryGood) editSummaryGood.value = totalGood;
+            if (editSummaryReject) editSummaryReject.value = totalReject;
+            if (editSummaryScrap) editSummaryScrap.value = totalScrap;
+            if (editSummaryTotal) editSummaryTotal.value = totalMeasuring;
+
+            let avgCycleTime = 9.5;
+            if (totalMeasuring > 0 && totalNetSeconds > 0) {
+                avgCycleTime = Number((totalNetSeconds / totalMeasuring).toFixed(2));
+            } else if (editProductsState.length > 0 && editProductsState[0].ideal_cycle_time) {
+                avgCycleTime = parseFloat(editProductsState[0].ideal_cycle_time);
+            }
+
+            if (editIdealCycleInp) editIdealCycleInp.value = avgCycleTime;
+            if (editCycleBadge) {
+                if (editProductsState.length > 1) {
+                    editCycleBadge.textContent = `Avg Cycle Time: ${avgCycleTime}s (${editProductsState.length} Produk)`;
+                } else {
+                    editCycleBadge.textContent = `Cycle Time: ${avgCycleTime}s`;
+                }
+            }
+
+            const plannedMins = editPlannedTime ? parseFloat(editPlannedTime.value || 0) : 480;
+            if (editSummaryTarget && avgCycleTime > 0 && plannedMins > 0) {
+                editSummaryTarget.value = Math.floor((plannedMins * 60) / avgCycleTime);
+            }
+
+            if (editProductsState.length > 0 && editMainProductInp) {
+                editMainProductInp.value = editProductsState[0].product_id || '';
+            }
+        };
+
+        const renderEditProductRows = () => {
+            if (!editProductsContainer) return;
+            const lineId = editLineSelect ? editLineSelect.value : item.production_line_id;
+            const prods = this.getProductsForLine(lineId);
+            const lineProducts = prods.length > 0 ? prods : (this.masterData.products || []);
+
+            editProductsContainer.innerHTML = editProductsState.map((row, idx) => {
+                const curProd = lineProducts.find(p => p.id == row.product_id) || (this.masterData.products || []).find(p => p.id == row.product_id);
+                const ct = row.ideal_cycle_time || (curProd?.ideal_cycle_time) || 9.5;
+                const subtotalMeasuring = parseInt(row.total_quantity || 0) > 0 ? row.total_quantity : (parseInt(row.good_quantity || 0) + parseInt(row.reject_quantity || 0) + parseInt(row.scrap_quantity || 0));
+
+                return `
+                    <div class="product-row-card ${isLight ? 'bg-white border-slate-300' : 'bg-slate-900 border-slate-800'} border rounded-xl p-3.5 space-y-3 hover:border-cyan-500/50 transition-all shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-2 gap-2">
+                            <div class="flex items-center gap-2.5 flex-1 min-w-[280px]">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 shrink-0">
+                                    Produk #${idx + 1}
+                                </span>
+                                <div class="flex-1">
+                                    <select data-edit-prod-field="product_id" data-row="${idx}" class="w-full ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-cyan-500">
+                                        ${lineProducts.map(p => `
+                                            <option value="${p.id}" ${p.id == row.product_id ? 'selected' : ''}>
+                                                ${p.name} — SKU: ${p.sku} (${p.ideal_cycle_time}s)
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-mono text-cyan-400 font-bold px-2 py-0.5 rounded ${isLight ? 'bg-cyan-50 border border-cyan-200' : 'bg-cyan-950 border border-cyan-800'}">
+                                    CT: ${ct}s
+                                </span>
+                                ${editProductsState.length > 1 ? `
+                                    <button type="button" data-del-edit-prod-idx="${idx}" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors cursor-pointer" title="Hapus Produk Ini">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-semibold text-[11px]">Finish Good (OK)</label>
+                                <input type="number" data-edit-prod-field="good_quantity" data-row="${idx}" value="${row.good_quantity || 0}" min="0" required class="w-full ${isLight ? 'bg-emerald-50/40 border-slate-300 text-emerald-700' : 'bg-slate-950 border-slate-800 text-emerald-400'} border rounded-lg px-2.5 py-2 font-mono font-bold text-xs" />
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-semibold text-[11px]">Not Good (NG)</label>
+                                <input type="number" data-edit-prod-field="reject_quantity" data-row="${idx}" value="${row.reject_quantity || 0}" min="0" required class="w-full ${isLight ? 'bg-rose-50/40 border-slate-300 text-rose-700' : 'bg-slate-950 border-slate-800 text-rose-400'} border rounded-lg px-2.5 py-2 font-mono font-bold text-xs" />
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-semibold text-[11px]">Scrap / Afkir</label>
+                                <input type="number" data-edit-prod-field="scrap_quantity" data-row="${idx}" value="${row.scrap_quantity || 0}" min="0" class="w-full ${isLight ? 'bg-amber-50/40 border-slate-300 text-amber-700' : 'bg-slate-950 border-slate-800 text-amber-400'} border rounded-lg px-2.5 py-2 font-mono font-bold text-xs" />
+                            </div>
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-400'} mb-1 font-semibold text-[11px]">Subtotal Measuring</label>
+                                <input type="number" data-edit-prod-field="total_quantity" data-row="${idx}" value="${subtotalMeasuring}" min="0" required class="w-full ${isLight ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono font-bold text-xs" />
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            editProductsContainer.querySelectorAll('[data-edit-prod-field]').forEach(inp => {
+                const handler = (e) => {
+                    const field = e.target.getAttribute('data-edit-prod-field');
+                    const rowIdx = parseInt(e.target.getAttribute('data-row'));
+                    if (!editProductsState[rowIdx]) return;
+
+                    if (field === 'product_id') {
+                        const newProdId = e.target.value;
+                        const matchProd = (this.masterData.products || []).find(p => p.id == newProdId);
+                        editProductsState[rowIdx].product_id = newProdId;
+                        editProductsState[rowIdx].ideal_cycle_time = matchProd ? parseFloat(matchProd.ideal_cycle_time || 9.5) : 9.5;
+                        renderEditProductRows();
+                    } else if (field === 'good_quantity' || field === 'reject_quantity' || field === 'scrap_quantity') {
+                        editProductsState[rowIdx][field] = parseInt(e.target.value || 0);
+                        const autoMeasuring = parseInt(editProductsState[rowIdx].good_quantity || 0) + 
+                                              parseInt(editProductsState[rowIdx].reject_quantity || 0) + 
+                                              parseInt(editProductsState[rowIdx].scrap_quantity || 0);
+                        editProductsState[rowIdx].total_quantity = autoMeasuring;
+                        
+                        const measuringInp = editProductsContainer.querySelector(`input[data-edit-prod-field="total_quantity"][data-row="${rowIdx}"]`);
+                        if (measuringInp) measuringInp.value = autoMeasuring;
+                    } else if (field === 'total_quantity') {
+                        editProductsState[rowIdx].total_quantity = parseInt(e.target.value || 0);
+                    }
+
+                    updateEditCalculations();
+                };
+
+                inp.addEventListener('input', handler);
+                inp.addEventListener('change', handler);
+            });
+
+            editProductsContainer.querySelectorAll('[data-del-edit-prod-idx]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.currentTarget.getAttribute('data-del-edit-prod-idx'));
+                    if (editProductsState.length > 1) {
+                        editProductsState.splice(idx, 1);
+                        renderEditProductRows();
+                    }
+                });
+            });
+
+            if (window.lucide) window.lucide.createIcons();
+            updateEditCalculations();
+        };
+
+        if (editAddProductBtn) {
+            editAddProductBtn.addEventListener('click', () => {
+                const lineId = editLineSelect ? editLineSelect.value : item.production_line_id;
+                const prods = this.getProductsForLine(lineId);
+                const availableProds = prods.length > 0 ? prods : (this.masterData.products || []);
+                const unusedProd = availableProds.find(p => !editProductsState.some(ep => ep.product_id == p.id)) || availableProds[0] || { id: 1, ideal_cycle_time: 9.5 };
+
+                editProductsState.push({
+                    id: null,
+                    product_id: unusedProd.id,
+                    ideal_cycle_time: parseFloat(unusedProd.ideal_cycle_time || 9.5),
+                    good_quantity: 0,
+                    reject_quantity: 0,
+                    scrap_quantity: 0,
+                    total_quantity: 0,
+                });
+                renderEditProductRows();
+            });
+        }
 
         const populateMachines = (preferredMachineId = null) => {
             if (!editLineSelect || !editMachineSelect) return;
@@ -21639,50 +24986,13 @@ tbody.innerHTML = '';
             }
         };
 
-        const populateProducts = () => {
-            if (!editLineSelect || !editProductSelect) return;
-            const lineId = editLineSelect.value;
-            const prods = this.getProductsForLine(lineId);
-
-            if (prods.length === 0) {
-                editProductSelect.innerHTML = '<option value="" disabled selected>-- Tidak ada produk untuk lini ini --</option>';
-            } else {
-                editProductSelect.innerHTML = prods.map(p => `
-                    <option value="${p.id}" ${item.product_id == p.id ? 'selected' : ''}>${p.name} — SKU: ${p.sku} (${p.ideal_cycle_time}s)</option>
-                `).join('');
-            }
-
-            updateTargetCalc();
-        };
-
-        const updateTargetCalc = () => {
-            const prodId = editProductSelect ? editProductSelect.value : item.product_id;
-            const prod = (this.masterData.products || []).find(p => p.id == prodId);
-            const cycleTime = prod && prod.ideal_cycle_time ? parseFloat(prod.ideal_cycle_time) : 9.5;
-            if (editIdealCycle) editIdealCycle.value = cycleTime;
-
-            const plannedMins = editPlannedTime ? parseFloat(editPlannedTime.value || 0) : 480;
-            if (editTargetQty && cycleTime > 0 && plannedMins > 0) {
-                editTargetQty.value = Math.floor((plannedMins * 60) / cycleTime);
-            }
-        };
-
         if (editLineSelect) {
             editLineSelect.addEventListener('change', () => {
-                populateProducts();
+                renderEditProductRows();
                 populateMachines();
             });
-            populateProducts();
-            populateMachines(item.machine_id);
-        }
-        if (editProductSelect) {
-            editProductSelect.addEventListener('change', updateTargetCalc);
-        }
-        if (editPlannedTime) {
-            editPlannedTime.addEventListener('input', updateTargetCalc);
         }
 
-        // Shift change recalculates planned time
         if (editShiftSelect) {
             editShiftSelect.addEventListener('change', () => {
                 const sObj = (this.masterData.shifts || []).find(s => s.id == editShiftSelect.value);
@@ -21698,10 +25008,35 @@ tbody.innerHTML = '';
                     if (editPlannedTime) editPlannedTime.value = plannedMins;
                     if (editPlannedDt) editPlannedDt.value = breakMins;
                     if (editRunTime) editRunTime.value = Math.max(0, plannedMins - (parseFloat(item.downtime || 0)));
-                    updateTargetCalc();
+                    updateEditCalculations();
                 }
             });
         }
+
+        if (editPlannedTime) {
+            editPlannedTime.addEventListener('input', () => {
+                updateEditCalculations();
+                if (editRunTime && editPlannedDt) {
+                    const pm = parseFloat(editPlannedTime.value || 0);
+                    const bm = parseFloat(editPlannedDt.value || 0);
+                    editRunTime.value = Math.max(0, pm - bm - (parseFloat(item.downtime || 0)));
+                }
+            });
+        }
+
+        if (editPlannedDt) {
+            editPlannedDt.addEventListener('input', () => {
+                if (editRunTime && editPlannedTime) {
+                    const pm = parseFloat(editPlannedTime.value || 0);
+                    const bm = parseFloat(editPlannedDt.value || 0);
+                    editRunTime.value = Math.max(0, pm - bm - (parseFloat(item.downtime || 0)));
+                }
+            });
+        }
+
+        renderEditProductRows();
+        populateMachines(item.machine_id);
+        updateEditCalculations();
 
         document.getElementById('btn-close-edit-prod-modal').addEventListener('click', () => modalContainer.innerHTML = '');
         document.getElementById('btn-cancel-edit-prod-modal').addEventListener('click', () => modalContainer.innerHTML = '');
@@ -21712,11 +25047,16 @@ tbody.innerHTML = '';
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
 
+            data.items = editProductsState;
+            if (editProductsState.length > 0) {
+                data.product_id = editProductsState[0].product_id;
+            }
+
             if (!this.validateProductionForm(data, formEdit)) return;
 
             try {
                 await api.updateProductionRecord(id, data);
-                this.showNotification('Record Produksi Diperbarui', `Record #${id} berhasil diperbarui & OEE dihitung ulang!`, 'update');
+                this.showNotification('Record Produksi Diperbarui', `Record #${id} dengan ${editProductsState.length} Produk berhasil diperbarui & OEE dihitung ulang!`, 'update');
                 modalContainer.innerHTML = '';
                 await this.renderDailyReport();
             } catch (err) {
@@ -21762,8 +25102,20 @@ tbody.innerHTML = '';
         ];
         const uniquePicOptions = [...new Set(picOptions)];
 
-        const linesOptions = (this.masterData.lines || []).map(l => 
-            `<option value="${l.id}" ${item.production_line_id == l.id ? 'selected' : ''}>${l.code} - ${l.name}</option>`
+        const cleanLines = [...(this.masterData.lines || [])].sort((a,b) => 
+            (a.name||a.code||'').localeCompare(b.name||b.code||'', undefined, {numeric:true})
+        );
+        const getCleanLineLabel = (l) => {
+            const c = (l.code || '').trim();
+            const n = (l.name || '').trim();
+            if (!c) return n;
+            if (!n || n.toLowerCase() === c.toLowerCase()) return c;
+            if (n.toLowerCase().includes(c.toLowerCase())) return n;
+            return `${c} - ${n}`;
+        };
+
+        const linesOptions = cleanLines.map(l => 
+            `<option value="${l.id}" ${item.production_line_id == l.id ? 'selected' : ''}>${getCleanLineLabel(l)}</option>`
         ).join('');
 
         const shiftsOptions = (this.masterData.shifts || []).map(s => 
@@ -21882,21 +25234,16 @@ tbody.innerHTML = '';
                                 <input type="text" name="action_taken" value="${item.action_taken || ''}" placeholder="Langkah perbaikan / countermeasure yang telah dilakukan..." required class="w-full ${isLight ? 'bg-white border-slate-200 text-emerald-800' : 'bg-slate-900 border-slate-800 text-emerald-300'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-emerald-500" />
                             </div>
 
-                            <div class="grid grid-cols-3 gap-2.5">
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Mulai</label>
-                                    <input type="time" name="dt_start_time" value="${startTimeVal}" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2 py-2 font-mono outline-none focus:border-amber-500" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-medium">Jam Selesai</label>
-                                    <input type="time" name="dt_end_time" value="${endTimeVal}" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2 py-2 font-mono outline-none focus:border-amber-500" />
-                                </div>
-                                <div>
-                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold flex items-center justify-between">
-                                        <span>Losstime (Menit)*</span>
-                                        <span class="text-[10px] text-amber-400 font-mono font-bold">(Wajib Angka)</span>
-                                    </label>
-                                    <input type="number" name="duration_minutes" value="${durVal}" min="1" step="1" required class="w-full ${isLight ? 'bg-white border-slate-200 text-rose-700' : 'bg-slate-900 border-slate-800 text-rose-400'} border rounded-lg px-2 py-2 font-mono font-bold outline-none focus:border-amber-500" />
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold flex items-center justify-between">
+                                    <span>Losstime (Menit)*</span>
+                                    <span class="text-[10px] text-amber-500 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded">Isian Menit Langsung</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="number" name="duration_minutes" value="${durVal}" min="1" step="1" placeholder="Masukkan durasi dalam menit (misal: 15)" required class="w-full ${isLight ? 'bg-white border-slate-200 text-rose-700 focus:border-amber-500' : 'bg-slate-900 border-slate-800 text-rose-400 focus:border-amber-500'} border rounded-xl px-3.5 py-2.5 font-mono font-bold text-base outline-none pr-16" />
+                                    <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold ${isLight ? 'text-slate-500' : 'text-slate-400'} pointer-events-none">
+                                        Menit
+                                    </div>
                                 </div>
                             </div>
 
@@ -21911,6 +25258,30 @@ tbody.innerHTML = '';
                                         <option value="CLOSED" ${String(item.status || '').toUpperCase() !== 'OPEN' ? 'selected' : ''}>CLOSED</option>
                                         <option value="OPEN" ${String(item.status || '').toUpperCase() === 'OPEN' ? 'selected' : ''}>OPEN</option>
                                     </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SEKSI 3: Perbaikan Selanjutnya (Kaizen Countermeasure), Target Selesai (Due Date) & PIC Follow-Up -->
+                        <div class="${isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950/60 border-slate-800'} border rounded-xl p-3.5 space-y-3">
+                            <div class="font-bold text-[11px] ${isLight ? 'text-indigo-800' : 'text-indigo-400'} uppercase tracking-wider flex items-center gap-1.5 border-b ${isLight ? 'border-slate-200' : 'border-slate-800/80'} pb-1.5">
+                                <i data-lucide="calendar-check-2" class="w-3.5 h-3.5"></i>
+                                Perbaikan Selanjutnya (Kaizen / Tindakan Pencegahan), Due Date & PIC Follow-up
+                            </div>
+
+                            <div>
+                                <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Perbaikan Selanjutnya (Kaizen / Tindakan Lanjutan)</label>
+                                <input type="text" name="follow_up_action" value="${item.follow_up_action || ''}" placeholder="Rencana tindakan pencegahan / modifikasi teknis / Kaizen berikutnya..." class="w-full ${isLight ? 'bg-white border-slate-200 text-indigo-800' : 'bg-slate-900 border-slate-800 text-indigo-300'} border rounded-lg px-2.5 py-2 font-sans outline-none focus:border-indigo-500" />
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">Target Selesai (Due Date)</label>
+                                    <input type="date" name="due_date" value="${item.due_date ? String(item.due_date).slice(0, 10) : ''}" class="w-full ${isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-slate-100'} border rounded-lg px-2.5 py-2 font-mono outline-none focus:border-indigo-500" />
+                                </div>
+                                <div>
+                                    <label class="block ${isLight ? 'text-slate-700' : 'text-slate-300'} mb-1 font-semibold">PIC Follow-up (Penanggung Jawab)</label>
+                                    <input type="text" name="pic_followup" list="edit-problem-pic-list" value="${item.pic_followup || ''}" placeholder="Nama PIC atau divisi penanggung jawab follow-up..." class="w-full ${isLight ? 'bg-white border-slate-200 text-indigo-800' : 'bg-slate-900 border-slate-800 text-indigo-300'} border rounded-lg px-2.5 py-2 font-medium outline-none focus:border-indigo-500" />
                                 </div>
                             </div>
                         </div>
@@ -23707,8 +27078,7 @@ tbody.innerHTML = '';
         // Sheet 1: Trouble & Downtime History Logs
         const troubleRows = (downtimes || []).map((dt, idx) => ({
             'No': idx + 1,
-            'Waktu Mulai': dt.start_time ? dt.start_time.slice(0, 19).replace('T', ' ') : '-',
-            'Waktu Selesai': dt.end_time ? dt.end_time.slice(0, 19).replace('T', ' ') : 'ONGOING',
+            'Tanggal Trouble': dt.start_time ? dt.start_time.slice(0, 10) : (dt.created_at ? dt.created_at.slice(0, 10) : '-'),
             'Durasi (Menit)': Number(dt.calculated_duration_minutes || dt.duration_minutes || 0),
             'Line Produksi': dt.production_line ? dt.production_line.name : (dt.production_line_id ? 'Line #' + dt.production_line_id : '-'),
             'Mesin': dt.machine ? `${dt.machine.name} (${dt.machine.code || ''})` : '-',
@@ -24014,7 +27384,11 @@ tbody.innerHTML = '';
             markInvalid('machine_id', '<strong>Mesin (Machine):</strong> Wajib dipilih.');
         }
         if (!data.product_id || String(data.product_id).trim() === '') {
-            markInvalid('product_id', '<strong>Produk / Part SKU:</strong> Wajib dipilih.');
+            if (data.items && Array.isArray(data.items) && data.items.length > 0 && data.items[0].product_id) {
+                data.product_id = data.items[0].product_id;
+            } else {
+                markInvalid('product_id', '<strong>Produk / Part SKU:</strong> Wajib dipilih.');
+            }
         }
         if (!data.shift_id || String(data.shift_id).trim() === '') {
             markInvalid('shift_id', '<strong>Shift Kerja:</strong> Wajib dipilih.');
@@ -24113,12 +27487,9 @@ tbody.innerHTML = '';
                 const hasDtStart = dt.start_time && dt.start_time.trim() !== '';
                 totalDtLogsDur += dtDur;
 
-                if (dtDur > 0 || hasDtDesc || hasDtStart) {
+                if (dtDur > 0 || hasDtDesc) {
                     if (dtDur > 0 && !hasDtDesc) {
                         markInvalid(`dt_description_${idx}`, `<strong>Trouble Log #${idx + 1}:</strong> Deskripsi Gejala Trouble wajib diisi karena durasi tercatat ${dtDur} menit.`);
-                    }
-                    if (hasDtDesc && !hasDtStart) {
-                        markInvalid(`dt_start_time_${idx}`, `<strong>Trouble Log #${idx + 1}:</strong> Jam Start Trouble wajib diisi.`);
                     }
                 }
             });
@@ -24128,14 +27499,10 @@ tbody.innerHTML = '';
         } else {
             const dtDur = parseFloat(data.dt_duration_minutes || 0);
             const hasDtDesc = data.dt_description && data.dt_description.trim() !== '';
-            const hasDtStart = data.dt_start_time && data.dt_start_time.trim() !== '';
 
-            if (dtDur > 0 || hasDtDesc || hasDtStart) {
+            if (dtDur > 0 || hasDtDesc) {
                 if (dtDur > 0 && !hasDtDesc) {
                     markInvalid('dt_description', `<strong>Deskripsi Gejala Trouble:</strong> Wajib diisi karena durasi kendala tercatat ${dtDur} menit.`);
-                }
-                if (hasDtDesc && !hasDtStart) {
-                    markInvalid('dt_start_time', '<strong>Jam Start Trouble:</strong> Wajib diisi jika terdapat catatan trouble kendala mesin.');
                 }
                 if (!isNaN(plannedTime) && dtDur > plannedTime) {
                     markInvalid('dt_duration_minutes', `<strong>Durasi Trouble:</strong> Durasi kendala (${dtDur} menit) tidak boleh melebihi total jam kerja shift (${plannedTime} menit).`);
@@ -24384,76 +27751,98 @@ tbody.innerHTML = '';
                     });
                 }
             } else {
-                modalTroubleContainer.innerHTML = modalTroubleLogsState.map((row, idx) => `
+                const selectedLineId = lineSelect ? lineSelect.value : null;
+                let lineMachines = this.getMachinesForLine(selectedLineId);
+                if (lineMachines.length === 0) {
+                    lineMachines = this.masterData.machines || [];
+                }
+
+                modalTroubleContainer.innerHTML = modalTroubleLogsState.map((row, idx) => {
+                    if (!row.machine_id && lineMachines.length > 0) {
+                        const defaultOp = lineMachines.find(m => !((m.name && m.name.toLowerCase().includes('measuring')) || (m.code && m.code.toLowerCase().includes('measuring')))) || lineMachines[0];
+                        row.machine_id = defaultOp ? defaultOp.id : lineMachines[0].id;
+                    }
+                    const matchMc = lineMachines.find(m => String(m.id) === String(row.machine_id));
+                    const mcLabel = matchMc ? (matchMc.code ? `[${matchMc.code}] ` : '') + matchMc.name : '';
+
+                    return `
                     <div class="trouble-row-card bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3 hover:border-amber-500/40 transition-colors">
                         <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
                             <div class="flex items-center gap-2">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">
                                     Trouble #${idx + 1}
                                 </span>
-                                <span class="text-[11px] text-slate-300 font-sans font-medium">${row.problem_type || 'Mesin'} (${row.duration_minutes || 0} Menit)</span>
+                                <span class="text-[11px] text-slate-300 font-sans font-medium">
+                                    ${mcLabel ? `<span class="text-cyan-400 font-mono font-bold">${mcLabel}</span> &bull; ` : ''}${row.problem_type || 'Mesin'} (${row.duration_minutes || 0} Menit)
+                                </span>
                             </div>
                             <button type="button" data-del-modal-dt-idx="${idx}" class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800 transition-colors cursor-pointer" title="Hapus Baris Trouble Ini">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
                             <div>
-                                <label class="block text-slate-400 mb-1 font-medium">Team</label>
-                                <select data-modal-dt-idx="${idx}" data-modal-dt-field="team" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-100 font-sans font-bold text-xs">
-                                    <option value="Team A" ${row.team === 'Team A' ? 'selected' : ''}>Team A</option>
-                                    <option value="Team B" ${row.team === 'Team B' ? 'selected' : ''}>Team B</option>
-                                    <option value="Team C" ${row.team === 'Team C' ? 'selected' : ''}>Team C</option>
-                                </select>
+                                <label class="block text-slate-400 text-[10px] mb-1 font-medium">Team & Leader</label>
+                                <div class="grid grid-cols-2 gap-1">
+                                    <select data-modal-dt-idx="${idx}" data-modal-dt-field="team" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 font-sans font-bold text-xs">
+                                        <option value="Team A" ${row.team === 'Team A' ? 'selected' : ''}>Team A</option>
+                                        <option value="Team B" ${row.team === 'Team B' ? 'selected' : ''}>Team B</option>
+                                        <option value="Team C" ${row.team === 'Team C' ? 'selected' : ''}>Team C</option>
+                                        <option value="Team D" ${row.team === 'Team D' ? 'selected' : ''}>Team D</option>
+                                    </select>
+                                    <input type="text" data-modal-dt-idx="${idx}" data-modal-dt-field="leader_name" value="${row.leader_name || getModalLeaderName(row.team)}" readonly class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-2 py-1 text-cyan-400 font-mono font-bold text-[10px] truncate" placeholder="Auto..." />
+                                </div>
                             </div>
                             <div>
-                                <label class="block text-slate-400 mb-1 font-medium flex items-center gap-1">
-                                    <i data-lucide="user-check" class="w-3.5 h-3.5 text-cyan-400"></i>
-                                    Leader Name / PIC
+                                <label class="block text-slate-400 text-[10px] mb-1 font-medium flex items-center justify-between">
+                                    <span>OP Mesin (Bermasalah)*</span>
+                                    <span class="text-[9px] text-cyan-400 font-mono">OP</span>
                                 </label>
-                                <input type="text" data-modal-dt-idx="${idx}" data-modal-dt-field="leader_name" value="${row.leader_name || getModalLeaderName(row.team)}" readonly class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-2.5 py-1.5 text-cyan-400 font-mono font-bold text-xs" placeholder="Auto-populated..." />
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1 font-medium">Jenis Trouble / Losstime</label>
-                                <select data-modal-dt-idx="${idx}" data-modal-dt-field="problem_type" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-100 font-sans text-xs">
-                                    <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik (Equipment Failure)</option>
-                                    <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik (Equipment Failure)</option>
-                                    <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' || row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool (Tooling Breakdown)</option>
-                                    <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime (Changeover / Ganti Model SKU)</option>
-                                    <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory / Material Shortage</option>
-                                    <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others (Lain-lain)</option>
+                                <select data-modal-dt-idx="${idx}" data-modal-dt-field="machine_id" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 font-mono text-xs outline-none focus:border-amber-500">
+                                    ${lineMachines.map(m => `
+                                        <option value="${m.id}" ${String(m.id) === String(row.machine_id) ? 'selected' : ''}>
+                                            ${m.code ? `[${m.code}] ` : ''}${m.name}
+                                        </option>
+                                    `).join('')}
                                 </select>
                             </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-2.5">
                             <div>
-                                <label class="block text-slate-400 mb-1">Jam Start</label>
-                                <input type="time" data-modal-dt-idx="${idx}" data-modal-dt-field="start_time" value="${row.start_time || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-100 font-mono text-xs" />
+                                <label class="block text-slate-400 text-[10px] mb-1 font-medium">Jenis Trouble / Losstime</label>
+                                <select data-modal-dt-idx="${idx}" data-modal-dt-field="problem_type" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 font-sans text-xs outline-none focus:border-amber-500">
+                                    <option value="Problem Mesin Mekanik" ${row.problem_type === 'Problem Mesin Mekanik' || row.problem_type === 'Mesin' ? 'selected' : ''}>Problem Mesin Mekanik</option>
+                                    <option value="Problem Mesin Elektrik" ${row.problem_type === 'Problem Mesin Elektrik' ? 'selected' : ''}>Problem Mesin Elektrik</option>
+                                    <option value="Problem Tool" ${row.problem_type === 'Problem Tool' || row.problem_type === 'Tool' || row.problem_type === 'Dies / Tooling' ? 'selected' : ''}>Problem Tool</option>
+                                    <option value="Planning Downtime" ${row.problem_type === 'Planning Downtime' ? 'selected' : ''}>Planning Downtime</option>
+                                    <option value="Inventory" ${row.problem_type === 'Inventory' ? 'selected' : ''}>Inventory</option>
+                                    <option value="Others" ${row.problem_type === 'Others' || row.problem_type === 'Other' ? 'selected' : ''}>Others</option>
+                                </select>
                             </div>
                             <div>
-                                <label class="block text-slate-400 mb-1">Jam Selesai</label>
-                                <input type="time" data-modal-dt-idx="${idx}" data-modal-dt-field="end_time" value="${row.end_time || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-100 font-mono text-xs" />
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 mb-1">Durasi (Menit)</label>
-                                <input type="number" min="0" data-modal-dt-idx="${idx}" data-modal-dt-field="duration_minutes" value="${row.duration_minutes || 0}" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-rose-400 font-mono font-bold text-xs" />
+                                <label class="block text-slate-400 text-[10px] mb-1 font-medium flex items-center justify-between">
+                                    <span>Durasi Losstime (Menit)*</span>
+                                    <span class="text-[9px] text-amber-500 font-mono font-bold">Menit</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="number" min="0" step="1" data-modal-dt-idx="${idx}" data-modal-dt-field="duration_minutes" value="${row.duration_minutes !== undefined && row.duration_minutes !== null ? row.duration_minutes : 0}" placeholder="Contoh: 30" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-rose-400 font-mono font-bold text-xs outline-none focus:border-amber-500 pr-14" />
+                                    <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold pointer-events-none">Menit</span>
+                                </div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-slate-400 mb-1">Deskripsi Gejala Trouble</label>
+                                <label class="block text-slate-400 text-[10px] mb-1">Deskripsi Gejala Trouble</label>
                                 <textarea data-modal-dt-idx="${idx}" data-modal-dt-field="description" rows="2" placeholder="Detail kendala yang terjadi..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-100 font-sans text-xs">${row.description || ''}</textarea>
                             </div>
                             <div>
-                                <label class="block text-slate-400 mb-1">Tindakan Perbaikan (Countermeasure)</label>
+                                <label class="block text-slate-400 text-[10px] mb-1">Tindakan Perbaikan (Countermeasure)</label>
                                 <textarea data-modal-dt-idx="${idx}" data-modal-dt-field="action_taken" rows="2" placeholder="Langkah perbaikan yang telah dilakukan..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-100 font-sans text-xs">${row.action_taken || ''}</textarea>
                             </div>
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             }
 
             if (window.lucide) window.lucide.createIcons();
@@ -24517,10 +27906,16 @@ tbody.innerHTML = '';
         if (modalAddTroubleBtn) {
             modalAddTroubleBtn.addEventListener('click', () => {
                 const defaultTeam = 'Team A';
+                const selectedLineId = lineSelect ? lineSelect.value : null;
+                const lineMachines = this.getMachinesForLine(selectedLineId);
+                const opMachine = lineMachines.find(m => !((m.name && m.name.toLowerCase().includes('measuring')) || (m.code && m.code.toLowerCase().includes('measuring')))) || lineMachines[0];
+                const defaultMachineId = opMachine ? opMachine.id : (modalMachineSelect ? modalMachineSelect.value : null);
+
                 modalTroubleLogsState.push({
+                    machine_id: defaultMachineId,
                     team: defaultTeam,
                     leader_name: getModalLeaderName(defaultTeam),
-                    problem_type: 'Mesin',
+                    problem_type: 'Problem Mesin Mekanik',
                     start_time: '',
                     end_time: '',
                     duration_minutes: 0,
@@ -24594,9 +27989,16 @@ tbody.innerHTML = '';
             lineSelect.addEventListener('change', () => {
                 filterProductsByLine();
                 filterMachinesByLine();
-                // Update trouble log leader names if any
+                const selectedLineId = lineSelect.value;
+                const lineMachines = this.getMachinesForLine(selectedLineId);
+                const defaultOp = lineMachines.find(m => !((m.name && m.name.toLowerCase().includes('measuring')) || (m.code && m.code.toLowerCase().includes('measuring')))) || lineMachines[0];
+
+                // Update trouble log leader names and machines if any
                 modalTroubleLogsState.forEach(r => {
                     r.leader_name = getModalLeaderName(r.team);
+                    if (!lineMachines.some(m => String(m.id) === String(r.machine_id))) {
+                        r.machine_id = defaultOp ? defaultOp.id : (lineMachines[0]?.id || null);
+                    }
                 });
                 renderModalTroubleRows();
             });
@@ -24670,12 +28072,13 @@ tbody.innerHTML = '';
                 // Build downtime_logs array from dynamic state
                 const prodDate = data.production_date || new Date().toISOString().slice(0,10);
                 const validTroubleLogs = modalTroubleLogsState.filter(r => 
-                    (r.duration_minutes > 0) || (r.description && r.description.trim() !== '') || (r.start_time && r.start_time.trim() !== '')
+                    (parseFloat(r.duration_minutes || 0) > 0) || (r.description && r.description.trim() !== '')
                 ).map(r => ({
+                    machine_id: r.machine_id ? parseInt(r.machine_id) : (data.machine_id ? parseInt(data.machine_id) : null),
                     team: r.team || null,
-                    problem_type: r.problem_type || 'Mesin',
-                    start_time: r.start_time ? `${prodDate} ${r.start_time}:00` : `${prodDate} 08:00:00`,
-                    end_time: r.end_time ? `${prodDate} ${r.end_time}:00` : null,
+                    problem_type: r.problem_type || 'Problem Mesin Mekanik',
+                    start_time: null,
+                    end_time: null,
                     duration_minutes: parseFloat(r.duration_minutes || 0),
                     description: r.description || null,
                     action_taken: r.action_taken || null,
@@ -25034,18 +28437,14 @@ tbody.innerHTML = '';
                             </select>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Jam Start</label>
-                                <input type="time" data-mobile-dt-idx="${idx}" data-mobile-dt-field="start_time" value="${row.start_time || ''}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-1.5 py-1 text-xs font-mono" />
-                            </div>
-                            <div>
-                                <label class="block text-[10px] ${isLight ? 'text-slate-600' : 'text-slate-400'} mb-1">Jam Selesai</label>
-                                <input type="time" data-mobile-dt-idx="${idx}" data-mobile-dt-field="end_time" value="${row.end_time || ''}" class="w-full ${isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-100'} border rounded-lg px-1.5 py-1 text-xs font-mono" />
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-rose-400 mb-1 font-bold">Durasi (m)</label>
-                                <input type="number" min="0" data-mobile-dt-idx="${idx}" data-mobile-dt-field="duration_minutes" value="${row.duration_minutes || 0}" class="w-full ${isLight ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-rose-950/40 border-rose-800 text-rose-300'} border rounded-lg px-1.5 py-1 text-xs font-mono font-bold" />
+                        <div>
+                            <label class="block text-[10px] text-rose-400 mb-1 font-bold flex items-center justify-between">
+                                <span>Durasi Losstime (Menit)*</span>
+                                <span class="text-[9px] text-amber-500 font-mono">Menit</span>
+                            </label>
+                            <div class="relative">
+                                <input type="number" min="0" step="1" data-mobile-dt-idx="${idx}" data-mobile-dt-field="duration_minutes" value="${row.duration_minutes !== undefined && row.duration_minutes !== null ? row.duration_minutes : 0}" placeholder="Contoh: 30" class="w-full ${isLight ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-rose-950/40 border-rose-800 text-rose-300'} border rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold pr-14" />
+                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold pointer-events-none">Menit</span>
                             </div>
                         </div>
 
@@ -25277,12 +28676,12 @@ tbody.innerHTML = '';
 
                 const prodDate = data.production_date || new Date().toISOString().slice(0,10);
                 const validTroubleLogs = mobileTroubleLogsState.filter(r => 
-                    (r.duration_minutes > 0) || (r.description && r.description.trim() !== '') || (r.start_time && r.start_time.trim() !== '')
+                    (parseFloat(r.duration_minutes || 0) > 0) || (r.description && r.description.trim() !== '')
                 ).map(r => ({
                     team: r.team || null,
                     problem_type: r.problem_type || 'Mesin',
-                    start_time: r.start_time ? `${prodDate} ${r.start_time}:00` : `${prodDate} 08:00:00`,
-                    end_time: r.end_time ? `${prodDate} ${r.end_time}:00` : null,
+                    start_time: null,
+                    end_time: null,
                     duration_minutes: parseFloat(r.duration_minutes || 0),
                     description: r.description || null,
                     action_taken: r.action_taken || null,
@@ -25360,36 +28759,162 @@ tbody.innerHTML = '';
     }
 
     toggleTvMode() {
-        this.tvMode = !this.tvMode;
-        const sidebar = document.getElementById('sidebar');
         if (this.tvMode) {
-            sidebar.classList.add('hidden');
-            document.body.classList.add('tv-mode-active');
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(() => {});
-            }
-            // TV Floor Display Mode defaults to ALL LINES and ALL MEASURING MACHINES
-            this.filters.line_id = '';
-            this.filters.machine_id = 'all_measuring';
-            
-            // Sync filter bar controls
-            const lineSelect = document.getElementById('filter-line');
-            const mcSelect = document.getElementById('filter-machine');
-            if (lineSelect) lineSelect.value = '';
-            if (mcSelect) mcSelect.value = 'all_measuring';
-
-            this.renderTvDisplay();
+            this.exitTvMode(true);
         } else {
-            sidebar.classList.remove('hidden');
-            document.body.classList.remove('tv-mode-active');
-            if (document.exitFullscreen) {
-                document.exitFullscreen().catch(() => {});
-            }
-            this.loadCurrentTab();
+            this.enterTvMode();
         }
     }
 
+    async enterTvMode() {
+        this.tvMode = true;
+        this._preTvTheme = this.theme;
+
+        const html = document.documentElement;
+        html.classList.remove('light');
+        html.classList.add('dark');
+        html.classList.add('tv-mode-active');
+        document.body.classList.add('tv-mode-active');
+
+        const sidebar = document.getElementById('sidebar');
+        const header = document.querySelector('header');
+        const mobileDrawer = document.getElementById('mobile-filter-drawer');
+
+        // 1. Instant isolation: Hide non-TV elements immediately via class & inline style
+        if (sidebar) sidebar.style.display = 'none';
+        if (header) header.style.display = 'none';
+        if (mobileDrawer) mobileDrawer.style.display = 'none';
+
+        // 2. Immediate responsive feedback: Display sleek high-tech loading screen instantly (< 16ms)
+        const content = document.getElementById('content-body');
+        if (content) {
+            content.innerHTML = `
+                <div class="min-h-[70vh] w-full flex flex-col items-center justify-center p-6 text-center select-none">
+                    <div class="relative mb-6">
+                        <div class="w-24 h-24 rounded-3xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.35)]">
+                            <i data-lucide="tv" class="w-12 h-12 text-cyan-400 animate-pulse"></i>
+                        </div>
+                        <span class="absolute -top-1.5 -right-1.5 flex h-5 w-5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-5 w-5 bg-cyan-500"></span>
+                        </span>
+                    </div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-700/60 text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest mb-3">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                        OEE ANDON FLOOR DISPLAY
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white tracking-wider uppercase mb-2 drop-shadow-md">
+                        Menyiapkan Tampilan TV Mode
+                    </h2>
+                    <p class="text-sm font-mono text-slate-400 mb-8 max-w-md">
+                        Memuat telemetri OEE lini, status mesin, & tren performa real-time...
+                    </p>
+                    <div class="w-72 h-2 bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50 p-0.5">
+                        <div class="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-cyan-400 rounded-full animate-pulse" style="width: 75%;"></div>
+                    </div>
+                </div>
+            `;
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        // 3. Request Fullscreen with browser vendor compatibility
+        try {
+            const docEl = document.documentElement;
+            const reqFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+            if (reqFs) {
+                reqFs.call(docEl).catch(() => {});
+            }
+        } catch (e) {
+            console.warn('Fullscreen request bypassed:', e);
+        }
+
+        // 4. Default TV filters (All Lines & Measuring Machines)
+        this.filters.line_id = '';
+        this.filters.machine_id = 'all_measuring';
+        const lineSelect = document.getElementById('filter-line');
+        const mcSelect = document.getElementById('filter-machine');
+        if (lineSelect) lineSelect.value = '';
+        if (mcSelect) mcSelect.value = 'all_measuring';
+
+        // 5. Register fullscreenchange listeners and ESC key if not yet registered
+        if (!this._tvFullscreenBound) {
+            this._tvFullscreenBound = true;
+            const handleFsChange = () => {
+                const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+                if (!isFs && this.tvMode) {
+                    this.exitTvMode(false);
+                }
+            };
+            document.addEventListener('fullscreenchange', handleFsChange);
+            document.addEventListener('webkitfullscreenchange', handleFsChange);
+            document.addEventListener('mozfullscreenchange', handleFsChange);
+            document.addEventListener('MSFullscreenChange', handleFsChange);
+
+            window.addEventListener('keydown', (e) => {
+                if ((e.key === 'Escape' || e.keyCode === 27) && this.tvMode) {
+                    const openModal = document.getElementById('ng-fullscreen-modal-wrapper') || 
+                                      document.getElementById('trouble-fullscreen-modal-wrapper') || 
+                                      document.querySelector('#modal-container > *');
+                    if (openModal) {
+                        return; // Let modal handle its own ESC dismiss
+                    }
+                    this.exitTvMode(true);
+                }
+            });
+        }
+
+        // 6. Asynchronously render TV display
+        await this.renderTvDisplay();
+    }
+
+    exitTvMode(triggerExitFs = true) {
+        this.tvMode = false;
+        const html = document.documentElement;
+        html.classList.remove('tv-mode-active');
+        document.body.classList.remove('tv-mode-active');
+
+        // Restore previous user theme
+        if (this._preTvTheme === 'light') {
+            html.classList.remove('dark');
+            html.classList.add('light');
+            this.theme = 'light';
+        } else {
+            html.classList.remove('light');
+            html.classList.add('dark');
+            this.theme = 'dark';
+        }
+
+        const sidebar = document.getElementById('sidebar');
+        const header = document.querySelector('header');
+        const mobileDrawer = document.getElementById('mobile-filter-drawer');
+
+        if (sidebar) {
+            sidebar.style.display = '';
+            sidebar.classList.remove('hidden');
+        }
+        if (header) header.style.display = '';
+        if (mobileDrawer) mobileDrawer.style.display = '';
+
+        if (triggerExitFs) {
+            try {
+                const doc = document;
+                const isFs = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement);
+                if (isFs) {
+                    const exitFs = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+                    if (exitFs) {
+                        exitFs.call(doc).catch(() => {});
+                    }
+                }
+            } catch (e) {
+                console.warn('Exit fullscreen warning:', e);
+            }
+        }
+
+        this.loadCurrentTab();
+    }
+
     async renderTvDisplay() {
+        if (!this.tvMode) return;
         if (!this.tvSubTab) this.tvSubTab = 'overview';
         if (!this.tvTrendMode) this.tvTrendMode = 'lines_oee';
 
@@ -25398,17 +28923,27 @@ tbody.innerHTML = '';
             this.filters.machine_id = 'all_measuring';
         }
 
-        const [kpiRes, trendRes, realtimeRes, lineRankingRes] = await Promise.all([
-            api.getOeeKpi(this.filters),
-            api.getOeeTrend(this.filters),
-            this.getDashboardRealtimeMachines(false),
-            api.getLineRanking(this.filters),
-        ]);
+        let kpi = {};
+        let trends = [];
+        let machines = [];
+        let lines = [];
 
-        const kpi = kpiRes.data?.data || {};
-        const trends = trendRes.data?.data || [];
-        const machines = realtimeRes || [];
-        const lines = lineRankingRes.data?.data || [];
+        try {
+            const [kpiRes, trendRes, realtimeRes, lineRankingRes] = await Promise.all([
+                api.getOeeKpi(this.filters).catch(e => ({ data: { data: {} } })),
+                api.getOeeTrend(this.filters).catch(e => ({ data: { data: [] } })),
+                this.getDashboardRealtimeMachines(false).catch(e => []),
+                api.getLineRanking(this.filters).catch(e => ({ data: { data: [] } })),
+            ]);
+
+            kpi = kpiRes?.data?.data || {};
+            trends = trendRes?.data?.data || [];
+            machines = realtimeRes || [];
+            lines = lineRankingRes?.data?.data || [];
+        } catch (fetchErr) {
+            console.error('TV Display data fetch warning:', fetchErr);
+        }
+
         const dataPayload = { kpi, trends, machines, lines };
 
         // Helper calculations for 4 Macro KPI Cards
@@ -25484,30 +29019,42 @@ tbody.innerHTML = '';
         const content = document.getElementById('content-body');
         content.innerHTML = `
             <!-- TV MODE HEADER -->
-            <div class="flex flex-wrap items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-5 py-3 shadow-xl mb-4 gap-3">
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2.5">
-                        <span class="text-2xl font-black tracking-tight text-white flex items-center gap-1.5">
+            <div class="flex flex-wrap items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl px-5 py-3 shadow-xl mb-4 gap-3">
+                <!-- LEFT: LOGO & BADGE -->
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl font-black tracking-tight text-white flex items-center gap-1.5 select-none">
                             <i data-lucide="tv" class="w-6 h-6 text-cyan-400"></i>
-                            <span class="text-cyan-400">OEE</span>
-                            <span class="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700 font-mono font-bold tracking-wider">TV FLOOR DISPLAY</span>
+                            <span class="text-cyan-400 font-black">OEE</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950/90 text-cyan-300 border border-cyan-700/80 font-mono font-bold tracking-wider">TV FLOOR DISPLAY</span>
                         </span>
                     </div>
+                </div>
 
-                    <div class="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-300 bg-slate-950 border border-slate-800 px-3 py-1 rounded-lg">
-                        <span class="text-slate-500 font-sans">Line:</span>
+                <!-- CENTER: PROJECT TITLE (MANUFACTURING OEE DASHBOARD) -->
+                <div class="flex flex-col items-center justify-center text-center flex-1 mx-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="hidden lg:inline-block w-8 h-[2px] bg-gradient-to-r from-transparent to-cyan-500/80"></span>
+                        <h1 class="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-cyan-400 font-sans drop-shadow-[0_2px_12px_rgba(6,182,212,0.35)] whitespace-nowrap">
+                            Manufacturing OEE Dashboard
+                        </h1>
+                        <span class="hidden lg:inline-block w-8 h-[2px] bg-gradient-to-l from-transparent to-cyan-500/80"></span>
+                    </div>
+                    <div class="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-950/80 border border-slate-800/80 px-3 py-0.5 rounded-full mt-1">
+                        <span class="text-slate-500 font-sans text-[11px]">Line:</span>
                         <span class="text-cyan-400 font-bold">${selectedLine}</span>
                         <span class="text-slate-600">•</span>
-                        <span class="text-slate-500 font-sans">Machine:</span>
+                        <span class="text-slate-500 font-sans text-[11px]">Machine:</span>
                         <span class="text-emerald-400 font-bold">${selectedMachineText}</span>
                         <span class="text-slate-600">•</span>
-                        <span class="text-slate-500 font-sans">Period:</span>
+                        <span class="text-slate-500 font-sans text-[11px]">Period:</span>
                         <span class="text-amber-400 font-bold">${periodText}</span>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                    <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/90 text-emerald-400 border border-emerald-700 text-xs font-bold tracking-wide shadow-sm">
+                <!-- RIGHT: LIVE STATUS & ACTION BUTTONS -->
+                <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-end">
+                    <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/90 text-emerald-400 border border-emerald-700/80 text-xs font-bold tracking-wide shadow-sm select-none">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> LIVE REALTIME
                     </span>
 
@@ -25860,8 +29407,9 @@ tbody.innerHTML = '';
 
         const btnExit = document.getElementById('btn-exit-tv');
         if (btnExit) {
-            btnExit.addEventListener('click', () => {
-                this.toggleTvMode();
+            btnExit.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exitTvMode(true);
             });
         }
 
@@ -28721,9 +32269,7 @@ tbody.innerHTML = '';
                                     ${oldJson ? 'DATA AWAL' : 'NULL / DATA BARU'}
                                 </span>
                             </div>
-                            <div class="p-3 rounded-xl ${isLight ? 'bg-white border-rose-200' : 'bg-slate-950/80 border-slate-800'} border font-mono text-[11px] text-rose-300 max-h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
-                                ${oldJson ? oldJson : '<span class="text-slate-500 italic">(Tidak ada data sebelum / Entri baru)</span>'}
-                            </div>
+                            <div class="p-3 rounded-xl ${isLight ? 'bg-white border-rose-200' : 'bg-slate-950/80 border-slate-800'} border font-mono text-[11px] text-rose-300 max-h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap">${oldJson ? oldJson : '<span class="text-slate-500 italic">(Tidak ada data sebelum / Entri baru)</span>'}</div>
                         </div>
 
                         <!-- RIGHT: AFTER / NEW VALUE -->
@@ -28737,9 +32283,7 @@ tbody.innerHTML = '';
                                     ${newJson ? 'DATA TERBARU' : 'NULL / DIHAPUS'}
                                 </span>
                             </div>
-                            <div class="p-3 rounded-xl ${isLight ? 'bg-white border-emerald-200' : 'bg-slate-950/80 border-slate-800'} border font-mono text-[11px] text-emerald-300 max-h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
-                                ${newJson ? newJson : '<span class="text-rose-400 italic">(Data dihapus permanen)</span>'}
-                            </div>
+                            <div class="p-3 rounded-xl ${isLight ? 'bg-white border-emerald-200' : 'bg-slate-950/80 border-slate-800'} border font-mono text-[11px] text-emerald-300 max-h-56 overflow-y-auto custom-scrollbar whitespace-pre-wrap">${newJson ? newJson : '<span class="text-rose-400 italic">(Data dihapus permanen)</span>'}</div>
                         </div>
 
                     </div>

@@ -38,8 +38,8 @@ class DashboardController extends Controller
         'production_records' => ['production_line_id' => true, 'machine_id' => true, 'shift_id' => true],
         'oee_records' => ['production_line_id' => true, 'machine_id' => true, 'shift_id' => true],
         'downtimes' => ['production_line_id' => true, 'machine_id' => true, 'shift_id' => true],
-        'ng_records' => ['production_line_id' => true, 'machine_id' => true, 'shift_id' => true],
-        'quality_records' => ['production_line_id' => true, 'machine_id' => true, 'shift_id' => true],
+        'ng_records' => ['production_line_id' => false, 'machine_id' => true, 'shift_id' => true],
+        'quality_records' => ['production_line_id' => false, 'machine_id' => true, 'shift_id' => false],
         'daily_production_summaries' => ['production_line_id' => true, 'machine_id' => true, 'shift_id' => false],
         'shift_summaries' => ['production_line_id' => true, 'machine_id' => true, 'shift_id' => true],
         'machines' => ['production_line_id' => false, 'machine_id' => false, 'shift_id' => false],
@@ -83,7 +83,10 @@ class DashboardController extends Controller
 
         if ($request->filled('machine_id')) {
             if ($request->machine_id === 'all_measuring') {
-                if ($hasMachineCol) {
+                if ($table === 'downtimes') {
+                    // Downtimes represent line-level breakdowns across OP machines (OP-10, OP-20, OP-40, Measuring, etc.)
+                    // Do not restrict downtime incidents to only measuring machines
+                } elseif ($hasMachineCol) {
                     $query->whereHas('machine', function ($q) {
                         $q->where('code', 'LIKE', '%MEASURING%')
                           ->orWhere('name', 'LIKE', '%Measuring%');
@@ -765,7 +768,12 @@ class DashboardController extends Controller
      */
     public function lineRanking(Request $request): JsonResponse
     {
-        $lines = ProductionLine::with(['area', 'products'])->get();
+        $lineId = $request->input('line_id') ?: $request->input('production_line_id');
+        $lineQuery = ProductionLine::with(['area', 'products']);
+        if ($lineId) {
+            $lineQuery->where('id', $lineId);
+        }
+        $lines = $lineQuery->get();
 
         $result = $lines->map(function ($line) use ($request) {
             $q = OeeRecord::where('production_line_id', $line->id);

@@ -64,6 +64,7 @@ class ReportController extends Controller
             'machine',
             'product',
             'shift',
+            'items.product',
         ])->whereBetween('production_date', [$startDate->toDateString(), $endDate->toDateString()]);
 
         if ($shiftId) {
@@ -96,7 +97,18 @@ class ReportController extends Controller
 
         // 3. Query Downtimes for the period
         $downQuery = Downtime::with(['productionLine', 'machine', 'downtimeReason'])
-            ->whereBetween('start_time', [$startDate, $endDate]);
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_time', [$startDate, $endDate])
+                  ->orWhere(function ($sq) use ($startDate, $endDate) {
+                      $sq->whereNull('start_time')
+                         ->whereHas('productionRecord', fn($pr) => $pr->whereBetween('production_date', [substr($startDate, 0, 10), substr($endDate, 0, 10)]));
+                  })
+                  ->orWhere(function ($sq) use ($startDate, $endDate) {
+                      $sq->whereNull('start_time')
+                         ->whereNull('production_record_id')
+                         ->whereBetween('created_at', [$startDate, $endDate]);
+                  });
+            });
         if ($lineId) {
             $downQuery->where('production_line_id', $lineId);
         }
@@ -247,6 +259,17 @@ class ReportController extends Controller
                 ];
             })->values();
 
+            $hasMultiSku = $record->items && $record->items->count() > 1;
+            if ($hasMultiSku) {
+                $skuNames = $record->items->map(fn($it) => $it->product?->name)->filter()->unique()->values()->join(' & ');
+                $skuCodes = $record->items->map(fn($it) => $it->product?->sku ?? $it->product?->name)->filter()->unique()->values()->join(' & ');
+                $prodTitle = $skuNames ?: ($record->product?->name ?? 'Multi-Product');
+                $prodSku = $skuCodes ?: ($record->product?->sku ?? 'Multi-SKU');
+            } else {
+                $prodTitle = $record->product?->name ?? 'Standard Product';
+                $prodSku = $record->product ? "{$record->product->name} - {$record->product->sku}" : ($record->product->sku ?? 'Standard Product - SKU-GEN-001');
+            }
+
             $matrixRows[] = [
                 'record_id' => $record->id,
                 'production_date' => $record->production_date ? Carbon::parse($record->production_date)->format('Y-m-d') : '-',
@@ -258,8 +281,17 @@ class ReportController extends Controller
                 'machine_id' => $record->machine_id,
                 'machine_code' => $record->machine->code ?? "MC-{$record->machine_id}",
                 'machine_name' => $record->machine->name ?? 'Standard Machine',
-                'product_sku' => $record->product ? "{$record->product->name} - {$record->product->sku}" : ($record->product->sku ?? 'Standard Product - SKU-GEN-001'),
-                'product_name' => $record->product->name ?? 'Standard Product',
+                'product_sku' => $prodSku,
+                'product_name' => $prodTitle,
+                'has_multi_sku' => $hasMultiSku,
+                'sku_breakdown' => $record->items ? $record->items->map(fn($it) => [
+                    'product_id' => $it->product_id,
+                    'product_name' => $it->product?->name ?? "Product #{$it->product_id}",
+                    'product_sku' => $it->product?->sku ?? "SKU #{$it->product_id}",
+                    'total_quantity' => (int) $it->total_quantity,
+                    'good_quantity' => (int) $it->good_quantity,
+                    'reject_quantity' => (int) $it->reject_quantity,
+                ])->values() : [],
                 'ideal_cycle_time' => (float) $record->ideal_cycle_time,
                 'target_speed' => $targetSpeed,
                 'planned_time_minutes' => (float) $record->planned_production_time,
@@ -437,7 +469,7 @@ class ReportController extends Controller
         $endDateStr = $request->get('end_date') ?: $request->get('date_to');
         $dateStr = $request->get('date');
         $shiftId = $request->get('shift_id');
-        $lineId = $request->get('line_id');
+        $lineId = $request->get('line_id') ?: $request->get('production_line_id');
         $machineId = $request->get('machine_id');
         $productId = $request->get('product_id');
         $period = $request->get('period');
@@ -478,7 +510,18 @@ class ReportController extends Controller
             'creator',
             'productionRecord.product',
             'productionRecord.shift',
-        ])->whereBetween('start_time', [$startDate, $endDate]);
+        ])->where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('start_time', [$startDate, $endDate])
+              ->orWhere(function ($sq) use ($startDate, $endDate) {
+                  $sq->whereNull('start_time')
+                     ->whereHas('productionRecord', fn($pr) => $pr->whereBetween('production_date', [substr($startDate, 0, 10), substr($endDate, 0, 10)]));
+              })
+              ->orWhere(function ($sq) use ($startDate, $endDate) {
+                  $sq->whereNull('start_time')
+                     ->whereNull('production_record_id')
+                     ->whereBetween('created_at', [$startDate, $endDate]);
+              });
+        });
 
         if ($lineId) {
             $downQuery->where('production_line_id', $lineId);
@@ -676,6 +719,578 @@ class ReportController extends Controller
                 'top_machines' => array_values(array_slice($machineBreakdown, 0, 5)),
             ],
         ]);
+    }
+
+    /**
+     * Get Official Yasunaga Line Production Ratio Report (Form: F-PROD/CR-030/R0)
+     * Matches layout: Monthly Ratio Chart + 14-Col Grid + Type Breakdown + 3 Problem Categories (Mesin, Kualitas, Tool)
+     */
+    public function lineProductionRatioReport(Request $request): JsonResponse
+    {
+        $lineId = $request->get('line_id') ?: $request->get('production_line_id');
+        $year = (int) ($request->get('year') ?: Carbon::now()->year);
+        $month = $request->get('month') ? (int) $request->get('month') : null;
+        $period = $request->get('period');
+
+        // Resolve Line
+        $productionLine = $lineId ? ProductionLine::with('plant')->find($lineId) : ProductionLine::with('plant')->first();
+        $lineId = $productionLine?->id;
+
+        // Company Profile & Settings
+        $profileRaw = \App\Models\SystemSetting::get('company_profile');
+        $profile = is_array($profileRaw) ? $profileRaw : ($profileRaw ? json_decode($profileRaw, true) : []);
+        $plant = $productionLine?->plant ?? Plant::first();
+
+        // Line display name (e.g. CON ROD FLEX. 1)
+        $lineCode = $productionLine?->code ?? 'FX-1';
+        $lineName = $productionLine?->name ?? 'FX-1';
+        $lineFullLabel = (stripos($lineName, 'CON ROD') !== false || stripos($lineCode, 'FX') === false) 
+            ? $lineName 
+            : "CON ROD FLEX. " . str_ireplace(['FX-', 'FX '], '', $lineCode);
+
+        // Supervisors & Sign-offs (Dibuat, Dicheck, Disetujui)
+        $group = $productionLine ? \App\Models\Group::where('production_line_id', $productionLine->id)->first() : \App\Models\Group::first();
+
+        // 1. Dibuat oleh (default leader / creator)
+        $requestedCreator = $request->get('dibuat_oleh') ?: ($request->get('group_leader') ?: $request->get('creator'));
+        $groupLeader = !empty($requestedCreator) ? trim($requestedCreator) : ($group?->leader_name ?? 'Budi Santoso');
+
+        // 2. Dicheck oleh (default supervisor)
+        $requestedSupervisor = $request->get('dicheck_oleh') ?: $request->get('supervisor');
+        $supervisor = !empty($requestedSupervisor) ? trim($requestedSupervisor) : ($group?->supervisor_name ?? 'Alim Utama');
+
+        // 3. Disetujui oleh (default manager)
+        $requestedManager = $request->get('disetujui_oleh') ?: $request->get('manager');
+        $manager = !empty($requestedManager) ? trim($requestedManager) : ($group?->manager_name ?? 'Arief R');
+
+        // Dynamic Options lookup for Line Performances signatures:
+        // 1. Dibuat oleh: All registered user accounts in the system
+        $allUsers = \App\Models\User::orderBy('name')->pluck('name');
+        $allGroupLeaders = \App\Models\Group::whereNotNull('leader_name')->pluck('leader_name');
+        $allCreatorsList = $allUsers
+            ->merge($allGroupLeaders)
+            ->merge(['Budi Santoso', 'Agus Setiawan', 'Bambang Haryanto'])
+            ->unique()
+            ->filter()
+            ->values()
+            ->toArray();
+
+        // 2. Dicheck oleh: Registered supervisor user accounts
+        $supervisorUsers = \App\Models\User::whereHas('roles', function ($q) {
+                $q->where('name', 'like', '%supervisor%')
+                  ->orWhere('display_name', 'like', '%supervisor%');
+            })
+            ->pluck('name');
+        $allGroupSupervisors = \App\Models\Group::whereNotNull('supervisor_name')->pluck('supervisor_name');
+        $supervisorsList = $supervisorUsers
+            ->merge($allGroupSupervisors)
+            ->merge(['Alim Utama', 'Hendra Wijaya', 'Surya Pratama', 'Dona I'])
+            ->unique()
+            ->filter()
+            ->values()
+            ->toArray();
+
+        // 3. Disetujui oleh: Registered manager user accounts
+        $managerUsers = \App\Models\User::whereHas('roles', function ($q) {
+                $q->where('name', 'like', '%manager%')
+                  ->orWhere('display_name', 'like', '%manager%')
+                  ->orWhereIn('name', ['super_admin', 'management']);
+            })
+            ->pluck('name');
+        $managersList = $managerUsers
+            ->merge(['Arief R', 'Plant Manager'])
+            ->unique()
+            ->filter()
+            ->values()
+            ->toArray();
+
+        // Dynamic Target Ratio per Line from Master Data (separate from target_oee, default 83.0%)
+        $targetRatioStandard = (float) (($productionLine && $productionLine->target_ratio > 0) ? $productionLine->target_ratio : 83.0);
+
+        // 1. QUERY ALL PRODUCTION RECORDS FOR THE GIVEN YEAR (AND PREVIOUS YEAR FOR BENCHMARK)
+        $yearRecords = ProductionRecord::with(['product', 'items.product', 'machine', 'shift'])
+            ->whereYear('production_date', $year)
+            ->when($lineId, fn($q) => $q->where('production_line_id', $lineId))
+            ->get();
+
+        $prevYearRecords = ProductionRecord::whereYear('production_date', $year - 1)
+            ->when($lineId, fn($q) => $q->where('production_line_id', $lineId))
+            ->get();
+
+        // Benchmark (Prev Year Average)
+        $bmPlanPpic = $prevYearRecords->count() > 0 ? round($prevYearRecords->avg('target_quantity')) : 5490;
+        $bmPlanProd = $prevYearRecords->count() > 0 ? round($prevYearRecords->avg('target_quantity')) : 5490;
+        $bmActProd = $prevYearRecords->count() > 0 ? round($prevYearRecords->avg('total_quantity')) : 5621;
+        $bmRatio = $bmPlanProd > 0 ? round(($bmActProd / $bmPlanProd) * 100, 2) : 76.00;
+
+        // Build 12 Months Summary Array
+        $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+        $monthlyCols = [];
+        $annualPpicSum = 0;
+        $annualProdSum = 0;
+        $annualActSum = 0;
+        $activeMonthCount = 0;
+
+        for ($m = 1; $m <= 12; $m++) {
+            $mKey = $monthNames[$m - 1];
+            $mRecords = $yearRecords->filter(function ($r) use ($m) {
+                return Carbon::parse($r->production_date)->month === $m;
+            });
+
+            $hasData = $mRecords->count() > 0;
+            if ($hasData) {
+                $mPlanPpic = (int) $mRecords->sum('target_quantity');
+                $mActProd = (int) $mRecords->sum('total_quantity');
+                
+                // Plan Prod: sinkron dengan target produksi yang disepakati (target_quantity), atau kapasitas floor per shift
+                $mPlanProd = $mPlanPpic > 0 ? $mPlanPpic : (int) $mRecords->sum(function ($r) {
+                    $ict = (float) $r->ideal_cycle_time;
+                    $ppt = (float) $r->planned_production_time;
+                    return ($ict > 0 && $ppt > 0) ? (int) floor(($ppt * 60) / $ict) : (int) ($r->target_quantity ?: 0);
+                });
+                if ($mPlanProd <= 0) {
+                    $mPlanProd = $mPlanPpic;
+                }
+
+                $mRatio = $mPlanProd > 0 ? round(($mActProd / $mPlanProd) * 100, 2) : 0.0;
+
+                $annualPpicSum += $mPlanPpic;
+                $annualProdSum += $mPlanProd;
+                $annualActSum += $mActProd;
+                $activeMonthCount++;
+
+                $monthlyCols[] = [
+                    'month_num' => $m,
+                    'month_label' => $mKey,
+                    'has_data' => true,
+                    'plan_ppic' => $mPlanPpic,
+                    'plan_prod' => $mPlanProd,
+                    'actual_prod' => $mActProd,
+                    'rasio_produksi' => $mRatio,
+                    'target' => $targetRatioStandard,
+                ];
+            } else {
+                $monthlyCols[] = [
+                    'month_num' => $m,
+                    'month_label' => $mKey,
+                    'has_data' => false,
+                    'plan_ppic' => null,
+                    'plan_prod' => null,
+                    'actual_prod' => null,
+                    'rasio_produksi' => null,
+                    'target' => $targetRatioStandard,
+                ];
+            }
+        }
+
+        // Annual YTD Average
+        $avgYearPpic = $activeMonthCount > 0 ? round($annualPpicSum / $activeMonthCount) : 0;
+        $avgYearProd = $activeMonthCount > 0 ? round($annualProdSum / $activeMonthCount) : 0;
+        $avgYearAct = $activeMonthCount > 0 ? round($annualActSum / $activeMonthCount) : 0;
+        $avgYearRatio = $avgYearProd > 0 ? round(($avgYearAct / $avgYearProd) * 100, 2) : 0.0;
+
+        $monthlyGrid = [
+            'months' => $monthlyCols,
+            'ytd_average' => [
+                'label' => "TH {$year}\n(RATA-RATA)",
+                'plan_ppic' => $avgYearPpic,
+                'plan_prod' => $avgYearProd,
+                'actual_prod' => $avgYearAct,
+                'rasio_produksi' => $avgYearRatio,
+                'target' => $targetRatioStandard,
+            ],
+        ];
+
+        // 2. PRODUCT TYPE BREAKDOWN FOR SELECTED MONTH (OR LATEST ACTIVE MONTH)
+        $selectedMonth = $month ?: ($yearRecords->max(fn($r) => Carbon::parse($r->production_date)->month) ?: Carbon::now()->month);
+        $monthProdRecords = $yearRecords->filter(function ($r) use ($selectedMonth) {
+            return Carbon::parse($r->production_date)->month === $selectedMonth;
+        });
+
+        // Build product-level buckets from records and multi-SKU items
+        $productBuckets = [];
+
+        foreach ($monthProdRecords as $r) {
+            if ($r->items && $r->items->count() > 0) {
+                $recTotal = (float) ($r->total_quantity ?: ($r->items->sum('total_quantity') ?: 1));
+                foreach ($r->items as $it) {
+                    $pId = $it->product_id ?: $r->product_id;
+                    if (!isset($productBuckets[$pId])) {
+                        $productBuckets[$pId] = [
+                            'product' => $it->product ?: ($r->product?->id == $pId ? $r->product : \App\Models\Product::find($pId)),
+                            'plan_ppic' => 0,
+                            'act_prod' => 0,
+                            'plan_mins' => 0.0,
+                            'act_mins' => 0.0,
+                            'active_days' => [],
+                        ];
+                    }
+                    $itemAct = (int) ($it->total_quantity ?: ($it->good_quantity + $it->reject_quantity));
+                    $ratio = $recTotal > 0 ? ($itemAct / $recTotal) : (1.0 / $r->items->count());
+                    $itemTarget = $it->target_quantity > 0 ? (int) $it->target_quantity : (int) round(($r->target_quantity ?: 0) * $ratio);
+
+                    $productBuckets[$pId]['plan_ppic'] += $itemTarget;
+                    $productBuckets[$pId]['act_prod'] += $itemAct;
+
+                    $planMins = (float) $r->planned_production_time > 0 ? (float) $r->planned_production_time : ((float) $r->available_production_time ?: 444);
+                    $actMins = (float) $r->run_time > 0 ? (float) $r->run_time : max(0, $planMins - (float) $r->downtime);
+
+                    $productBuckets[$pId]['plan_mins'] += ($planMins * $ratio);
+                    $productBuckets[$pId]['act_mins'] += ($actMins * $ratio);
+                    $productBuckets[$pId]['active_days'][] = Carbon::parse($r->production_date)->day;
+                }
+            } else {
+                $pId = $r->product_id;
+                if (!isset($productBuckets[$pId])) {
+                    $productBuckets[$pId] = [
+                        'product' => $r->product ?: \App\Models\Product::find($pId),
+                        'plan_ppic' => 0,
+                        'act_prod' => 0,
+                        'plan_mins' => 0.0,
+                        'act_mins' => 0.0,
+                        'active_days' => [],
+                    ];
+                }
+                $productBuckets[$pId]['plan_ppic'] += (int) $r->target_quantity;
+                $productBuckets[$pId]['act_prod'] += (int) $r->total_quantity;
+                $planMins = (float) $r->planned_production_time > 0 ? (float) $r->planned_production_time : ((float) $r->available_production_time ?: 444);
+                $actMins = (float) $r->run_time > 0 ? (float) $r->run_time : max(0, $planMins - (float) $r->downtime);
+                $productBuckets[$pId]['plan_mins'] += $planMins;
+                $productBuckets[$pId]['act_mins'] += $actMins;
+                $productBuckets[$pId]['active_days'][] = Carbon::parse($r->production_date)->day;
+            }
+        }
+
+        $typeRows = [];
+        $totalTypePlanPpic = 0;
+        $totalTypePlanProd = 0;
+        $totalTypeActProd = 0;
+        $totalTypePlanJk = 0.0;
+        $totalTypeActJk = 0.0;
+
+        foreach ($productBuckets as $pId => $b) {
+            $product = $b['product'];
+            $planPpic = $b['plan_ppic'];
+            $actProd = $b['act_prod'];
+
+            if ($planPpic == 0 && $actProd == 0) {
+                continue;
+            }
+
+            $cycleTime = (float) ($product?->ideal_cycle_time ?: 21);
+            $planProd = $planPpic > 0 ? $planPpic : (int) floor(($b['plan_mins'] * 60) / ($cycleTime > 0 ? $cycleTime : 21));
+
+            $planJk = round($b['plan_mins'] / 60.0, 1);
+            $actJk = round($b['act_mins'] / 60.0, 1);
+            $activeDays = array_values(array_unique($b['active_days']));
+            $tglProduksi = $this->formatDayRanges($activeDays);
+
+            $actRatio = $planProd > 0 ? round(($actProd / $planProd) * 100, 2) : 0.0;
+
+            $totalTypePlanPpic += $planPpic;
+            $totalTypePlanProd += $planProd;
+            $totalTypeActProd += $actProd;
+            $totalTypePlanJk += $planJk;
+            $totalTypeActJk += $actJk;
+
+            $typeRows[] = [
+                'type' => $product?->name ?: ($product?->sku ?: "TYPE #{$pId}"),
+                'sku' => $product?->sku,
+                'tgl_produksi' => $tglProduksi,
+                'cycle_time' => $cycleTime,
+                'plan_ppic' => $planPpic,
+                'plan_prod' => $planProd,
+                'act_prod' => $actProd,
+                'plan_jk' => $planJk,
+                'act_jk' => $actJk,
+                'plan_rasio' => $targetRatioStandard,
+                'act_rasio' => $actRatio,
+            ];
+        }
+
+        $totalTypeActRatio = $totalTypePlanProd > 0 ? round(($totalTypeActProd / $totalTypePlanProd) * 100, 2) : 0.0;
+        $typeTotalRow = [
+            'type' => 'TOTAL',
+            'tgl_produksi' => '-',
+            'cycle_time' => count($typeRows) > 0 ? round(array_sum(array_column($typeRows, 'cycle_time')) / count($typeRows), 1) : 21,
+            'plan_ppic' => $totalTypePlanPpic,
+            'plan_prod' => $totalTypePlanProd,
+            'act_prod' => $totalTypeActProd,
+            'plan_jk' => round($totalTypePlanJk, 1),
+            'act_jk' => round($totalTypeActJk, 1),
+            'plan_rasio' => $targetRatioStandard,
+            'act_rasio' => $totalTypeActRatio,
+        ];
+
+        // 3. CATEGORIZED PROBLEMS (MESIN, KUALITAS / QUALITY, TOOL)
+        $monthStart = Carbon::create($year, $selectedMonth, 1)->startOfMonth();
+        $monthEnd = Carbon::create($year, $selectedMonth, 1)->endOfMonth();
+
+        $downtimeQuery = Downtime::with(['machine', 'product', 'downtimeReason', 'downtimeCategory'])
+            ->where(function ($q) use ($monthStart, $monthEnd) {
+                $q->whereBetween('start_time', [$monthStart, $monthEnd])
+                  ->orWhere(function ($sq) use ($monthStart, $monthEnd) {
+                      $sq->whereNull('start_time')
+                         ->whereHas('productionRecord', fn($pr) => $pr->whereBetween('production_date', [$monthStart->toDateString(), $monthEnd->toDateString()]));
+                  })
+                  ->orWhere(function ($sq) use ($monthStart, $monthEnd) {
+                      $sq->whereNull('start_time')
+                         ->whereNull('production_record_id')
+                         ->whereBetween('created_at', [$monthStart, $monthEnd]);
+                  });
+            })
+            ->when($lineId, fn($q) => $q->where('production_line_id', $lineId));
+        $monthDowntimes = $downtimeQuery->orderBy('start_time', 'asc')->get();
+
+        $ngQuery = \App\Models\NgRecord::with(['machine', 'product', 'defectReason', 'items'])
+            ->whereBetween('production_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->whereHas('productionRecord', fn($pr) => $pr->where('production_line_id', $lineId));
+        $monthNgRecords = $ngQuery->get();
+
+        $problemsMesin = [];
+        $problemsKualitas = [];
+        $problemsTool = [];
+
+        // Helper to extract clean OP number / name
+        $extractOp = function ($obj) {
+            $desc = $obj->description ?? ($obj->defect_symptom ?? '');
+            $cause = $obj->cause ?? ($obj->notes ?? '');
+            $action = $obj->action_taken ?? '';
+            $combinedText = $desc . ' ' . $cause . ' ' . $action;
+
+            // 1. Problem notes mention explicit OP
+            if (preg_match('/\b(OP[- .]?\d+[A-Z]?)\b/i', $combinedText, $m)) {
+                return strtoupper(str_replace([' ', '.'], '-', $m[1]));
+            }
+
+            $mName = trim($obj->machine?->name ?? '');
+            $mCode = trim($obj->machine?->code ?? '');
+
+            // 2. Machine name is OP-10, OP-20, OP-80, etc.
+            if (preg_match('/^OP[- ]?\d+[A-Z]?/i', $mName, $m)) {
+                return strtoupper(str_replace(' ', '-', $m[0]));
+            }
+
+            // 3. Machine code contains numeric OP (e.g. MC-FX-110 -> OP-10, MC-FX-180 -> OP-80, MC-FX-125 -> OP-25)
+            if (preg_match('/MC[- ]?[A-Z0-9]*[- ]?(\d)(\d{2})/i', $mCode, $m)) {
+                return 'OP-' . intval($m[2]);
+            }
+
+            if (preg_match('/OP[- .]?\d+/i', $mCode, $m)) {
+                return strtoupper(str_replace([' ', '.'], '-', $m[0]));
+            }
+
+            if (stripos($mName, 'meas') !== false || stripos($mCode, 'meas') !== false) {
+                return 'OP-MEAS';
+            }
+
+            return $mName ?: ($mCode ?: 'OP-01');
+        };
+
+        // Helper to resolve status symbol
+        $resolveStatusSymbol = function ($status) {
+            $s = strtoupper((string) $status);
+            if (in_array($s, ['CLOSED', 'RESOLVED', 'COMPLETED', 'PERMANENT', 'DONE'])) {
+                return '○'; // Sudah perbaikan permanen
+            } elseif (in_array($s, ['MONITORING', 'IN_PROGRESS', 'PARTIAL', 'FOLLOW_UP'])) {
+                return '△'; // Hasil perbaikan masih dipantau
+            }
+            return 'x'; // Belum perbaikan secara permanen
+        };
+
+        foreach ($monthDowntimes as $dt) {
+            $opNumber = $extractOp($dt);
+            $typeName = $dt->product?->name ?? 'RT 140';
+            $durHours = round(($dt->duration_minutes ?: $dt->calculated_duration_minutes) / 60.0, 1) . ' H';
+            $probText = $dt->description ?: ($dt->downtimeReason?->name ?: 'Gangguan Mesin');
+            $causeText = $dt->cause ?: '-';
+            $capaText = $dt->action_taken ?: 'Penyetelan & kalibrasi ulang';
+            $pic = $dt->pic ?: (!empty($dt->team) ? $dt->team : 'MTC');
+            $hasil = $resolveStatusSymbol($dt->status);
+
+            $pTypeLower = strtolower($dt->problem_type . ' ' . $dt->description . ' ' . $dt->cause . ' ' . $dt->downtimeCategory?->name);
+
+            $entry = [
+                'id' => $dt->id,
+                'op' => $opNumber,
+                'type' => $typeName,
+                'masalah' => $probText,
+                'penyebab' => $causeText,
+                'perbaikan' => $capaText,
+                'pic' => $pic,
+                'lama_stop' => $durHours,
+                'hasil' => $hasil,
+                'perbaikan_selanjutnya' => !empty($dt->follow_up_action) ? $dt->follow_up_action : '-',
+                'due_date' => !empty($dt->due_date) ? Carbon::parse($dt->due_date)->format('d/m/Y') : '-',
+                'pic_followup' => !empty($dt->pic_followup) ? $dt->pic_followup : '-',
+            ];
+
+            if (str_contains($pTypeLower, 'tool') || str_contains($pTypeLower, 'cutter') || str_contains($pTypeLower, 'insert') || str_contains($pTypeLower, 'sparol') || str_contains($pTypeLower, 'regrinding')) {
+                $entry['pic'] = $dt->pic ?: 'TS';
+                $problemsTool[] = $entry;
+            } elseif (str_contains($pTypeLower, 'kualitas') || str_contains($pTypeLower, 'quality') || str_contains($pTypeLower, 'defect') || str_contains($pTypeLower, 'ng ') || str_contains($pTypeLower, 'visual') || str_contains($pTypeLower, 'awasemen')) {
+                $entry['pic'] = $dt->pic ?: 'PE';
+                $problemsKualitas[] = $entry;
+            } else {
+                $entry['pic'] = $dt->pic ?: 'MTC';
+                $problemsMesin[] = $entry;
+            }
+        }
+
+        // Add NG items to Kualitas problem table if any
+        foreach ($monthNgRecords as $ng) {
+            $firstItem = $ng->items?->first();
+            $opNumber = !empty($firstItem?->op_machine) ? $firstItem->op_machine : $extractOp($ng);
+            $typeName = $ng->product?->name ?? 'RT 140';
+            $masalah = $ng->defect_symptom ?: ($firstItem?->reason ?: ($ng->defectReason?->name ?: 'Cacat Kualitas'));
+            $penyebab = $firstItem?->section ? "Bagian: {$firstItem->section}" . ($ng->notes ? " ({$ng->notes})" : '') : ($ng->notes ?: '-');
+            $perbaikan = $ng->action_taken ?: 'Penyetelan jig dan parameter proses';
+            $pic = $ng->inspector_name ?: 'PE';
+
+            $problemsKualitas[] = [
+                'id' => 'NG-' . $ng->id,
+                'op' => $opNumber,
+                'type' => $typeName,
+                'masalah' => $masalah,
+                'penyebab' => $penyebab,
+                'perbaikan' => $perbaikan,
+                'pic' => $pic,
+                'lama_stop' => '-',
+                'hasil' => '○',
+                'perbaikan_selanjutnya' => !empty($ng->follow_up_action) ? $ng->follow_up_action : '-',
+                'due_date' => !empty($ng->due_date) ? Carbon::parse($ng->due_date)->format('d/m/Y') : '-',
+                'pic_followup' => !empty($ng->pic_followup) ? $ng->pic_followup : '-',
+            ];
+        }
+
+        $header = [
+            'company_name' => $profile['company_name'] ?? 'PT. YASUNAGA INDONESIA',
+            'division' => 'DIV. PRODUCTION CON - ROD',
+            'company_logo' => !empty($profile['company_logo']) ? $profile['company_logo'] : '/images/yasunaga-logo.png',
+            'report_logo' => !empty($profile['report_logo']) ? $profile['report_logo'] : (!empty($profile['company_logo']) ? $profile['company_logo'] : '/images/yasunaga-logo.png'),
+            'form_number' => 'F-PROD/CR-030/R0',
+            'target_ratio' => $targetRatioStandard,
+            'target_ratio_badge' => "{$targetRatioStandard}%",
+            'target_oee' => (float) ($productionLine?->target_oee ?? 85.0),
+            'title' => "GRAFIK RASIO PRODUKSI {$lineFullLabel}",
+            'year_title' => "TH. {$year}",
+            'line_id' => $lineId,
+            'line_code' => $lineCode,
+            'line_name' => $lineName,
+            'line_full_label' => $lineFullLabel,
+            'selected_year' => $year,
+            'selected_month' => $selectedMonth,
+            'selected_month_label' => $monthNames[$selectedMonth - 1] ?? 'Bulan',
+            'date_formatted' => Carbon::now()->format('d F Y'),
+            'date_iso' => Carbon::now()->format('Y-m-d'),
+        ];
+
+        $signatures = [
+            'date_label' => 'Tanggal : ' . Carbon::now()->format('d F Y'),
+            'disetujui' => [
+                'title' => 'Disetujui oleh',
+                'label' => 'Disetujui oleh:',
+                'subtitle' => 'Diketahui / Manager',
+                'role' => 'Factory Manager',
+                'name' => $manager,
+            ],
+            'dicheck' => [
+                'title' => 'Dicheck oleh',
+                'label' => 'Dicheck oleh:',
+                'subtitle' => 'Group SPV',
+                'role' => 'Supervisor',
+                'name' => $supervisor,
+            ],
+            'dibuat' => [
+                'title' => 'Dibuat oleh',
+                'label' => 'Dibuat oleh:',
+                'subtitle' => 'Group Leader',
+                'role' => 'Group Leader',
+                'name' => $groupLeader,
+            ],
+            // Backwards compatibility for existing UI references:
+            'diketahui' => [
+                'title' => 'Diketahui',
+                'label' => 'Disetujui oleh:',
+                'role' => 'Factory Manager',
+                'name' => $manager,
+            ],
+            'group_spv' => [
+                'title' => 'Group SPV',
+                'label' => 'Dicheck oleh:',
+                'role' => 'Supervisor',
+                'name' => $supervisor,
+            ],
+            'group_leader' => [
+                'title' => 'Group Leader',
+                'label' => 'Dibuat oleh:',
+                'role' => 'Group Leader',
+                'name' => $groupLeader,
+            ],
+            'options' => [
+                'users' => $allCreatorsList,
+                'supervisors' => $supervisorsList,
+                'managers' => $managersList,
+            ],
+            'available_creators' => $allCreatorsList,
+            'available_supervisors' => $supervisorsList,
+            'available_managers' => $managersList,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'header' => $header,
+                'monthly_grid' => $monthlyGrid,
+                'type_breakdown' => [
+                    'rows' => $typeRows,
+                    'total' => $typeTotalRow,
+                ],
+                'problems' => [
+                    'mesin' => $problemsMesin,
+                    'kualitas' => $problemsKualitas,
+                    'tool' => $problemsTool,
+                ],
+                'signatures' => $signatures,
+            ],
+        ]);
+    }
+
+    /**
+     * Helper to format array of days into range string (e.g. 2~4, 22~29)
+     */
+    private function formatDayRanges(array $days): string
+    {
+        if (empty($days)) {
+            return '-';
+        }
+        $days = array_values(array_unique(array_filter($days)));
+        sort($days);
+        if (empty($days)) {
+            return '-';
+        }
+
+        $ranges = [];
+        $start = null;
+        $prev = null;
+
+        foreach ($days as $day) {
+            if ($start === null) {
+                $start = $day;
+                $prev = $day;
+            } elseif ($day == $prev + 1) {
+                $prev = $day;
+            } else {
+                $ranges[] = ($start == $prev) ? (string) $start : "{$start}~{$prev}";
+                $start = $day;
+                $prev = $day;
+            }
+        }
+        if ($start !== null) {
+            $ranges[] = ($start == $prev) ? (string) $start : "{$start}~{$prev}";
+        }
+
+        return implode(', ', $ranges);
     }
 
     /**

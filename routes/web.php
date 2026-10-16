@@ -51,6 +51,7 @@ Route::prefix('api/v1')->group(function () {
 
     Route::get('/reports/shift-summary', [ReportController::class, 'shiftSummary']);
     Route::get('/reports/trouble-summary', [ReportController::class, 'troubleSummary']);
+    Route::get('/reports/line-production-ratio', [ReportController::class, 'lineProductionRatioReport']);
     Route::get('/reports/export', [ReportController::class, 'export']);
 
     // User Management Routes

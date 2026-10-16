@@ -229,9 +229,66 @@ body {
     }
 }
 
-/* TV Floor Display Fullscreen */
-.tv-mode-active {
-    font-size: 1.1rem;
+/* =========================================================
+   TRUE FULLSCREEN TV / FLOOR DISPLAY MODE (ANDON DISPLAY)
+   ========================================================= */
+html.tv-mode-active,
+html.tv-mode-active body,
+body.tv-mode-active {
+    overflow: hidden !important;
+    background-color: #050B18 !important;
+    user-select: none;
+}
+
+:fullscreen,
+::backdrop {
+    background-color: #050B18 !important;
+}
+
+html.tv-mode-active #sidebar,
+body.tv-mode-active #sidebar,
+html.tv-mode-active header,
+body.tv-mode-active header,
+html.tv-mode-active #mobile-filter-drawer,
+body.tv-mode-active #mobile-filter-drawer {
+    display: none !important;
+}
+
+html.tv-mode-active #main-container,
+body.tv-mode-active #main-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    background-color: #050B18 !important;
+    overflow: hidden !important;
+}
+
+html.tv-mode-active #content-body,
+body.tv-mode-active #content-body {
+    padding: 1.25rem 1.5rem 3.5rem 1.5rem !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-y: auto !important;
+    background: radial-gradient(circle at 50% 0%, #0c1a3b 0%, #060c1d 60%, #040814 100%) !important;
+    color: #F8FAFC !important;
+}
+
+/* Ensure TV Mode cards always retain their crisp dark industrial look */
+html.tv-mode-active .bg-slate-900,
+body.tv-mode-active .bg-slate-900 {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+html.tv-mode-active .bg-slate-950,
+body.tv-mode-active .bg-slate-950 {
+    background-color: #020617 !important;
+    border-color: #0f172a !important;
+    color: #f8fafc !important;
 }
 
 /* Glassmorphism & Sleek Form Cards */
@@ -703,20 +760,54 @@ html.light .divide-\[\#152347\]\/60 > :not([hidden]) ~ :not([hidden]) {
 }
 
 /* High Contrast Typography in Light Mode */
-html.light .text-white,
-html.light .text-slate-100, 
-html.light .text-slate-200 {
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
     color: #0f172a !important;
 }
 
-html.light .text-slate-300, 
-html.light .text-slate-400 {
+html.light p,
+html.light label {
+    color: #1e293b !important;
+}
+
+html.light .text-white:not(button):not([class*="bg-"]):not(button *):not(.badge):not(.btn),
+html.light .text-slate-100:not(button):not([class*="bg-"]):not(button *):not(.badge):not(.btn), 
+html.light .text-slate-200:not(button):not([class*="bg-"]):not(button *):not(.badge):not(.btn) {
+    color: #0f172a !important;
+}
+
+html.light .text-slate-300:not(button):not([class*="bg-"]):not(button *), 
+html.light .text-slate-400:not(button):not([class*="bg-"]):not(button *) {
     color: #334155 !important;
 }
 
-html.light .text-slate-500,
-html.light .text-slate-600 {
+html.light .text-slate-500:not(button):not([class*="bg-"]):not(button *),
+html.light .text-slate-600:not(button):not([class*="bg-"]):not(button *) {
     color: #64748b !important;
+}
+
+/* Ensure solid/colored action buttons retain bright white text in Light Mode */
+html.light button.bg-emerald-600,
+html.light button.bg-emerald-600 *,
+html.light button.bg-teal-600,
+html.light button.bg-teal-600 *,
+html.light button.bg-cyan-600,
+html.light button.bg-cyan-600 *,
+html.light button.bg-blue-600,
+html.light button.bg-blue-600 *,
+html.light button.bg-rose-600,
+html.light button.bg-rose-600 *,
+html.light button.bg-indigo-600,
+html.light button.bg-indigo-600 *,
+html.light #btn-add-record,
+html.light #btn-add-record *,
+html.light #btn-mobile-entry-shortcut,
+html.light #btn-mobile-entry-shortcut * {
+    color: #ffffff !important;
 }
 
 html.light .text-cyan-400,
@@ -1512,5 +1603,108 @@ html.light #notification-dropdown {
     pointer-events: none;
     z-index: 1;
 }
+
+/* ========================================================================= */
+/* GLASSMORPHIC 3D PRODUCTION LINE MATRIX CARDS                             */
+/* ========================================================================= */
+.line-matrix-card {
+    position: relative;
+    border-radius: 1rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.32s ease;
+    will-change: transform, box-shadow;
+}
+
+.line-matrix-card:hover {
+    transform: translateY(-6px) scale(1.015);
+    box-shadow: 0 20px 35px -8px var(--card-glow, rgba(6, 182, 212, 0.28)), 0 0 20px 0 var(--card-glow, rgba(6, 182, 212, 0.12));
+    z-index: 10;
+}
+
+.line-matrix-card .sheen-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle at 50% 0%, var(--card-glow, rgba(6, 182, 212, 0.25)) 0%, transparent 70%);
+    transition: opacity 0.35s ease;
+}
+
+.line-matrix-card:hover .sheen-glow {
+    opacity: 1;
+}
+
+/* ========================================================================= */
+/* DYNAMIC SONAR PULSE & GLOW ANIMATION FOR PRIMARY CTA BUTTON               */
+/* ========================================================================= */
+@keyframes sonar-ring {
+    0% {
+        transform: scale(0.98);
+        opacity: 0.85;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1.15);
+        opacity: 0;
+    }
+}
+
+@keyframes sonar-glow {
+    0%, 100% {
+        opacity: 0.45;
+        filter: blur(8px);
+    }
+    50% {
+        opacity: 0.85;
+        filter: blur(14px);
+    }
+}
+
+.btn-sonar-cta {
+    position: relative;
+    background: linear-gradient(135deg, #059669 0%, #10B981 50%, #0D9488 100%);
+    box-shadow: 0 4px 18px -2px rgba(16, 185, 129, 0.5), 0 0 0 1px rgba(52, 211, 153, 0.4);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    isolation: isolate;
+}
+
+.btn-sonar-cta:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 50%, #0F766E 100%);
+    box-shadow: 0 6px 24px 0 rgba(16, 185, 129, 0.65), 0 0 0 2px rgba(52, 211, 153, 0.6);
+    transform: translateY(-1px) scale(1.02);
+}
+
+.btn-sonar-cta:active {
+    transform: translateY(1px) scale(0.98);
+}
+
+.btn-sonar-cta .sonar-ring {
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    border: 2px solid rgba(52, 211, 153, 0.8);
+    animation: sonar-ring 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.btn-sonar-cta .sonar-glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: inherit;
+    filter: blur(10px);
+    opacity: 0.5;
+    z-index: -1;
+    animation: sonar-glow 2.2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+
 
 

@@ -50,9 +50,4 @@ class Machine extends Model
     {
         return $this->hasMany(Downtime::class);
     }
-
-    public function statusLogs(): HasMany
-    {
-        return $this->hasMany(MachineStatusLog::class);
-    }
 }

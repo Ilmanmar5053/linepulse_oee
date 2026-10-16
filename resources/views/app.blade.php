@@ -20,7 +20,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="h-full font-sans overflow-x-hidden">
+<body class="h-full font-sans overflow-x-hidden bg-[#070D1E] text-slate-100">
     <div id="app" class="min-h-full flex flex-col"></div>
 </body>
 </html>

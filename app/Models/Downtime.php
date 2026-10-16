@@ -28,6 +28,9 @@ class Downtime extends Model
         'description',
         'cause',
         'action_taken',
+        'follow_up_action',
+        'due_date',
+        'pic_followup',
         'pic',
         'status',
         'is_planned',
@@ -37,6 +40,7 @@ class Downtime extends Model
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
+        'due_date' => 'date:Y-m-d',
         'duration_minutes' => 'float',
         'is_planned' => 'boolean',
     ];

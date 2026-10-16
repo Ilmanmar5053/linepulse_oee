@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,6 +42,17 @@ class AuthController extends Controller
         }
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            AuditLog::record(
+                action: 'LOGIN_FAILED',
+                module: 'Keamanan & Autentikasi',
+                description: "Percobaan login gagal dengan input identifier: '{$loginInput}'",
+                oldValue: null,
+                newValue: ['input' => $loginInput, 'ip' => $request->ip()],
+                recordId: null,
+                severity: 'warning',
+                status: 'FAILED'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid login credentials. Pastikan email/username dan password benar.',
@@ -48,6 +60,17 @@ class AuthController extends Controller
         }
 
         if (!$user->is_active) {
+            AuditLog::record(
+                action: 'LOGIN_BLOCKED',
+                module: 'Keamanan & Autentikasi',
+                description: "Percobaan login ditolak: Akun pengguna {$user->name} ({$user->email}) sedang dinonaktifkan",
+                oldValue: null,
+                newValue: ['user_id' => $user->id, 'email' => $user->email],
+                recordId: $user->id,
+                severity: 'danger',
+                status: 'BLOCKED'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'User account is deactivated.',
@@ -55,6 +78,22 @@ class AuthController extends Controller
         }
 
         Auth::login($user);
+
+        $roleName = $user->roles->first()?->display_name ?? 'Operator';
+        AuditLog::record(
+            action: 'LOGIN',
+            module: 'Keamanan & Autentikasi',
+            description: "Autentikasi Berhasil: Sesi pengguna {$user->name} ({$roleName}) masuk ke sistem",
+            oldValue: null,
+            newValue: [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'roles' => $user->roles->pluck('name')->toArray()
+            ],
+            recordId: $user->id,
+            severity: 'info',
+            status: 'SUCCESS'
+        );
 
         return response()->json([
             'success' => true,
@@ -74,6 +113,20 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        $user = Auth::user();
+        if ($user) {
+            AuditLog::record(
+                action: 'LOGOUT',
+                module: 'Keamanan & Autentikasi',
+                description: "Pengguna {$user->name} keluar dari sistem (Logout)",
+                oldValue: ['user_id' => $user->id, 'email' => $user->email],
+                newValue: null,
+                recordId: $user->id,
+                severity: 'info',
+                status: 'SUCCESS'
+            );
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

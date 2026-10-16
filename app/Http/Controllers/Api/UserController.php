@@ -68,14 +68,24 @@ class UserController extends Controller
 
         $createdCount = 0;
         foreach ($usersList as $item) {
-            $user = User::updateOrCreate(
-                ['email' => $item['email']],
-                [
+            $user = User::withTrashed()->where('email', $item['email'])->first();
+            if ($user) {
+                if ($user->trashed()) {
+                    $user->restore();
+                }
+                $user->update([
                     'name' => $item['name'],
                     'password' => Hash::make('password'),
                     'is_active' => true,
-                ]
-            );
+                ]);
+            } else {
+                $user = User::create([
+                    'name' => $item['name'],
+                    'email' => $item['email'],
+                    'password' => Hash::make('password'),
+                    'is_active' => true,
+                ]);
+            }
 
             $role = Role::where('name', $item['role'])->first();
             if ($role) {

@@ -35,15 +35,8 @@ class DowntimeController extends Controller
             $query->where('production_line_id', $lineId);
         }
 
-        if ($request->filled('machine_id')) {
-            if ($request->machine_id === 'all_measuring') {
-                $query->whereHas('machine', function ($q) {
-                    $q->where('code', 'LIKE', '%MEASURING%')
-                      ->orWhere('name', 'LIKE', '%Measuring%');
-                });
-            } else {
-                $query->where('machine_id', $request->machine_id);
-            }
+        if ($request->filled('machine_id') && $request->machine_id !== 'all_measuring') {
+            $query->where('machine_id', $request->machine_id);
         }
 
         if ($request->filled('shift_id')) {
@@ -100,11 +93,44 @@ class DowntimeController extends Controller
         $singleDate = $request->input('date');
 
         if ($singleDate) {
-            $query->whereDate('start_time', $singleDate);
+            $query->where(function ($q) use ($singleDate) {
+                $q->whereDate('start_time', $singleDate)
+                  ->orWhere(function ($sq) use ($singleDate) {
+                      $sq->whereNull('start_time')
+                         ->whereHas('productionRecord', fn($pr) => $pr->whereDate('production_date', $singleDate));
+                  })
+                  ->orWhere(function ($sq) use ($singleDate) {
+                      $sq->whereNull('start_time')
+                         ->whereNull('production_record_id')
+                         ->whereDate('created_at', $singleDate);
+                  });
+            });
         } elseif ($startDate && $endDate) {
-            $query->whereBetween('start_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            $query->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                  ->orWhere(function ($sq) use ($startDate, $endDate) {
+                      $sq->whereNull('start_time')
+                         ->whereHas('productionRecord', fn($pr) => $pr->whereBetween('production_date', [$startDate, $endDate]));
+                  })
+                  ->orWhere(function ($sq) use ($startDate, $endDate) {
+                      $sq->whereNull('start_time')
+                         ->whereNull('production_record_id')
+                         ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                  });
+            });
         } elseif ($startDate) {
-            $query->whereDate('start_time', $startDate);
+            $query->where(function ($q) use ($startDate) {
+                $q->whereDate('start_time', $startDate)
+                  ->orWhere(function ($sq) use ($startDate) {
+                      $sq->whereNull('start_time')
+                         ->whereHas('productionRecord', fn($pr) => $pr->whereDate('production_date', $startDate));
+                  })
+                  ->orWhere(function ($sq) use ($startDate) {
+                      $sq->whereNull('start_time')
+                         ->whereNull('production_record_id')
+                         ->whereDate('created_at', $startDate);
+                  });
+            });
         } elseif ($request->filled('period')) {
             $today = Carbon::now()->toDateString();
             match ($request->period) {
@@ -180,28 +206,46 @@ class DowntimeController extends Controller
             'problem_type' => 'nullable|string',
             'downtime_category_id' => 'nullable|exists:downtime_categories,id',
             'downtime_reason_id' => 'nullable|exists:downtime_reasons,id',
-            'start_time' => 'required|date',
+            'start_time' => 'nullable|date',
             'end_time' => 'nullable|date',
             'duration_minutes' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'cause' => 'nullable|string',
             'action_taken' => 'nullable|string',
+            'follow_up_action' => 'nullable|string',
+            'due_date' => 'nullable|date',
+            'pic_followup' => 'nullable|string',
             'pic' => 'nullable|string',
             'status' => 'nullable|string|in:CLOSED,OPEN,Closed,Open',
             'is_planned' => 'boolean',
+            'trouble_date' => 'nullable|date',
         ]);
 
-        $startTime = Carbon::parse($validated['start_time']);
+        $startTime = !empty($validated['start_time']) ? Carbon::parse($validated['start_time']) : null;
+        if (!$startTime) {
+            if (!empty($validated['trouble_date'])) {
+                $startTime = Carbon::parse($validated['trouble_date'])->startOfDay();
+            } elseif (!empty($validated['production_record_id'])) {
+                $rec = ProductionRecord::find($validated['production_record_id']);
+                if ($rec && $rec->production_date) {
+                    $startTime = Carbon::parse($rec->production_date)->startOfDay();
+                }
+            }
+            if (!$startTime) {
+                $startTime = Carbon::today();
+            }
+        }
+
         $endTime = !empty($validated['end_time']) ? Carbon::parse($validated['end_time']) : null;
         
         $duration = 0.0;
         if (isset($validated['duration_minutes']) && is_numeric($validated['duration_minutes']) && (float)$validated['duration_minutes'] > 0) {
             $duration = (float) $validated['duration_minutes'];
-            if (!$endTime) {
+            if (!$endTime && $startTime && strtoupper($validated['status'] ?? 'CLOSED') !== 'OPEN') {
                 $endTime = $startTime->copy()->addMinutes((int)ceil($duration));
                 $validated['end_time'] = $endTime->format('Y-m-d H:i:s');
             }
-        } elseif ($endTime) {
+        } elseif ($endTime && $startTime) {
             if ($endTime < $startTime) {
                 $endTime->addDay();
                 $validated['end_time'] = $endTime->format('Y-m-d H:i:s');
@@ -209,6 +253,7 @@ class DowntimeController extends Controller
             $duration = round($startTime->diffInSeconds($endTime) / 60.0, 2);
         }
 
+        $validated['start_time'] = $startTime;
         $validated['duration_minutes'] = $duration;
         $validated['created_by'] = auth()->id() ?? 1;
 
@@ -247,6 +292,9 @@ class DowntimeController extends Controller
             'description' => 'nullable|string',
             'cause' => 'nullable|string',
             'action_taken' => 'nullable|string',
+            'follow_up_action' => 'nullable|string',
+            'due_date' => 'nullable|date',
+            'pic_followup' => 'nullable|string',
             'pic' => 'nullable|string',
             'status' => 'nullable|string|in:CLOSED,OPEN,Closed,Open',
             'duration_minutes' => 'nullable|numeric|min:0',
@@ -314,6 +362,9 @@ class DowntimeController extends Controller
         if (isset($validated['description'])) $downtime->description = $validated['description'];
         if (isset($validated['cause'])) $downtime->cause = $validated['cause'];
         if (isset($validated['action_taken'])) $downtime->action_taken = $validated['action_taken'];
+        if (array_key_exists('follow_up_action', $validated)) $downtime->follow_up_action = $validated['follow_up_action'];
+        if (array_key_exists('due_date', $validated)) $downtime->due_date = $validated['due_date'];
+        if (array_key_exists('pic_followup', $validated)) $downtime->pic_followup = $validated['pic_followup'];
         if (isset($validated['pic'])) $downtime->pic = $validated['pic'];
         if (isset($validated['status'])) $downtime->status = strtoupper($validated['status']);
 

@@ -12,6 +12,7 @@ class NgRecordItem extends Model
 
     protected $fillable = [
         'ng_record_id',
+        'product_id',
         'component_type',
         'quantity',
         'op_machine',
@@ -21,10 +22,16 @@ class NgRecordItem extends Model
 
     protected $casts = [
         'quantity' => 'integer',
+        'product_id' => 'integer',
     ];
 
     public function ngRecord(): BelongsTo
     {
         return $this->belongsTo(NgRecord::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
     }
 }

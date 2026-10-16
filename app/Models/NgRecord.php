@@ -37,12 +37,16 @@ class NgRecord extends Model
         'defect_reason_id',
         'defect_symptom',
         'action_taken',
+        'follow_up_action',
+        'due_date',
+        'pic_followup',
         'inspector_name',
         'notes',
     ];
 
     protected $casts = [
         'production_date' => 'date',
+        'due_date' => 'date:Y-m-d',
         'total_ng_target' => 'integer',
         'ng_assy' => 'integer',
         'ng_rod' => 'integer',

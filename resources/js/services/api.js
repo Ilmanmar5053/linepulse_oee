@@ -46,6 +46,7 @@ export const api = {
     // Reports & Analytics
     getShiftSummary: (params) => axios.get(`${API_BASE}/reports/shift-summary`, { params }),
     getTroubleSummary: (params) => axios.get(`${API_BASE}/reports/trouble-summary`, { params }),
+    getLineProductionRatio: (params) => axios.get(`${API_BASE}/reports/line-production-ratio`, { params }),
     getExportUrl: (kind, type = 'csv') => `${API_BASE}/reports/export?kind=${kind}&type=${type}`,
 
     // Master Data

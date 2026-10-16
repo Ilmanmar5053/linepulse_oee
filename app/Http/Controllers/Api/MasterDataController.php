@@ -90,7 +90,12 @@ class MasterDataController extends Controller
             'name' => 'required|string|max:255',
             'image_url' => 'nullable|string',
             'target_oee' => 'required|numeric|between:0,100',
+            'target_ratio' => 'nullable|numeric|between:0,100',
         ]);
+
+        if (!isset($validated['target_ratio']) || $validated['target_ratio'] === null) {
+            $validated['target_ratio'] = 83.00;
+        }
 
         if (!empty($validated['image_url'])) {
             $validated['image_url'] = $this->processBase64Image($validated['image_url'], 'line_' . strtolower(str_replace('-', '_', $validated['code'])));
@@ -110,6 +115,7 @@ class MasterDataController extends Controller
             'name' => 'required|string|max:255',
             'image_url' => 'nullable|string',
             'target_oee' => 'nullable|numeric|between:0,100',
+            'target_ratio' => 'nullable|numeric|between:0,100',
         ]);
 
         if (array_key_exists('image_url', $validated) && !empty($validated['image_url'])) {
@@ -1245,21 +1251,38 @@ class MasterDataController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => Shift::all(),
+            'data' => Shift::orderBy('id', 'asc')->get(),
         ]);
     }
 
     public function storeShift(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'code' => 'nullable|string|max:30',
             'name' => 'required|string|max:255',
             'start_time' => 'required|string',
             'end_time' => 'required|string',
-            'break_duration_minutes' => 'required|integer|min:0',
+            'break_duration_minutes' => 'nullable|integer|min:0',
+            'break_breakdown' => 'nullable|array',
+            'planned_production_minutes' => 'nullable|integer|min:0',
+            'work_hours' => 'nullable|numeric|min:0',
         ]);
 
-        $validated['plant_id'] = $request->input('plant_id', 1);
-        $shift = Shift::create($validated);
+        $breakdown = $request->input('break_breakdown');
+        $metrics = Shift::computeShiftMetrics(
+            $validated['start_time'],
+            $validated['end_time'],
+            $breakdown,
+            $validated['break_duration_minutes'] ?? 75
+        );
+
+        $payload = array_merge($validated, $metrics);
+        if ($breakdown) {
+            $payload['break_breakdown'] = $breakdown;
+        }
+        $payload['plant_id'] = $request->input('plant_id', 1);
+
+        $shift = Shift::create($payload);
 
         return response()->json(['success' => true, 'message' => 'Shift parameter created successfully', 'data' => $shift], 201);
     }
@@ -1268,13 +1291,37 @@ class MasterDataController extends Controller
     {
         $shift = Shift::findOrFail($id);
         $validated = $request->validate([
+            'code' => 'nullable|string|max:30',
             'name' => 'required|string|max:255',
             'start_time' => 'required|string',
             'end_time' => 'required|string',
-            'break_duration_minutes' => 'required|integer|min:0',
+            'break_duration_minutes' => 'nullable|integer|min:0',
+            'break_breakdown' => 'nullable|array',
+            'planned_production_minutes' => 'nullable|integer|min:0',
+            'work_hours' => 'nullable|numeric|min:0',
         ]);
 
-        $shift->update($validated);
+        $breakdown = $request->input('break_breakdown', $shift->break_breakdown);
+        $metrics = Shift::computeShiftMetrics(
+            $validated['start_time'],
+            $validated['end_time'],
+            $breakdown,
+            $validated['break_duration_minutes'] ?? $shift->break_duration_minutes
+        );
+
+        $payload = array_merge($validated, $metrics);
+        if ($breakdown) {
+            $payload['break_breakdown'] = $breakdown;
+        }
+
+        $shift->update($payload);
+
+        // Synchronize related production records planned production time if needed
+        if ($shift->planned_production_minutes > 0) {
+            \App\Models\ProductionRecord::where('shift_id', $shift->id)
+                ->update(['planned_production_time' => $shift->planned_production_minutes]);
+        }
+
         return response()->json(['success' => true, 'message' => 'Shift parameter updated successfully', 'data' => $shift]);
     }
 

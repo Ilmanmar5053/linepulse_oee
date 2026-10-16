@@ -162,6 +162,9 @@ class NgReportController extends Controller
                     'action_taken' => $ng->action_taken,
                     'inspector_name' => $ng->inspector_name,
                     'notes' => $ng->notes,
+                    'follow_up_action' => $ng->follow_up_action,
+                    'due_date' => $ng->due_date ? Carbon::parse($ng->due_date)->format('Y-m-d') : null,
+                    'pic_followup' => $ng->pic_followup,
                     'updated_at' => $ng->updated_at ? $ng->updated_at->format('Y-m-d H:i') : null,
                 ] : null,
             ];
@@ -264,7 +267,8 @@ class NgReportController extends Controller
             'operator.employee',
             'ngRecord.defectCategory',
             'ngRecord.defectReason',
-            'ngRecord.items',
+            'ngRecord.items.product',
+            'items.product',
         ])->findOrFail($id);
 
         $totalNgTarget = ($record->reject_quantity ?? 0) + ($record->scrap_quantity ?? 0);
@@ -327,6 +331,98 @@ class NgReportController extends Controller
             ];
         })->values()->toArray();
 
+        // Fetch sibling production records produced on the exact same date, line, and shift (Multi-SKU support)
+        $siblingRecords = ProductionRecord::with(['product', 'ngRecord'])
+            ->where('production_date', $record->production_date)
+            ->where('shift_id', $record->shift_id)
+            ->where('production_line_id', $record->production_line_id)
+            ->orderBy('id')
+            ->get()
+            ->map(function ($sr) use ($record) {
+                $ngTarget = ($sr->reject_quantity ?? 0) + ($sr->scrap_quantity ?? 0);
+                return [
+                    'production_record_id' => $sr->id,
+                    'is_current' => ($sr->id === $record->id),
+                    'product_id' => $sr->product_id,
+                    'product_name' => $sr->product->name ?? 'Product',
+                    'product_sku' => $sr->product->sku ?? '-',
+                    'total_output' => (int) $sr->total_quantity,
+                    'good_quantity' => (int) $sr->good_quantity,
+                    'reject_quantity' => (int) $sr->reject_quantity,
+                    'scrap_quantity' => (int) $sr->scrap_quantity,
+                    'total_ng_target' => (int) $ngTarget,
+                    'has_ng' => $ngTarget > 0,
+                    'has_ng_detail' => !is_null($sr->ngRecord),
+                ];
+            })->values()->toArray();
+
+        // Multi-SKU products from ProductionRecordItem or fallback to main product / sibling records
+        $productionSkus = [];
+        if ($record->items && $record->items->count() > 0) {
+            foreach ($record->items as $recItem) {
+                $targetItemNg = ($recItem->reject_quantity ?? 0) + ($recItem->scrap_quantity ?? 0);
+                $productionSkus[] = [
+                    'item_id' => $recItem->id,
+                    'product_id' => $recItem->product_id,
+                    'product_name' => $recItem->product->name ?? 'Product',
+                    'product_sku' => $recItem->product->sku ?? '-',
+                    'good_quantity' => (int) ($recItem->good_quantity ?? 0),
+                    'reject_quantity' => (int) ($recItem->reject_quantity ?? 0),
+                    'scrap_quantity' => (int) ($recItem->scrap_quantity ?? 0),
+                    'total_quantity' => (int) ($recItem->total_quantity ?? 0),
+                    'total_ng_target' => (int) $targetItemNg,
+                ];
+            }
+        } elseif (!empty($siblingRecords) && count($siblingRecords) > 1) {
+            foreach ($siblingRecords as $sr) {
+                $productionSkus[] = [
+                    'item_id' => null,
+                    'production_record_id' => $sr['production_record_id'],
+                    'product_id' => $sr['product_id'],
+                    'product_name' => $sr['product_name'],
+                    'product_sku' => $sr['product_sku'],
+                    'good_quantity' => $sr['good_quantity'],
+                    'reject_quantity' => $sr['reject_quantity'],
+                    'scrap_quantity' => $sr['scrap_quantity'],
+                    'total_quantity' => $sr['total_output'],
+                    'total_ng_target' => $sr['total_ng_target'],
+                ];
+            }
+        } else {
+            $productionSkus[] = [
+                'item_id' => null,
+                'product_id' => $record->product_id,
+                'product_name' => $record->product->name ?? 'Product',
+                'product_sku' => $record->product->sku ?? '-',
+                'good_quantity' => (int) ($record->good_quantity ?? 0),
+                'reject_quantity' => (int) ($record->reject_quantity ?? 0),
+                'scrap_quantity' => (int) ($record->scrap_quantity ?? 0),
+                'total_quantity' => (int) ($record->total_quantity ?? 0),
+                'total_ng_target' => (int) $totalNgTarget,
+            ];
+        }
+
+        $allProducts = \App\Models\Product::orderBy('name')
+            ->get(['id', 'name', 'sku'])
+            ->toArray();
+
+        $ngItemsFormatted = [];
+        if ($ng && $ng->items && $ng->items->count() > 0) {
+            $ngItemsFormatted = $ng->items->map(function ($it) {
+                return [
+                    'id' => $it->id,
+                    'product_id' => $it->product_id,
+                    'component_type' => $it->component_type,
+                    'quantity' => $it->quantity,
+                    'op_machine' => $it->op_machine,
+                    'section' => $it->section,
+                    'reason' => $it->reason,
+                ];
+            })->toArray();
+        } elseif ($ng && !empty($ng->items_breakdown)) {
+            $ngItemsFormatted = $ng->items_breakdown;
+        }
+
         return response()->json([
             'success' => true,
             'bank_data' => [
@@ -342,6 +438,7 @@ class NgReportController extends Controller
                 'line_name' => $record->productionLine->name ?? 'Production Line',
                 'machine_name' => $record->machine->name ?? 'Machine',
                 'machine_code' => $record->machine->code ?? '-',
+                'product_id' => $record->product_id,
                 'product_name' => $record->product->name ?? 'Product',
                 'product_sku' => $record->product->sku ?? '-',
                 'shift_name' => $record->shift->name ?? 'Shift',
@@ -350,6 +447,10 @@ class NgReportController extends Controller
                 'reject_quantity' => $record->reject_quantity,
                 'scrap_quantity' => $record->scrap_quantity,
                 'total_ng_target' => $totalNgTarget,
+                'production_skus' => $productionSkus,
+                'has_multi_sku' => count($productionSkus) > 1,
+                'sibling_records' => $siblingRecords,
+                'all_products' => $allProducts,
                 'ng_record' => $ng ? [
                     'id' => $ng->id,
                     'ng_assy' => $ng->ng_assy,
@@ -361,7 +462,7 @@ class NgReportController extends Controller
                     'ng_cap' => $ng->ng_cap,
                     'cap_section' => $ng->cap_section,
                     'cap_reason' => $ng->cap_reason,
-                    'items' => $ng->items ?? [],
+                    'items' => $ngItemsFormatted,
                     'items_breakdown' => $ng->items_breakdown ?? [],
                     'total_ng_oee' => $ng->total_ng_oee,
                     'ng_bolt' => $ng->ng_bolt,
@@ -375,6 +476,9 @@ class NgReportController extends Controller
                     'action_taken' => $ng->action_taken,
                     'inspector_name' => $ng->inspector_name,
                     'notes' => $ng->notes,
+                    'follow_up_action' => $ng->follow_up_action,
+                    'due_date' => $ng->due_date ? Carbon::parse($ng->due_date)->format('Y-m-d') : null,
+                    'pic_followup' => $ng->pic_followup,
                 ] : null,
             ],
         ]);
@@ -388,6 +492,7 @@ class NgReportController extends Controller
         $validated = $request->validate([
             'production_record_id' => 'required|exists:production_records,id',
             'items' => 'nullable|array',
+            'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.component_type' => 'required_with:items|in:ASSY,ROD,CAP',
             'items.*.quantity' => 'required_with:items|integer|min:0',
             'items.*.op_machine' => 'nullable|string|max:100',
@@ -412,6 +517,9 @@ class NgReportController extends Controller
             'action_taken' => 'nullable|string|max:50',
             'inspector_name' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:1000',
+            'follow_up_action' => 'nullable|string|max:1000',
+            'due_date' => 'nullable|date',
+            'pic_followup' => 'nullable|string|max:150',
         ]);
 
         $prodRecord = ProductionRecord::findOrFail($validated['production_record_id']);
@@ -455,7 +563,10 @@ class NgReportController extends Controller
                     if (!$firstCapReason && $rsn) $firstCapReason = $rsn;
                 }
 
+                $prodId = !empty($it['product_id']) ? (int) $it['product_id'] : ($prodRecord->product_id ?? null);
+
                 $cleanedItems[] = [
+                    'product_id' => $prodId,
                     'component_type' => $type,
                     'quantity' => $qty,
                     'op_machine' => $opMachine ?: null,
@@ -476,6 +587,7 @@ class NgReportController extends Controller
 
             if ($ngAssy > 0) {
                 $cleanedItems[] = [
+                    'product_id' => $prodRecord->product_id ?? null,
                     'component_type' => 'ASSY',
                     'quantity' => $ngAssy,
                     'section' => $firstAssySection,
@@ -484,6 +596,7 @@ class NgReportController extends Controller
             }
             if ($ngRod > 0) {
                 $cleanedItems[] = [
+                    'product_id' => $prodRecord->product_id ?? null,
                     'component_type' => 'ROD',
                     'quantity' => $ngRod,
                     'section' => $firstRodSection,
@@ -492,6 +605,7 @@ class NgReportController extends Controller
             }
             if ($ngCap > 0) {
                 $cleanedItems[] = [
+                    'product_id' => $prodRecord->product_id ?? null,
                     'component_type' => 'CAP',
                     'quantity' => $ngCap,
                     'section' => $firstCapSection,
@@ -538,6 +652,9 @@ class NgReportController extends Controller
                 'action_taken' => $validated['action_taken'] ?? 'SCRAP',
                 'inspector_name' => $validated['inspector_name'] ?? (auth()->user()->name ?? 'QC Inspector'),
                 'notes' => $validated['notes'] ?? null,
+                'follow_up_action' => $validated['follow_up_action'] ?? null,
+                'due_date' => $validated['due_date'] ?? null,
+                'pic_followup' => $validated['pic_followup'] ?? null,
             ]
         );
 

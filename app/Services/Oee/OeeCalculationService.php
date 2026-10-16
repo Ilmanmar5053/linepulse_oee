@@ -40,6 +40,38 @@ class OeeCalculationService
     }
 
     /**
+     * Calculate Performance (%) for Multi-Product / Mix Production
+     * Performance = (Sum(Item Ideal Cycle Time * Item Total Quantity) / Run Time in Seconds) * 100
+     */
+    public function calculateMultiProductPerformance($items, float $runTimeMinutes): float
+    {
+        $runTimeSeconds = $runTimeMinutes * 60.0;
+
+        if ($runTimeSeconds <= 0 || empty($items)) {
+            return 0.0;
+        }
+
+        $totalNetOperatingSeconds = 0.0;
+        foreach ($items as $item) {
+            $ct = is_array($item) ? (float)($item['ideal_cycle_time'] ?? 0) : (float)($item->ideal_cycle_time ?? 0);
+            $qty = is_array($item) ? (int)($item['total_quantity'] ?? 0) : (int)($item->total_quantity ?? 0);
+            if ($qty <= 0) {
+                $good = is_array($item) ? (int)($item['good_quantity'] ?? 0) : (int)($item->good_quantity ?? 0);
+                $rej = is_array($item) ? (int)($item['reject_quantity'] ?? 0) : (int)($item->reject_quantity ?? 0);
+                $scrap = is_array($item) ? (int)($item['scrap_quantity'] ?? 0) : (int)($item->scrap_quantity ?? 0);
+                $qty = $good + $rej + $scrap;
+            }
+            $totalNetOperatingSeconds += ($ct * $qty);
+        }
+
+        if ($totalNetOperatingSeconds <= 0) {
+            return 0.0;
+        }
+
+        return max(0.0, ($totalNetOperatingSeconds / $runTimeSeconds) * 100.0);
+    }
+
+    /**
      * Calculate Quality (%)
      * Quality = (Good Quantity / Total Quantity) * 100
      */

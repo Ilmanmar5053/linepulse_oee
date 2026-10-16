@@ -53,25 +53,20 @@ class DatabaseManagementController extends Controller
             'desc' => 'Detail jenis defect dan jumlah part reject per seksi komponen.',
             'category' => 'ng_quality'
         ],
+        'production_record_items' => [
+            'label' => 'Rincian SKU Part Produksi',
+            'desc' => 'Detail pemecahan multi-part / SKU kuantitas target dan reject per laporan.',
+            'category' => 'production'
+        ],
         'quality_records' => [
             'label' => 'Log Pemeriksaan Mutu (QC Logs)',
             'desc' => 'Riwayat inspeksi sampling mutu dan verifikasi reject rate.',
             'category' => 'ng_quality'
         ],
-        'machine_events' => [
-            'label' => 'Log Event Sensor Mesin',
-            'desc' => 'Pencatatan sinyal start/stop dan perubahan status sensor IoT.',
-            'category' => 'monitoring'
-        ],
-        'machine_status_logs' => [
-            'label' => 'Riwayat Status Mesin',
-            'desc' => 'Log perubahan status Running, Idle, dan Maintenance.',
-            'category' => 'monitoring'
-        ],
     ];
 
     /**
-     * Master Data, System Configurations, Company Profile, & Auth Tables
+     * Master Data, System Configurations, & Auth Tables
      * that are HARD-CODED & PROTECTED by safety shield (NEVER DELETED).
      */
     protected array $protectedMasterTables = [
@@ -81,16 +76,16 @@ class DatabaseManagementController extends Controller
         'permission_role' => 'Pemetaan Role-Izin',
         'role_user' => 'Penugasan Role User',
         'system_settings' => 'Target OEE & Pengaturan Sistem',
-        'company_profiles' => 'Profil Perusahaan & Background Pabrik',
         'plants' => 'Master Pabrik / Site',
-        'production_lines' => 'Master Lini Produksi (27 Lines)',
+        'production_lines' => 'Master Lini Produksi (11 Lines)',
         'machines' => 'Master Mesin Operasional (225 Unit)',
-        'products' => 'Master Part Number & Produk (69 Items)',
+        'products' => 'Master Part Number & Produk (70 Items)',
         'product_categories' => 'Kategori Part / Produk',
+        'product_cycle_times' => 'Master Cycle Time Part & Mesin (70 Items)',
         'shifts' => 'Master Jam Kerja Shift',
         'groups' => 'Master Regu & Leader PIC',
         'downtime_categories' => 'Kategori Trouble Downtime',
-        'downtime_reasons' => 'Master 50+ Alasan Downtime Mesin',
+        'downtime_reasons' => 'Master Alasan Downtime Mesin',
         'ng_sections' => 'Master Seksi Defect NG (522 Seksi)',
         'defect_categories' => 'Kategori Defect Mutu',
         'defect_reasons' => 'Master Jenis Defect Part',
@@ -100,7 +95,6 @@ class DatabaseManagementController extends Controller
         'machine_types' => 'Master Jenis / Tipe Mesin',
         'operators' => 'Master Data Operator',
         'employees' => 'Master Data Karyawan',
-        'oee_educations' => 'Panduan & Edukasi OEE',
         'audit_logs' => 'Audit Trail & Log Integritas (ISO 27001)',
     ];
 

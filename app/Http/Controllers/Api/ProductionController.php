@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Downtime;
 use App\Models\Machine;
+use App\Models\NgRecord;
 use App\Models\OeeRecord;
+use App\Models\Product;
 use App\Models\ProductionRecord;
+use App\Models\ProductionRecordItem;
+use App\Models\QualityRecord;
 use App\Services\Oee\OeeCalculationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -132,7 +136,7 @@ class ProductionController extends Controller
             };
 
             // Query records for this machine
-            $recQuery = ProductionRecord::with(['productionLine', 'product', 'shift', 'oeeRecord', 'downtimes'])
+            $recQuery = ProductionRecord::with(['productionLine', 'product', 'shift', 'oeeRecord', 'downtimes', 'items.product'])
                 ->where('machine_id', $machine->id)
                 ->whereBetween('production_date', [$startDate->toDateString(), $endDate->toDateString()]);
 
@@ -187,15 +191,32 @@ class ProductionController extends Controller
 
                         $hasOngoingDowntime = $groupRecords->flatMap->downtimes->whereNull('end_time')->isNotEmpty();
                         [$calcStatus, $calcBadge] = $resolveStatus($machine, $hasOngoingDowntime, $isToday, true);
+                        $hasMultiSku = $latestRecord->items && $latestRecord->items->count() > 1;
+                        if ($hasMultiSku) {
+                            $prodTitle = $latestRecord->items->map(fn($it) => $it->product?->name)->filter()->unique()->values()->join(' & ');
+                            $prodSku = $latestRecord->items->map(fn($it) => $it->product?->sku ?? $it->product?->name)->filter()->unique()->values()->join(' & ');
+                        } else {
+                            $prodTitle = $latestRecord->product ? "{$latestRecord->product->name} - {$latestRecord->product->sku}" : 'N/A';
+                            $prodSku = $latestRecord->product->sku ?? 'N/A';
+                        }
 
                         $cards->push([
                             'record_id' => $latestRecord->id,
                             'machine_id' => $machine->id,
                             'machine_code' => $machine->code,
-                            'machine_name' => $machine->name . ' (' . ($latestRecord->productionLine->name ?? 'Line') . ' - ' . ($latestRecord->product ? "{$latestRecord->product->name} - {$latestRecord->product->sku}" : 'Product') . ')',
+                            'machine_name' => $machine->name . ' (' . ($latestRecord->productionLine->name ?? 'Line') . ' - ' . $prodTitle . ')',
                             'line_name' => $latestRecord->productionLine->name ?? ($machine->workCenter->productionLine->name ?? 'Unassigned Line'),
-                            'product_name' => $latestRecord->product ? "{$latestRecord->product->name} - {$latestRecord->product->sku}" : 'N/A',
-                            'product_sku' => $latestRecord->product->sku ?? 'N/A',
+                            'product_name' => $prodTitle,
+                            'product_sku' => $prodSku,
+                            'has_multi_sku' => $hasMultiSku,
+                            'sku_breakdown' => $latestRecord->items ? $latestRecord->items->map(fn($it) => [
+                                'product_id' => $it->product_id,
+                                'product_name' => $it->product?->name ?? "Product #{$it->product_id}",
+                                'product_sku' => $it->product?->sku ?? "SKU #{$it->product_id}",
+                                'total_quantity' => (int) $it->total_quantity,
+                                'good_quantity' => (int) $it->good_quantity,
+                                'reject_quantity' => (int) $it->reject_quantity,
+                            ])->values() : [],
                             'shift_name' => $latestRecord->shift->name ?? 'All Shifts',
                             'status' => $calcStatus,
                             'status_badge_color' => $calcBadge,
@@ -251,14 +272,23 @@ class ProductionController extends Controller
                     $hasOngoingDowntime = $records->flatMap->downtimes->whereNull('end_time')->isNotEmpty();
                     [$calcStatus, $calcBadge] = $resolveStatus($machine, $hasOngoingDowntime, $isToday, true);
 
+                    $hasMultiSku = $latestRecord->items && $latestRecord->items->count() > 1;
+                    if ($hasMultiSku) {
+                        $prodTitle = $latestRecord->items->map(fn($it) => $it->product?->name)->filter()->unique()->values()->join(' & ');
+                        $prodSku = $latestRecord->items->map(fn($it) => $it->product?->sku ?? $it->product?->name)->filter()->unique()->values()->join(' & ');
+                    } else {
+                        $prodTitle = $latestRecord->product ? "{$latestRecord->product->name} - {$latestRecord->product->sku}" : 'Belum Ada Laporan';
+                        $prodSku = $latestRecord->product->sku ?? 'N/A';
+                    }
+
                     $cards->push([
                         'record_id' => $latestRecord->id,
                         'machine_id' => $machine->id,
                         'machine_code' => $machine->code,
                         'machine_name' => $machine->name,
                         'line_name' => $latestRecord->productionLine->name ?? ($machine->workCenter->productionLine->name ?? 'Unassigned Line'),
-                        'product_name' => $latestRecord->product ? "{$latestRecord->product->name} - {$latestRecord->product->sku}" : 'Belum Ada Laporan',
-                        'product_sku' => $latestRecord->product->sku ?? 'N/A',
+                        'product_name' => $prodTitle,
+                        'product_sku' => $prodSku,
                         'status' => $calcStatus,
                         'status_badge_color' => $calcBadge,
                         'target_quantity' => $totalTarget,
@@ -299,6 +329,7 @@ class ProductionController extends Controller
             'shift',
             'operator.employee',
             'oeeRecord',
+            'items.product',
         ])->orderBy('production_date', 'desc')->orderBy('id', 'desc');
 
         if ($request->filled('line_id')) {
@@ -335,23 +366,86 @@ class ProductionController extends Controller
         $validated = $request->validate([
             'production_line_id' => 'required|exists:production_lines,id',
             'machine_id' => 'required|exists:machines,id',
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'nullable|exists:products,id',
             'shift_id' => 'required|exists:shifts,id',
             'operator_id' => 'nullable|exists:operators,id',
             'production_date' => 'required|date',
             'planned_production_time' => 'required|numeric|min:1',
-            'planned_downtime' => 'required|numeric|min:0',
-            'run_time' => 'required|numeric|min:0',
-            'downtime' => 'required|numeric|min:0',
-            'idle_time' => 'required|numeric|min:0',
-            'ideal_cycle_time' => 'required|numeric|min:0.0001',
-            'target_quantity' => 'required|integer|min:0',
-            'total_quantity' => 'required|integer|min:0',
-            'good_quantity' => 'required|integer|min:0',
-            'reject_quantity' => 'required|integer|min:0',
-            'scrap_quantity' => 'required|integer|min:0',
+            'planned_downtime' => 'nullable|numeric|min:0',
+            'run_time' => 'nullable|numeric|min:0',
+            'downtime' => 'nullable|numeric|min:0',
+            'unplanned_downtime' => 'nullable|numeric|min:0',
+            'idle_time' => 'nullable|numeric|min:0',
+            'ideal_cycle_time' => 'nullable|numeric|min:0.0001',
+            'target_quantity' => 'nullable|integer|min:0',
+            'total_quantity' => 'nullable|integer|min:0',
+            'good_quantity' => 'nullable|integer|min:0',
+            'reject_quantity' => 'nullable|integer|min:0',
+            'scrap_quantity' => 'nullable|integer|min:0',
             'downtime_logs' => 'nullable|array',
+            'items' => 'nullable|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.ideal_cycle_time' => 'nullable|numeric|min:0',
+            'items.*.target_quantity' => 'nullable|integer|min:0',
+            'items.*.good_quantity' => 'nullable|integer|min:0',
+            'items.*.reject_quantity' => 'nullable|integer|min:0',
+            'items.*.scrap_quantity' => 'nullable|integer|min:0',
+            'items.*.total_quantity' => 'nullable|integer|min:0',
+            'items.*.remarks' => 'nullable|string|max:255',
         ]);
+
+        $hasItems = !empty($validated['items']) && is_array($validated['items']) && count($validated['items']) > 0;
+
+        if ($hasItems) {
+            $totalGood = 0;
+            $totalReject = 0;
+            $totalScrap = 0;
+            $totalMeasuring = 0;
+            $totalTarget = 0;
+            $totalNetSeconds = 0.0;
+
+            foreach ($validated['items'] as $itm) {
+                $g = (int)($itm['good_quantity'] ?? 0);
+                $r = (int)($itm['reject_quantity'] ?? 0);
+                $s = (int)($itm['scrap_quantity'] ?? 0);
+                $tot = isset($itm['total_quantity']) && (int)$itm['total_quantity'] > 0 ? (int)$itm['total_quantity'] : ($g + $r + $s);
+                $ct = (float)($itm['ideal_cycle_time'] ?? 9.5);
+                $tgt = (int)($itm['target_quantity'] ?? 0);
+
+                $totalGood += $g;
+                $totalReject += $r;
+                $totalScrap += $s;
+                $totalMeasuring += $tot;
+                $totalTarget += $tgt;
+                $totalNetSeconds += ($ct * $tot);
+            }
+
+            $validated['good_quantity'] = $totalGood;
+            $validated['reject_quantity'] = $totalReject;
+            $validated['scrap_quantity'] = $totalScrap;
+            $validated['total_quantity'] = $totalMeasuring;
+
+            if ($totalTarget > 0 || !isset($validated['target_quantity']) || $validated['target_quantity'] <= 0) {
+                $validated['target_quantity'] = $totalTarget;
+            }
+
+            if ($totalMeasuring > 0 && $totalNetSeconds > 0) {
+                $validated['ideal_cycle_time'] = round($totalNetSeconds / $totalMeasuring, 4);
+            }
+
+            if (empty($validated['product_id'])) {
+                $validated['product_id'] = $validated['items'][0]['product_id'];
+            }
+        } else {
+            $validated['good_quantity'] = (int)($validated['good_quantity'] ?? 0);
+            $validated['reject_quantity'] = (int)($validated['reject_quantity'] ?? 0);
+            $validated['scrap_quantity'] = (int)($validated['scrap_quantity'] ?? 0);
+            $validated['total_quantity'] = isset($validated['total_quantity']) ? (int)$validated['total_quantity'] : ($validated['good_quantity'] + $validated['reject_quantity'] + $validated['scrap_quantity']);
+            $validated['target_quantity'] = (int)($validated['target_quantity'] ?? 0);
+            if (empty($validated['product_id'])) {
+                $validated['product_id'] = Product::first()->id ?? 1;
+            }
+        }
 
         // Validasi Duplikasi: Dalam 1 Line pada tanggal yang sama tidak boleh menggunakan Shift yang sama
         $existingRecord = ProductionRecord::with(['productionLine', 'product', 'shift', 'machine'])
@@ -385,6 +479,12 @@ class ProductionController extends Controller
             ], 422);
         }
 
+        // Planned & Unplanned Downtime fallbacks
+        $validated['planned_downtime'] = (float)($validated['planned_downtime'] ?? 0);
+        $dtValue = isset($validated['downtime']) ? (float)$validated['downtime'] : (float)($validated['unplanned_downtime'] ?? 0);
+        $validated['downtime'] = $dtValue;
+        $validated['idle_time'] = (float)($validated['idle_time'] ?? 0);
+
         // Sum downtime from trouble logs if downtime_logs are provided
         $totalDtFromLogs = 0;
         if ($request->has('downtime_logs') && is_array($request->downtime_logs)) {
@@ -393,35 +493,87 @@ class ProductionController extends Controller
                     $totalDtFromLogs += (float) $dtLog['duration_minutes'];
                 }
             }
-            if ($totalDtFromLogs > 0 && ($validated['downtime'] ?? 0) <= 0) {
+            if ($totalDtFromLogs > 0 && $validated['downtime'] <= 0) {
                 $validated['downtime'] = $totalDtFromLogs;
             }
         }
 
-        // Resolve effective cycle time based on product and production_date
-        $product = Product::find($validated['product_id']);
-        if ($product) {
-            $effectiveCt = $product->getEffectiveCycleTime(
-                $validated['production_date'],
-                $validated['machine_id'] ?? null,
-                $validated['production_line_id'] ?? null
-            );
-            if ($effectiveCt && $effectiveCt->ideal_cycle_time > 0) {
-                $validated['ideal_cycle_time'] = (float) $effectiveCt->ideal_cycle_time;
+        // Auto-compute run_time if not explicitly passed
+        if (!isset($validated['run_time'])) {
+            $validated['run_time'] = max(0, (float)$validated['planned_production_time'] - (float)$validated['planned_downtime'] - (float)$validated['downtime']);
+        } else {
+            $validated['run_time'] = (float)$validated['run_time'];
+        }
+
+        // Resolve effective cycle time based on product and production_date if single product
+        if (!$hasItems || empty($validated['ideal_cycle_time'])) {
+            $product = Product::find($validated['product_id']);
+            if ($product) {
+                $effectiveCt = $product->getEffectiveCycleTime(
+                    $validated['production_date'],
+                    $validated['machine_id'] ?? null,
+                    $validated['production_line_id'] ?? null
+                );
+                if ($effectiveCt && $effectiveCt->ideal_cycle_time > 0) {
+                    $validated['ideal_cycle_time'] = (float) $effectiveCt->ideal_cycle_time;
+                }
             }
         }
 
-        $availableTime = max(0, $validated['planned_production_time'] - $validated['planned_downtime']);
+        $availableTime = max(0, (float)$validated['planned_production_time'] - (float)$validated['planned_downtime']);
         $validated['available_production_time'] = $availableTime;
         $validated['production_rate'] = ($validated['run_time'] > 0) ? round(($validated['good_quantity'] / ($validated['run_time'] / 60.0)), 2) : 0;
-        $validated['actual_cycle_time'] = ($validated['total_quantity'] > 0) ? round(($validated['run_time'] * 60.0) / $validated['total_quantity'], 4) : $validated['ideal_cycle_time'];
+        $validated['actual_cycle_time'] = ($validated['total_quantity'] > 0) ? round(($validated['run_time'] * 60.0) / $validated['total_quantity'], 4) : ($validated['ideal_cycle_time'] ?? 9.5);
         $validated['status'] = 'COMPLETED';
+
+        $itemsPayload = $validated['items'] ?? [];
+        unset($validated['items']);
+        unset($validated['unplanned_downtime']);
 
         $record = ProductionRecord::create($validated);
 
+        // Ensure any pre-existing/orphaned items with this record ID are cleared first
+        ProductionRecordItem::where('production_record_id', $record->id)->delete();
+
+        // Save multi-product items
+        if ($hasItems) {
+            foreach ($itemsPayload as $itm) {
+                $g = (int)($itm['good_quantity'] ?? 0);
+                $r = (int)($itm['reject_quantity'] ?? 0);
+                $s = (int)($itm['scrap_quantity'] ?? 0);
+                $tot = isset($itm['total_quantity']) && (int)$itm['total_quantity'] > 0 ? (int)$itm['total_quantity'] : ($g + $r + $s);
+
+                $record->items()->create([
+                    'product_id' => $itm['product_id'],
+                    'ideal_cycle_time' => (float)($itm['ideal_cycle_time'] ?? 9.5),
+                    'target_quantity' => (int)($itm['target_quantity'] ?? 0),
+                    'good_quantity' => $g,
+                    'reject_quantity' => $r,
+                    'scrap_quantity' => $s,
+                    'total_quantity' => $tot,
+                    'remarks' => $itm['remarks'] ?? null,
+                ]);
+            }
+        } else {
+            $record->items()->create([
+                'product_id' => $record->product_id,
+                'ideal_cycle_time' => $record->ideal_cycle_time ?? 9.5,
+                'target_quantity' => $record->target_quantity,
+                'good_quantity' => $record->good_quantity,
+                'reject_quantity' => $record->reject_quantity,
+                'scrap_quantity' => $record->scrap_quantity,
+                'total_quantity' => $record->total_quantity,
+            ]);
+        }
+
         // Compute & save OEE
         $avail = $this->oeeService->calculateAvailability($record->run_time, $record->available_production_time);
-        $perf = $this->oeeService->calculatePerformance($record->ideal_cycle_time, $record->total_quantity, $record->run_time);
+        $freshItems = $record->items()->get();
+        if ($freshItems->isNotEmpty()) {
+            $perf = $this->oeeService->calculateMultiProductPerformance($freshItems, $record->run_time);
+        } else {
+            $perf = $this->oeeService->calculatePerformance($record->ideal_cycle_time, $record->total_quantity, $record->run_time);
+        }
         $qual = $this->oeeService->calculateQuality($record->good_quantity, $record->total_quantity);
         $oee = $this->oeeService->calculateOee($avail, $perf, $qual);
 
@@ -446,7 +598,7 @@ class ProductionController extends Controller
         $sixLosses = $this->oeeService->calculateSixBigLosses(
             $record->available_production_time,
             $record->run_time,
-            $record->ideal_cycle_time,
+            $record->ideal_cycle_time ?? 9.5,
             $record->total_quantity,
             $record->reject_quantity,
             $record->scrap_quantity,
@@ -482,8 +634,6 @@ class ProductionController extends Controller
                 $startTime = null;
                 if (!empty($dtLog['start_time'])) {
                     $startTime = str_contains($dtLog['start_time'], '-') ? Carbon::parse($dtLog['start_time']) : Carbon::parse("{$prodDateStr} {$dtLog['start_time']}");
-                } else {
-                    $startTime = Carbon::parse("{$prodDateStr} 08:00:00");
                 }
 
                 $endTime = null;
@@ -496,6 +646,13 @@ class ProductionController extends Controller
                 $probType = $dtLog['problem_type'] ?? 'Problem Mesin Mekanik';
                 $reasonId = !empty($dtLog['downtime_reason_id']) ? $dtLog['downtime_reason_id'] : null;
 
+                $statusVal = strtoupper($dtLog['status'] ?? 'CLOSED');
+                $downtimeStartTime = $startTime ?: Carbon::parse($prodDateStr)->startOfDay();
+                $downtimeEndTime = $endTime;
+                if (!$downtimeEndTime && $statusVal !== 'OPEN' && $durMins > 0) {
+                    $downtimeEndTime = $downtimeStartTime->copy()->addMinutes((int) ceil($durMins));
+                }
+
                 Downtime::create([
                     'production_record_id' => $record->id,
                     'production_line_id' => !empty($dtLog['production_line_id']) ? $dtLog['production_line_id'] : $record->production_line_id,
@@ -504,16 +661,19 @@ class ProductionController extends Controller
                     'product_id' => !empty($dtLog['product_id']) ? $dtLog['product_id'] : $record->product_id,
                     'team' => $dtLog['team'] ?? null,
                     'problem_type' => $probType,
-                    'start_time' => $startTime,
-                    'end_time' => $endTime,
+                    'start_time' => $downtimeStartTime,
+                    'end_time' => $downtimeEndTime,
                     'duration_minutes' => $durMins,
                     'downtime_reason_id' => $reasonId,
                     'description' => $dtLog['description'] ?? null,
                     'cause' => $dtLog['cause'] ?? null,
                     'action_taken' => $dtLog['action_taken'] ?? null,
                     'pic' => $dtLog['pic'] ?? ($dtLog['leader_name'] ?? null),
-                    'status' => strtoupper($dtLog['status'] ?? 'CLOSED'),
+                    'status' => $statusVal,
                     'is_planned' => filter_var($dtLog['is_planned'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'follow_up_action' => $dtLog['follow_up_action'] ?? null,
+                    'due_date' => !empty($dtLog['due_date']) ? $dtLog['due_date'] : null,
+                    'pic_followup' => $dtLog['pic_followup'] ?? null,
                     'created_by' => auth()->id() ?? 1,
                 ]);
             }
@@ -522,7 +682,7 @@ class ProductionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Production record created & OEE calculated successfully',
-            'data' => $record->load('oeeRecord'),
+            'data' => $record->load(['oeeRecord', 'items.product']),
         ], 201);
     }
 
@@ -531,7 +691,7 @@ class ProductionController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $record = ProductionRecord::find($id);
+        $record = ProductionRecord::with('items')->find($id);
         if (!$record) {
             return response()->json(['success' => false, 'message' => 'Catatan produksi tidak ditemukan'], 404);
         }
@@ -539,7 +699,7 @@ class ProductionController extends Controller
         $validated = $request->validate([
             'production_line_id' => 'sometimes|required|exists:production_lines,id',
             'machine_id' => 'sometimes|required|exists:machines,id',
-            'product_id' => 'sometimes|required|exists:products,id',
+            'product_id' => 'nullable|exists:products,id',
             'shift_id' => 'sometimes|required|exists:shifts,id',
             'operator_id' => 'nullable|exists:operators,id',
             'production_date' => 'sometimes|required|date',
@@ -549,11 +709,20 @@ class ProductionController extends Controller
             'downtime' => 'nullable|numeric|min:0',
             'idle_time' => 'nullable|numeric|min:0',
             'ideal_cycle_time' => 'nullable|numeric|min:0.0001',
-            'target_quantity' => 'sometimes|required|integer|min:0',
-            'total_quantity' => 'sometimes|required|integer|min:0',
-            'good_quantity' => 'sometimes|required|integer|min:0',
-            'reject_quantity' => 'sometimes|required|integer|min:0',
+            'target_quantity' => 'nullable|integer|min:0',
+            'total_quantity' => 'nullable|integer|min:0',
+            'good_quantity' => 'nullable|integer|min:0',
+            'reject_quantity' => 'nullable|integer|min:0',
             'scrap_quantity' => 'nullable|integer|min:0',
+            'items' => 'nullable|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.ideal_cycle_time' => 'nullable|numeric|min:0',
+            'items.*.target_quantity' => 'nullable|integer|min:0',
+            'items.*.good_quantity' => 'nullable|integer|min:0',
+            'items.*.reject_quantity' => 'nullable|integer|min:0',
+            'items.*.scrap_quantity' => 'nullable|integer|min:0',
+            'items.*.total_quantity' => 'nullable|integer|min:0',
+            'items.*.remarks' => 'nullable|string|max:255',
         ]);
 
         $lineId = $validated['production_line_id'] ?? $record->production_line_id;
@@ -579,6 +748,50 @@ class ProductionController extends Controller
             ], 422);
         }
 
+        $hasItems = isset($validated['items']) && is_array($validated['items']) && count($validated['items']) > 0;
+
+        if ($hasItems) {
+            $totalGood = 0;
+            $totalReject = 0;
+            $totalScrap = 0;
+            $totalMeasuring = 0;
+            $totalTarget = 0;
+            $totalNetSeconds = 0.0;
+
+            foreach ($validated['items'] as $itm) {
+                $g = (int)($itm['good_quantity'] ?? 0);
+                $r = (int)($itm['reject_quantity'] ?? 0);
+                $s = (int)($itm['scrap_quantity'] ?? 0);
+                $tot = isset($itm['total_quantity']) && (int)$itm['total_quantity'] > 0 ? (int)$itm['total_quantity'] : ($g + $r + $s);
+                $ct = (float)($itm['ideal_cycle_time'] ?? 9.5);
+                $tgt = (int)($itm['target_quantity'] ?? 0);
+
+                $totalGood += $g;
+                $totalReject += $r;
+                $totalScrap += $s;
+                $totalMeasuring += $tot;
+                $totalTarget += $tgt;
+                $totalNetSeconds += ($ct * $tot);
+            }
+
+            $validated['good_quantity'] = $totalGood;
+            $validated['reject_quantity'] = $totalReject;
+            $validated['scrap_quantity'] = $totalScrap;
+            $validated['total_quantity'] = $totalMeasuring;
+
+            if ($totalTarget > 0) {
+                $validated['target_quantity'] = $totalTarget;
+            }
+
+            if ($totalMeasuring > 0 && $totalNetSeconds > 0) {
+                $validated['ideal_cycle_time'] = round($totalNetSeconds / $totalMeasuring, 4);
+            }
+
+            if (empty($validated['product_id'])) {
+                $validated['product_id'] = $validated['items'][0]['product_id'];
+            }
+        }
+
         $plannedTime = $validated['planned_production_time'] ?? $record->planned_production_time;
         $plannedDowntime = $validated['planned_downtime'] ?? $record->planned_downtime;
         $runTime = $validated['run_time'] ?? $record->run_time;
@@ -589,25 +802,68 @@ class ProductionController extends Controller
         $machId = $validated['machine_id'] ?? $record->machine_id;
         $lineId = $validated['production_line_id'] ?? $record->production_line_id;
 
-        $product = Product::find($prodId);
-        if ($product) {
-            $effectiveCt = $product->getEffectiveCycleTime($prodDate, $machId, $lineId);
-            if ($effectiveCt && $effectiveCt->ideal_cycle_time > 0) {
-                $validated['ideal_cycle_time'] = (float) $effectiveCt->ideal_cycle_time;
+        if (!$hasItems && empty($validated['ideal_cycle_time'])) {
+            $product = Product::find($prodId);
+            if ($product) {
+                $effectiveCt = $product->getEffectiveCycleTime($prodDate, $machId, $lineId);
+                if ($effectiveCt && $effectiveCt->ideal_cycle_time > 0) {
+                    $validated['ideal_cycle_time'] = (float) $effectiveCt->ideal_cycle_time;
+                }
             }
         }
-        $idealCycle = $validated['ideal_cycle_time'] ?? $record->ideal_cycle_time;
+        $idealCycle = $validated['ideal_cycle_time'] ?? $record->ideal_cycle_time ?? 9.5;
 
         $availableTime = max(0, $plannedTime - $plannedDowntime);
         $validated['available_production_time'] = $availableTime;
         $validated['production_rate'] = ($runTime > 0) ? round(($goodQty / ($runTime / 60.0)), 2) : 0;
         $validated['actual_cycle_time'] = ($totalQty > 0) ? round(($runTime * 60.0) / $totalQty, 4) : $idealCycle;
 
+        $itemsPayload = $validated['items'] ?? null;
+        unset($validated['items']);
+
         $record->update($validated);
+
+        // Always clean up existing items before saving new/updated items
+        $record->items()->delete();
+
+        if ($hasItems && is_array($itemsPayload)) {
+            foreach ($itemsPayload as $itm) {
+                $g = (int)($itm['good_quantity'] ?? 0);
+                $r = (int)($itm['reject_quantity'] ?? 0);
+                $s = (int)($itm['scrap_quantity'] ?? 0);
+                $tot = isset($itm['total_quantity']) && (int)$itm['total_quantity'] > 0 ? (int)$itm['total_quantity'] : ($g + $r + $s);
+
+                $record->items()->create([
+                    'product_id' => $itm['product_id'],
+                    'ideal_cycle_time' => (float)($itm['ideal_cycle_time'] ?? 9.5),
+                    'target_quantity' => (int)($itm['target_quantity'] ?? 0),
+                    'good_quantity' => $g,
+                    'reject_quantity' => $r,
+                    'scrap_quantity' => $s,
+                    'total_quantity' => $tot,
+                    'remarks' => $itm['remarks'] ?? null,
+                ]);
+            }
+        } else {
+            $record->items()->create([
+                'product_id' => $record->product_id,
+                'ideal_cycle_time' => $record->ideal_cycle_time ?? 9.5,
+                'target_quantity' => $record->target_quantity,
+                'good_quantity' => $record->good_quantity,
+                'reject_quantity' => $record->reject_quantity,
+                'scrap_quantity' => $record->scrap_quantity,
+                'total_quantity' => $record->total_quantity,
+            ]);
+        }
 
         // Recalculate OEE
         $avail = $this->oeeService->calculateAvailability($record->run_time, $record->available_production_time);
-        $perf = $this->oeeService->calculatePerformance($record->ideal_cycle_time, $record->total_quantity, $record->run_time);
+        $freshItems = $record->items()->get();
+        if ($freshItems->isNotEmpty()) {
+            $perf = $this->oeeService->calculateMultiProductPerformance($freshItems, $record->run_time);
+        } else {
+            $perf = $this->oeeService->calculatePerformance($record->ideal_cycle_time, $record->total_quantity, $record->run_time);
+        }
         $qual = $this->oeeService->calculateQuality($record->good_quantity, $record->total_quantity);
         $oee = $this->oeeService->calculateOee($avail, $perf, $qual);
 
@@ -632,7 +888,7 @@ class ProductionController extends Controller
         $sixLosses = $this->oeeService->calculateSixBigLosses(
             $record->available_production_time,
             $record->run_time,
-            $record->ideal_cycle_time,
+            $record->ideal_cycle_time ?? 9.5,
             $record->total_quantity,
             $record->reject_quantity,
             $record->scrap_quantity,
@@ -659,7 +915,7 @@ class ProductionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Laporan produksi berhasil diperbarui & OEE dihitung ulang!',
-            'data' => $record->load('oeeRecord'),
+            'data' => $record->load(['oeeRecord', 'items.product']),
         ]);
     }
 
@@ -673,6 +929,9 @@ class ProductionController extends Controller
             return response()->json(['success' => false, 'message' => 'Catatan produksi tidak ditemukan'], 404);
         }
 
+        ProductionRecordItem::where('production_record_id', $id)->delete();
+        QualityRecord::where('production_record_id', $id)->delete();
+        NgRecord::where('production_record_id', $id)->delete();
         OeeRecord::where('production_record_id', $id)->delete();
         Downtime::where('production_record_id', $id)->delete();
         $record->delete();
